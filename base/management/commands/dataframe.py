@@ -17,11 +17,10 @@ class Command(BaseCommand):
       hoteldata.drop(columns=['3'], inplace=True)
       df = pd.merge(citydata, hoteldata, on='city_id')
 
-      # Hier mee probeer ik de data op te slaan in mijn sqllite database door middel van een for loop.
       for index, row in df.iterrows():
-            Data.objects.create(
-                city_id=row['city_id'],
-                city_name=row['city_name'],
-                hotel_id=row['hotel_id'],
-                hotel_name=row['hotel_name'],
-            )
+            data = Data()
+            data.city_id = row['city_id']
+            data.city_name = row['city_name']
+            data.hotel_id = row['hotel_id']
+            data.hotel_name = row['hotel_name']
+            data.save()
