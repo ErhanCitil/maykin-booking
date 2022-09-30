@@ -55,6 +55,7 @@ ROOT_URLCONF = 'maykintest.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        # Templates folder aangemaakt om alle html bestanden in te zetten. De path er naar toe is hieronder aangegeven.
         'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
