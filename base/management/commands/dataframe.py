@@ -24,4 +24,4 @@ class Command(BaseCommand):
             data.hotel_id = row['hotel_id']
             data.hotel_name = row['hotel_name']
             data.save()
-            print(data.city_name + "is saved")
+            
