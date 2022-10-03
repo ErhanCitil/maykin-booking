@@ -1,5 +1,8 @@
 from django.shortcuts import render
-
+from .models import Data
 # Create your views here.
 def index(request):
-    return render(request, 'index.html')
+    context = {
+        'data': Data.objects.all()
+    }
+    return render(request, 'index.html', context)
