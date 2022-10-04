@@ -9,7 +9,11 @@
 </head>
 <body>
     {% include 'header.html' %}
-   
+   <select name="" id="">
+    {% for item in data%}
+    <option value="{{item.city_name}}">{{item.city_name}}</option>
+    {% endfor %}
+   </select>
     {% include 'footer.html'%}
 </body>
 </html>
