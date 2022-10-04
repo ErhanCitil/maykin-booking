@@ -1,19 +1,137 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Maykin Booking</title>
     <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body>
+  </head>
+  <body>
     {% include 'header.html' %}
-   <select name="" id="">
-    {% for item in data%}
-    <option value="{{item.city_name}}">{{item.city_name}}</option>
-    {% endfor %}
-   </select>
+
+    <h1 class="font-bold text-center text-3xl pt-2">Maykin Booking</h1>
+
+    <p class="p-4">
+      Maykin Booking is een site waar jij je hotel kan boeken in de favoriete en
+      bekende steden! Je kan terecht bij Maykin Media als je zo goedkoop
+      mogelijk een hotel wilt boeken. Wij hebben een groot aanbod aan hotels in de randsteden en meer! 
+    </p>
+
+    <div class="flex flex-row">
+      {% comment %} Amsterdam {% endcomment %}
+      <div class="">
+        <a href="{{}}" class="w-[30rem] border-2 border-b-4 border-gray-200 rounded-xl hover:bg-gray-50">
+          <div class="grid grid-cols-6 p-5 gap-y-2">
+
+            <div class="col-span-5 md:col-span-4 ml-4">
+      
+      
+              <p class="text-gray-600 font-bold"> Amsterdam</p>
+      
+              <p class="text-gray-400"> Klik hier om alle hotels in Amsterdam te vinden! </p>
+      
+            </div>
+      
+          </div>
+      
+        </a>
+      </div>
+
+      {% comment %} Antwerpen {% endcomment %}
+      <div class="">
+        <a href="#" class="w-[30rem] border-2 border-b-4 border-gray-200 rounded-xl hover:bg-gray-50">
+
+
+          <div class="grid grid-cols-6 p-5 gap-y-2">
+            <div class="col-span-5 md:col-span-4 ml-4">
+      
+              <p class="text-gray-600 font-bold">Antwerpen</p>
+      
+              <p class="text-gray-400">Klik hier om alle hotels in Antwerpen te vinden!</p>
+      
+            </div>
+      
+          </div>
+      
+        </a>
+      </div>
+      {% comment %} Athene {% endcomment %}
+      <div class="">
+        <a href="#" class="w-[30rem] border-2 border-b-4 border-gray-200 rounded-xl hover:bg-gray-50">
+
+
+          <div class="grid grid-cols-6 p-5 gap-y-2">
+            <div class="col-span-5 md:col-span-4 ml-4">
+      
+              <p class="text-gray-600 font-bold">Athene</p>
+      
+              <p class="text-gray-400">Klik hier om alle hotels in Athene te vinden!</p>
+      
+            </div>
+      
+          </div>
+      
+        </a>
+      </div>
+      {% comment %} Bangkok {% endcomment %}
+      <div class="">
+        <a href="#" class="w-[30rem] border-2 border-b-4 border-gray-200 rounded-xl hover:bg-gray-50">
+
+
+          <div class="grid grid-cols-6 p-5 gap-y-2">
+            <div class="col-span-5 md:col-span-4 ml-4">
+      
+              <p class="text-gray-600 font-bold">Bangkok</p>
+      
+              <p class="text-gray-400">Klik hier om alle hotels in Bangkok te vinden!</p>
+      
+            </div>
+      
+          </div>
+      
+        </a>
+      </div>
+
+      {% comment %} Barcelona {% endcomment %}
+      <div class="">
+        <a href="#" class="w-[30rem] border-2 border-b-4 border-gray-200 rounded-xl hover:bg-gray-50">
+
+
+          <div class="grid grid-cols-6 p-5 gap-y-2">
+            <div class="col-span-5 md:col-span-4 ml-4">
+      
+              <p class="text-gray-600 font-bold">Barcelona</p>
+      
+              <p class="text-gray-400">Klik hier om alle hotels in Barcelona te vinden!</p>
+      
+            </div>
+      
+          </div>
+      
+        </a>
+      </div>
+
+
+      {% comment %} Berlijn {% endcomment %}
+      <div class="">
+        <a href="#" class="w-[30rem] border-2 border-b-4 border-gray-200 rounded-xl hover:bg-gray-50">
+
+
+          <div class="grid grid-cols-6 p-5 gap-y-2">
+            <div class="col-span-5 md:col-span-4 ml-4">
+      
+              <p class="text-gray-600 font-bold">Berlijn</p>
+      
+              <p class="text-gray-400">Klik hier om alle hotels in Berlijn te vinden!</p>
+      
+            </div>
+      
+          </div>
+      
+        </a>
+      </div>
+    </div>
     {% include 'footer.html'%}
-</body>
+  </body>
 </html>
