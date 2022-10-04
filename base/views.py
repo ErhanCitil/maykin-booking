@@ -10,3 +10,9 @@ def index(request):
 def error_404(request, exception):
         data = {}
         return render(request,'404.html', data)
+
+def amsterdam(request):
+    context = {
+        'data': Data.objects.filter(city_name='Amsterdam')
+    }
+    return render(request, 'amsterdam.html', context)
