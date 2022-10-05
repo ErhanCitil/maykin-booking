@@ -20,120 +20,53 @@
       mogelijk een hotel wilt boeken. Wij hebben een groot aanbod aan hotels in de randsteden en meer! 
     </p>
 
-    <div class="flex flex-row">
-      {% comment %} Amsterdam {% endcomment %}
-      <div class="">
-        <a href="{% url 'amsterdam' %}" class="w-[30rem] border-2 border-b-4 border-gray-200 rounded-xl hover:bg-gray-50">
-          <div class="grid grid-cols-6 p-5 gap-y-2">
+    <div class="flex justify-center" style="height: 350px">
+      <!-- Table Series -->
+      <div class="col-span-12 h-screen">
+        <div class="overflow-auto lg:overflow-visible">
+          <table
+            class="table text-whiteborder-separate space-y-6 text-sm"
+          >
+            <thead class="bg-gray-800 text-white">
+              <tr>
+                <th class="p-3 w-48">Steden</th>
+                <th class="p-3 w-48">Detail</th>
+              </tr>
+            </thead>
 
-            <div class="col-span-5 md:col-span-4 ml-4">
-      
-      
-              <p class="text-gray-600 font-bold"> Amsterdam</p>
-      
-              <p class="text-gray-400"> Klik hier om alle hotels in Amsterdam te vinden! </p>
-      
-            </div>
-      
-          </div>
-      
-        </a>
-      </div>
+            {% for item in data %}
+            <tbody>
+              <tr class="bg-gray-800">
+                <td class="p-3">
+                  <div class="flex align-items-center">
+                    <div class="ml-3">
+                      <div class="font-bold text-white">{{ item.city_name }}</div>
+                    </div>
+                  </div>
+                </td>
+   {% comment %} <td class="p-3 pl-8 font-bold">{{ item. }}</td>
+                <td class="text-white pl-2 pr-2">
+                  <a href="{% url 'stad' item.city_name %}"
+                    >Bekijk Details</a
+                  >
+                </td>  {% endcomment %}
 
-      {% comment %} Antwerpen {% endcomment %}
-      <div class="">
-        <a href="{% url 'antwerpen' %}" class="w-[30rem] border-2 border-b-4 border-gray-200 rounded-xl hover:bg-gray-50">
+                {% comment %} <td class="text-white pl-2">
+                  <a href="{% url 'updateserie' serie.id %}">Update</a>
+                </td>
 
-
-          <div class="grid grid-cols-6 p-5 gap-y-2">
-            <div class="col-span-5 md:col-span-4 ml-4">
-      
-              <p class="text-gray-600 font-bold">Antwerpen</p>
-      
-              <p class="text-gray-400">Klik hier om alle hotels in Antwerpen te vinden!</p>
-      
-            </div>
-      
-          </div>
-      
-        </a>
-      </div>
-      {% comment %} Athene {% endcomment %}
-      <div class="">
-        <a href="{% url 'athene' %}" class="w-[30rem] border-2 border-b-4 border-gray-200 rounded-xl hover:bg-gray-50">
-
-
-          <div class="grid grid-cols-6 p-5 gap-y-2">
-            <div class="col-span-5 md:col-span-4 ml-4">
-      
-              <p class="text-gray-600 font-bold">Athene</p>
-      
-              <p class="text-gray-400">Klik hier om alle hotels in Athene te vinden!</p>
-      
-            </div>
-      
-          </div>
-      
-        </a>
-      </div>
-      {% comment %} Bangkok {% endcomment %}
-      <div class="">
-        <a href="{% url 'bangkok' %}" class="w-[30rem] border-2 border-b-4 border-gray-200 rounded-xl hover:bg-gray-50">
-
-
-          <div class="grid grid-cols-6 p-5 gap-y-2">
-            <div class="col-span-5 md:col-span-4 ml-4">
-      
-              <p class="text-gray-600 font-bold">Bangkok</p>
-      
-              <p class="text-gray-400">Klik hier om alle hotels in Bangkok te vinden!</p>
-      
-            </div>
-      
-          </div>
-      
-        </a>
-      </div>
-
-      {% comment %} Barcelona {% endcomment %}
-      <div class="">
-        <a href="{% url 'barcelona' %}" class="w-[30rem] border-2 border-b-4 border-gray-200 rounded-xl hover:bg-gray-50">
-
-
-          <div class="grid grid-cols-6 p-5 gap-y-2">
-            <div class="col-span-5 md:col-span-4 ml-4">
-      
-              <p class="text-gray-600 font-bold">Barcelona</p>
-      
-              <p class="text-gray-400">Klik hier om alle hotels in Barcelona te vinden!</p>
-      
-            </div>
-      
-          </div>
-      
-        </a>
-      </div>
-
-
-      {% comment %} Berlijn {% endcomment %}
-      <div class="">
-        <a href="{% url 'berlijn' %}" class="w-[30rem] border-2 border-b-4 border-gray-200 rounded-xl hover:bg-gray-50">
-
-
-          <div class="grid grid-cols-6 p-5 gap-y-2">
-            <div class="col-span-5 md:col-span-4 ml-4">
-      
-              <p class="text-gray-600 font-bold">Berlijn</p>
-      
-              <p class="text-gray-400">Klik hier om alle hotels in Berlijn te vinden!</p>
-      
-            </div>
-      
-          </div>
-      
-        </a>
+                <td class="text-white pl-2">
+                  <a href="deleteserie/{{ serie.id }}">Delete</a>
+                </td> {% endcomment %}
+              </tr>
+            </tbody>
+            {% endfor %}
+          </table>
+        </div>
       </div>
     </div>
+  </div>
+
     {% include 'footer.html'%}
   </body>
 </html>
