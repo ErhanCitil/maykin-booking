@@ -1,22 +1,29 @@
 <!DOCTYPE html>
 {% load static %}
+{% for name in data%}
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Steden | Maykin booking</title>
+    <title>{{name.city_name}} | Maykin booking</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="shortcut icon" type="image/png" href="{% static 'favicon.ico' %}"/>
   </head>
-
+{% endfor %}
 <body>
 
     {% include 'header.html'%}
 
-    {% for item in data %}
-        <h1>{{item.city_name}}</h1>
+<div class="flex flex-wrap">
+    {% for item in data%}
+    <div class="h-full w-auto border rounded-md border-gray-700 px-2 m-4">
+        <h1 class="">Hotel:{{item.hotel_name}}</h1>
+        <p>Stad: {{item.city_name}}</p>
+        <p>{{item.hotel_id}}</p>
+    </div>
     {% endfor %}
+</div>
 
     {% include 'footer.html'%}
 
