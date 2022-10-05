@@ -20,7 +20,7 @@ from base import views
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', views.index, name='index'),
-    path('stad/', views.stad, name='stad'),
+    path('stad/<str:city_name>', views.stad, name='stad'),
 ]
 
 handler404 = 'base.views.error_404'

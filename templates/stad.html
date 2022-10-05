@@ -5,7 +5,19 @@
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title></title>
+    <title>Steden | Maykin booking</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="shortcut icon" type="image/png" href="{% static 'favicon.ico' %}"/>
   </head>
+
+<body>
+
+    {% include 'header.html'%}
+
+    {% for item in data %}
+        <h1>{{item.city_name}}</h1>
+    {% endfor %}
+
+    {% include 'footer.html'%}
+
+</body>

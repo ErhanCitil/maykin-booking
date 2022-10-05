@@ -11,7 +11,7 @@ def error_404(request, exception):
         data = {}
         return render(request,'404.html', data)
 
-def stad(request):
+def stad(request, city_name):
     context = {
         'data': Data.objects.values('city_name').distinct()
     }
