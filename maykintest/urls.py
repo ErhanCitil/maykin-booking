@@ -21,6 +21,11 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', views.index, name='index'),
     path('amsterdam/', views.amsterdam, name='amsterdam'),
+    path('antwerpen/', views.antwerpen, name='antwerpen'),
+    path('athene/', views.athene, name='athene'),
+    path('bangkok/', views.bangkok, name='bangkok'),
+    path('barcelona/', views.barcelona, name='barcelona'),
+    path('berlijn/', views.berlijn, name='berlijn'),
 ]
 
 handler404 = 'base.views.error_404'
