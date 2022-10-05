@@ -44,20 +44,11 @@
                     </div>
                   </div>
                 </td>
-   <td class="p-3 pl-8 font-bold">{{ item. }}</td>
-                <td class="text-white pl-2 pr-2">
+                <td class="text-white pl-2 pr-2 text-center">
                   <a href="{% url 'stad' item.city_name %}"
                     >Bekijk Details</a
                   >
                 </td> 
-
-                {% comment %} <td class="text-white pl-2">
-                  <a href="{% url 'updateserie' serie.id %}">Update</a>
-                </td>
-
-                <td class="text-white pl-2">
-                  <a href="deleteserie/{{ serie.id }}">Delete</a>
-                </td> {% endcomment %}
               </tr>
             </tbody>
             {% endfor %}
