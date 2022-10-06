@@ -20,3 +20,6 @@ def stad(request, city_name):
         return render(request, 'stad.html', context)
     else:
         return render(request, '404.html')
+
+def contact(request):
+    return render(request, 'contact.html')

@@ -4,6 +4,8 @@ from base.models import Data
 from datetime import timedelta, datetime
 from django.utils.timezone import utc
 import pandas as pd
+import requests
+from requests.auth import HTTPBasicAuth
 
 class Command(BaseCommand):
 
@@ -16,7 +18,7 @@ class Command(BaseCommand):
       # Hier drop ik de kolom 3 omdat deze missende values bevat, daarna merge ik de twee dataframes op basis van de city_id.
       hoteldata.drop(columns=['3'], inplace=True)
       df = pd.merge(citydata, hoteldata, on='city_id')
-
+  
       for index, row in df.iterrows():
             data = Data()
             data.city_id = row['city_id']
