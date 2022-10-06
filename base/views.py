@@ -22,4 +22,10 @@ def stad(request, city_name):
         return render(request, '404.html')
 
 def contact(request):
-    return render(request, 'contact.html')
+        return render(request, 'contact.html')
+
+def hotel(request):
+    context = {
+        'data': Data.objects.values('city_name').distinct()
+    }
+    return render(request, 'hotels.html',context)

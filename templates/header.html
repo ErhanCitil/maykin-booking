@@ -1,13 +1,13 @@
 <nav class=" bg-gray-800">
-    <div class="container p-6 mx-auto">
+    <div class="container p-6 mx-auto ">
         <div>
-
-
+            {% load static %}
+            <img src="{% static 'MAYKIN.png' %}" alt="Maykin Logo" class="w-20 h-20 ">
         </div>
         <div class="flex items-center justify-center mt-6 text-gray-300 text-gray-300">
             <a href="{% url 'index'%}" class="border-b-2 border-transparent hover:text-gray-300 hover:border-blue-500 mx-1.5 sm:mx-6">Home</a>
 
-            <a href="" class="border-b-2 border-transparent hover:text-gray-300 hover:border-blue-500 mx-1.5 sm:mx-6">Hotels</a>
+            <a href="{% url 'hotel'%}" class="border-b-2 border-transparent hover:text-gray-300 hover:border-blue-500 mx-1.5 sm:mx-6">Hotels</a>
 
             <a href="{% url 'contact'%}" class="border-b-2 border-transparent hover:text-gray-300 hover:border-blue-500 mx-1.5 sm:mx-6">Contact</a>
             <div class="right">
