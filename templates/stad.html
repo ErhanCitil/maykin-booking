@@ -15,10 +15,10 @@
 
     {% include 'header.html'%}
 
-<div class="flex flex-wrap ">
+<div class="flex flex-wrap w-auto">
     {% for item in data%}
     <div class="h-full w-auto border  border-gray-700 px-2 m-4 hover:bg-sky-400 font-bold">
-        <h1 class="">Hotel:{{item.hotel_name}}</h1>
+        <h1 class="">Hotel: {{item.hotel_name}}</h1>
         <p>Stad: {{item.city_name}}</p>
         <p>{{item.hotel_id}}</p>
     </div>
