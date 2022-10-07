@@ -19,6 +19,7 @@ class Command(BaseCommand):
       hoteldata.drop(columns=['3'], inplace=True)
       df = pd.merge(citydata, hoteldata, on='city_id')
   
+      # Hier loop ik door de dataframe heen en sla ik de data op in de database. 
       for index, row in df.iterrows():
             data = Data()
             data.city_id = row['city_id']

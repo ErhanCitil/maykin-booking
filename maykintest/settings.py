@@ -31,6 +31,7 @@ ALLOWED_HOSTS = ['*']
 
 # Application definition
 
+# Dit gebruik ik om bestanden zoals css, js en foto's te kunnen gebruiken in de templates.
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static'),] # new
