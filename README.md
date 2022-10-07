@@ -7,4 +7,4 @@ a better Django developer.
 
 # Installation
 After you cloned this repository to your local machine you can create an environment with the following command:
-`python -m venv name_of_your_venv`
+`python -m venv name_of_your_venv` and then activate your environment: **Windows:** `source name_of_your_venv/Scripts/activate`, **Mac:** `source name_of_your_venv/bin/activate`
