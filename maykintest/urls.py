@@ -22,6 +22,7 @@ urlpatterns = [
     path('', views.index, name='index'),
     path('stad/<str:city_name>', views.stad, name='stad'),
     path('hotels/', views.hotel, name='hotel'),
+    path('contact/', views.contact, name='contact'),
 ]
 
 handler404 = 'base.views.error_404'
