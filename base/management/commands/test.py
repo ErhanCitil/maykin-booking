@@ -11,11 +11,12 @@ import io
 class Command(BaseCommand):
 
     def handle(self, *args, **options):
-      cityurl = "http://rachel.maykinmedia.nl/djangocase/city.csv"
-      hotelurl = "http://rachel.maykinmedia.nl/djangocase/hotel.csv"
-      responsecity = requests.get(cityurl).content
-      responsehotel = requests.get(hotelurl).content
-      # Hier open ik de csv file en sla ik deze op in een dataframe ik maak gebruik van de library genaamd Pandas. 
+      responsecity = requests.get('http://rachel.maykinmedia.nl/djangocase/city.csv',
+            auth = HTTPBasicAuth('python-demo', 'claw30_bumps')).content
+      responsehotel = requests.get('http://rachel.maykinmedia.nl/djangocase/hotel.csv',
+            auth = HTTPBasicAuth('python-demo', 'claw30_bumps')).content
+            
+      # Hier open ik de csv file en sla ik deze op in een dataframe ik maak gebruik van de library genaamd Pandas.
       citydata = pd.read_csv(io.StringIO(responsecity.decode('utf-8')), names=['city_id', 'city_name'], sep=";", header=None)
       hoteldata = pd.read_csv(io.StringIO(responsehotel.decode('utf-8')), names=['city_id', 'hotel_id', 'hotel_name', '3'], sep=";", header=None)
 
