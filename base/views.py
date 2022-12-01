@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from .models import Data
+from .models import Data, ContactForm
 from django.shortcuts import render, get_object_or_404
 # Create your views here.
 def index(request):
@@ -33,3 +33,16 @@ def hotel(request):
         'data': Data.objects.values('city_name').distinct()
     }
     return render(request, 'hotels.html',context)
+
+def contact(request):
+    if request.method == 'POST':
+        naamenachternaam = request.POST.get('naam')
+        email = request.POST.get('email')
+        onderwerp = request.POST.get('onderwerp')
+        bericht = request.POST.get('bericht')
+        contactform = ContactForm(naamenachternaam=naamenachternaam, email=email, onderwerp=onderwerp, bericht=bericht)
+        contactform.save()
+        return render(request, 'contact.html')
+
+    else:
+        return render(request, 'contact.html')

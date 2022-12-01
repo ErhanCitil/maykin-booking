@@ -14,11 +14,11 @@
     <div class="items-center bg-gray-700 justify-center p-12">
         <h1 class="text-white text-4xl font-bold text-center mb-6">Contact Formulier </h1>
         <div class="mx-auto w-full max-w-[550px]">
-          <form action="/" method="POST">
+          <form action="/contact/" method="POST">
             {% csrf_token %}
             <div class="mb-5">
               <label
-                for="name"
+                for="naam"
                 class="mb-3 block text-base font-medium text-white"
               >
                 Naam- en achternaam
@@ -26,9 +26,9 @@
               <input
                 type="text"
                 name="naam"
-                id="name"
+                id="naam"
                 placeholder="Erhan Citil"
-                class="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-[#6A64F1] focus:shadow-md"
+                class="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-[#6A64F1] focus:shadow-md" required
               />
             </div>
             <div class="mb-5">
@@ -43,12 +43,12 @@
                 name="email"
                 id="email"
                 placeholder="info@maykinbookings.com"
-                class="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-[#6A64F1] focus:shadow-md"
+                class="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-[#6A64F1] focus:shadow-md" required
               />
             </div>
             <div class="mb-5">
               <label
-                for="subject"
+                for="onderwerp"
                 class="mb-3 block text-base font-medium text-white"
               >
                 Onderwerp
@@ -56,9 +56,9 @@
               <input
                 type="text"
                 name="onderwerp"
-                id="subject"
+                id="onderwerp"
                 placeholder="Onderwerp"
-                class="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-[#6A64F1] focus:shadow-md"
+                class="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-[#6A64F1] focus:shadow-md" required
               />
             </div>
             <div class="mb-5">
@@ -71,7 +71,7 @@
               <textarea
                 rows="4"
                 name="bericht"
-                id="message"
+                id="bericht"
                 placeholder="Laat hier uw bericht achter"
                 class="w-full resize-none rounded-md border border-[#e0e0e0] bg-white py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-[#6A64F1] focus:shadow-md"
               ></textarea>
