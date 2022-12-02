@@ -17,17 +17,7 @@ def error_404(request, exception):
         data = {}
         return render(request,'404.html', data)
 
-# View voor de stad pagina ik geef de stad naam mee als parameter.
-# def stad(request, city_name):
-#     # Hier gebruik ik de .filter() functie om de data te filteren op basis van de stad naam die ik meegeef als parameter die ook in de url staat.
-#     if Data.objects.filter(city_name=city_name).exists():
-#         context = {
-#             'data': Data.objects.filter(city_name=city_name)
-#         }
-#         return render(request, 'stad.html', context)
-#     else:
-#         return render(request, '404.html')
-
+# Class-Based View voor de stad pagina ik geef de stad naam mee als parameter.
 class stad(CreateView):
     model = Data
     fields = ['city_name']
