@@ -1,5 +1,5 @@
 from django.test import TestCase
-from .models import Data
+from .models import *
 # Create your tests here.
 
 class DataTestCase(TestCase):
@@ -18,3 +18,13 @@ class DataTestCase(TestCase):
         data = Data.objects.get(city_name='Amsterdam')
         self.assertEqual(data.city_name, 'Amsterdam')
 
+class ContactFormTestCase(TestCase):
+    def setUp(self):
+        ContactForm.objects.create(naamenachternaam='John Doe', email = 'info@johndoe.nl', onderwerp = 'Test', bericht = 'Dit is een Test Bericht!')
+        ContactForm.objects.create(naamenachternaam='Jane Doe', email = 'info@janedoe.nl', onderwerp = 'Test', bericht = 'Dit is een de tweede test bericht!)')
+
+    def test_naamenachternaam(self):
+        john = ContactForm.objects.get(naamenachternaam='John Doe')
+        jane = ContactForm.objects.get(naamenachternaam='Jane Doe')
+        self.assertEqual(john.naamenachternaam, 'John Doe')
+        self.assertEqual(jane.naamenachternaam, 'Jane Doe')
