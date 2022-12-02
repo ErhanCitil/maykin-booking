@@ -39,15 +39,13 @@ class ContactFormTestCase(TestCase):
 
     def test_email(self):
         john = ContactForm.objects.get(email='info@johndoe.nl')
-        jane = ContactForm.objects.get(email='ifno@janedoe.nl')
+        jane = ContactForm.objects.get(email='info@janedoe.nl')
         self.assertEqual(john.email, 'info@johndoe.nl')
         self.assertEqual(jane.email, 'info@janedoe.nl')
 
     def test_onderwerp(self):
-        john = ContactForm.objects.get(onderwerp='Test')
-        jane = ContactForm.objects.get(onderwerp='Test')
-        self.assertEqual(john.onderwerp, 'Test')
-        self.assertEqual(jane.onderwerp, 'Test')
+      for onderwerp in ContactForm.objects.all():
+        self.assertEqual(onderwerp.onderwerp, 'Test')
 
     def test_bericht(self):
         john = ContactForm.objects.get(bericht='Dit is een Test Bericht!')

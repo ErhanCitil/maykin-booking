@@ -17,7 +17,7 @@ def error_404(request, exception):
         data = {}
         return render(request,'404.html', data)
 
-# Class-Based View voor de stad pagina ik geef de stad naam mee als parameter.
+# Class-Based View voor de stad pagina ik geef de stad naam mee als parameter. Altijd met een hoofdletter de naam van een class
 class stad(CreateView):
     model = Data
     fields = ['city_name']
