@@ -16,13 +16,14 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from base import views
+from base.views import ContactFormView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', views.index, name='index'),
     path('stad/<str:city_name>', views.stad, name='stad'),
     path('hotels/', views.hotel, name='hotel'),
-    path('contact/', views.contact, name='contact'),
+    path('contact/', ContactFormView.as_view(), name='contact'),
 ]
 
 handler404 = 'base.views.error_404'

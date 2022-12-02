@@ -1,6 +1,8 @@
 from django.shortcuts import render
 from .models import Data, ContactForm
 from django.shortcuts import render, get_object_or_404
+from django.views.generic.edit import FormView
+from .forms import FormContact
 # Create your views here.
 def index(request):
     context = {
@@ -25,24 +27,30 @@ def stad(request, city_name):
     else:
         return render(request, '404.html')
 
-def contact(request):
-        return render(request, 'contact.html')
-
 def hotel(request):
     context = {
         'data': Data.objects.values('city_name').distinct()
     }
     return render(request, 'hotels.html',context)
 
-def contact(request):
-    if request.method == 'POST':
-        naamenachternaam = request.POST.get('naam')
-        email = request.POST.get('email')
-        onderwerp = request.POST.get('onderwerp')
-        bericht = request.POST.get('bericht')
-        contactform = ContactForm(naamenachternaam=naamenachternaam, email=email, onderwerp=onderwerp, bericht=bericht)
-        contactform.save()
-        return render(request, 'contact.html')
+class ContactFormView(FormView):
+    template_name = 'contact.html'
+    form_class = FormContact
+    success_url = 'contact.html'
 
-    else:
-        return render(request, 'contact.html')
+    def form_valid(self, form):
+        form.save()
+        return super().form_valid(form)
+
+# def contact(request):
+#     if request.method == 'POST':
+#         naamenachternaam = request.POST.get('naam')
+#         email = request.POST.get('email')
+#         onderwerp = request.POST.get('onderwerp')
+#         bericht = request.POST.get('bericht')
+#         contactform = ContactForm(naamenachternaam=naamenachternaam, email=email, onderwerp=onderwerp, bericht=bericht)
+#         contactform.save()
+#         return render(request, 'contact.html')
+
+#     else:
+#         return render(request, 'contact.html')
