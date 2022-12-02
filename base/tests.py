@@ -18,6 +18,14 @@ class DataTestCase(TestCase):
         data = Data.objects.get(city_name='Amsterdam')
         self.assertEqual(data.city_name, 'Amsterdam')
 
+    def test_hotel_id(self):
+        data = Data.objects.get(hotel_id='1')
+        self.assertEqual(data.hotel_id, '1')
+
+    def test_hotel_name(self):
+        data = Data.objects.get(hotel_name='Hotel1')
+        self.assertEqual(data.hotel_name, 'Hotel1')
+
 class ContactFormTestCase(TestCase):
     def setUp(self):
         ContactForm.objects.create(naamenachternaam='John Doe', email = 'info@johndoe.nl', onderwerp = 'Test', bericht = 'Dit is een Test Bericht!')
@@ -28,3 +36,21 @@ class ContactFormTestCase(TestCase):
         jane = ContactForm.objects.get(naamenachternaam='Jane Doe')
         self.assertEqual(john.naamenachternaam, 'John Doe')
         self.assertEqual(jane.naamenachternaam, 'Jane Doe')
+
+    def test_email(self):
+        john = ContactForm.objects.get(email='info@johndoe.nl')
+        jane = ContactForm.objects.get(email='ifno@janedoe.nl')
+        self.assertEqual(john.email, 'info@johndoe.nl')
+        self.assertEqual(jane.email, 'info@janedoe.nl')
+
+    def test_onderwerp(self):
+        john = ContactForm.objects.get(onderwerp='Test')
+        jane = ContactForm.objects.get(onderwerp='Test')
+        self.assertEqual(john.onderwerp, 'Test')
+        self.assertEqual(jane.onderwerp, 'Test')
+
+    def test_bericht(self):
+        john = ContactForm.objects.get(bericht='Dit is een Test Bericht!')
+        jane = ContactForm.objects.get(bericht='Dit is een de tweede test bericht!)')
+        self.assertEqual(john.bericht, 'Dit is een Test Bericht!')
+        self.assertEqual(jane.bericht, 'Dit is een de tweede test bericht!)')
