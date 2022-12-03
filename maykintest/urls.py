@@ -20,9 +20,9 @@ from base.views import *
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', views.index, name='index'),
-    path('stad/<str:city_name>', stad.as_view(), name='stad'),
+    path('stad/<str:city_name>', Stad.as_view(), name='stad'),
     path('hotels/', views.hotel, name='hotel'),
-    path('contact/', views.contact, name='contact'),
+    path('contact/', ContactSave.as_view(), name='contact'),
 ]
 
 handler404 = 'base.views.error_404'
