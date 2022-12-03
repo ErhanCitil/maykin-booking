@@ -18,7 +18,7 @@ def error_404(request, exception):
         return render(request,'404.html', data)
 
 # Class-Based View voor de stad pagina ik geef de stad naam mee als parameter. Altijd met een hoofdletter de naam van een class
-class stad(CreateView):
+class Stad(CreateView):
     model = Data
     fields = ['city_name']
     template_name = 'stad.html'
@@ -28,21 +28,30 @@ class stad(CreateView):
         context['data'] = Data.objects.filter(city_name=self.kwargs['city_name'])
         return context
 
+class ContactSave(FormView):
+    template_name = 'contact.html'
+    form_class = FormContact
+    success_url = '/'
+
+    def form_valid(self, form):
+        form.save()
+        return super().form_valid(form)
+
 def hotel(request):
     context = {
          'data': Data.objects.values('city_name').distinct()
     }
     return render(request, 'hotels.html',context)
 
-def contact(request):
-    if request.method == 'POST':
-        naamenachternaam = request.POST.get('naam')
-        email = request.POST.get('email')
-        onderwerp = request.POST.get('onderwerp')
-        bericht = request.POST.get('bericht')
-        contactform = ContactForm(naamenachternaam=naamenachternaam, email=email, onderwerp=onderwerp, bericht=bericht)
-        contactform.save()
-        return render(request, 'contact.html')
+# def contact(request):
+#     if request.method == 'POST':
+#         naamenachternaam = request.POST.get('naam')
+#         email = request.POST.get('email')
+#         onderwerp = request.POST.get('onderwerp')
+#         bericht = request.POST.get('bericht')
+#         contactform = ContactForm(naamenachternaam=naamenachternaam, email=email, onderwerp=onderwerp, bericht=bericht)
+#         contactform.save()
+#         return render(request, 'contact.html')
 
-    else:
-        return render(request, 'contact.html')
+#     else:
+#         return render(request, 'contact.html')
