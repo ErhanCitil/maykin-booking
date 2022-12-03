@@ -3,7 +3,7 @@ from .models import Data, ContactForm
 from django.shortcuts import render
 from django.views.generic.edit import FormView, CreateView, UpdateView
 from .forms import FormContact
-
+from django.urls import reverse_lazy
 # Create your views here.
 def index(request):
     context = {
@@ -31,7 +31,7 @@ class Stad(CreateView):
 class ContactSave(FormView):
     template_name = 'contact.html'
     form_class = FormContact
-    success_url = '/'
+    success_url = reverse_lazy('index')
 
     def form_valid(self, form):
         form.save()
@@ -42,16 +42,3 @@ def hotel(request):
          'data': Data.objects.values('city_name').distinct()
     }
     return render(request, 'hotels.html',context)
-
-# def contact(request):
-#     if request.method == 'POST':
-#         naamenachternaam = request.POST.get('naam')
-#         email = request.POST.get('email')
-#         onderwerp = request.POST.get('onderwerp')
-#         bericht = request.POST.get('bericht')
-#         contactform = ContactForm(naamenachternaam=naamenachternaam, email=email, onderwerp=onderwerp, bericht=bericht)
-#         contactform.save()
-#         return render(request, 'contact.html')
-
-#     else:
-#         return render(request, 'contact.html')
