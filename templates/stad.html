@@ -11,7 +11,7 @@
     <link rel="shortcut icon" type="image/png" href="{% static 'favicon.ico' %}"/>
   </head>
 <body>
-    {% include 'header.html'%}
+    {% include 'components/header.html'%}
 
 <div class="flex flex-wrap w-auto">
     {% for item in data%}
@@ -23,6 +23,6 @@
     {% endfor %}
 </div>
 
-    {% include 'footer.html'%}
+    {% include 'components/footer.html'%}
 
 </body>
