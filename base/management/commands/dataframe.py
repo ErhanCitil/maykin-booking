@@ -1,8 +1,5 @@
 from django.core.management.base import BaseCommand
-from django.db.models import Count
 from base.models import Data
-from datetime import timedelta, datetime
-from django.utils.timezone import utc
 import pandas as pd
 import requests
 from requests.auth import HTTPBasicAuth
