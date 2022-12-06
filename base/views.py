@@ -3,7 +3,10 @@ from .models import Data, ContactForm
 from django.shortcuts import render
 from django.views.generic.edit import FormView, CreateView, UpdateView
 from .forms import FormContact
+<<<<<<< HEAD
 from django.urls import reverse_lazy
+=======
+>>>>>>> 4d9f33f2 (Deleted env folder)
 # Create your views here.
 def index(request):
     context = {
