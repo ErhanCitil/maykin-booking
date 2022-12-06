@@ -14,17 +14,9 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
-from base import views
-from base.views import *
-
+from django.urls import path, include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', views.index, name='index'),
-    path('stad/<str:city_name>', Stad.as_view(), name='stad'),
-    path('hotels/', views.hotel, name='hotel'),
-    path('contact/', ContactSave.as_view(), name='contact'),
+    path('', include('base.urls')),
 ]
-
-handler404 = 'base.views.error_404'

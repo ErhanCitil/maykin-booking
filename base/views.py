@@ -1,27 +1,21 @@
-from django.shortcuts import render
-from .models import Data, ContactForm
-from django.shortcuts import render
-from django.views.generic.edit import FormView, CreateView, UpdateView
+from .models import Data
+from django.views import generic
 from .forms import FormContact
-<<<<<<< HEAD
 from django.urls import reverse_lazy
-=======
->>>>>>> 4d9f33f2 (Deleted env folder)
 # Create your views here.
-def index(request):
-    context = {
-        # Met de .distinct() functie zorg ik ervoor dat ik alleen de unieke waardes van de kolom city_name krijg.
-        'data': Data.objects.values('city_name').distinct()
-    }
-    return render(request, 'index.html',context)
 
-# View voor de 404 pagina 
-def error_404(request, exception):
-        data = {}
-        return render(request,'404.html', data)
+class Index(generic.ListView):
+    model = Data
+    template_name = 'index.html'
+    context_object_name = 'data'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['data'] = Data.objects.values('city_name').distinct()
+        return context
 
 # Class-Based View voor de stad pagina ik geef de stad naam mee als parameter. Altijd met een hoofdletter de naam van een class
-class Stad(CreateView):
+class Stad(generic.CreateView):
     model = Data
     fields = ['city_name']
     template_name = 'stad.html'
@@ -31,7 +25,7 @@ class Stad(CreateView):
         context['data'] = Data.objects.filter(city_name=self.kwargs['city_name'])
         return context
 
-class ContactSave(FormView):
+class ContactSave(generic.FormView):
     template_name = 'contact.html'
     form_class = FormContact
     success_url = reverse_lazy('index')
@@ -40,8 +34,12 @@ class ContactSave(FormView):
         form.save()
         return super().form_valid(form)
 
-def hotel(request):
-    context = {
-         'data': Data.objects.values('city_name').distinct()
-    }
-    return render(request, 'hotels.html',context)
+class Hotel(generic.ListView):
+    model = Data
+    template_name = 'hotels.html'
+    context_object_name = 'data'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['data'] = Data.objects.values('city_name').distinct()
+        return context
