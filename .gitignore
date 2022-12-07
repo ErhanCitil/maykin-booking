@@ -30,6 +30,7 @@ local.py
 /venv/
 /media/
 /static/
+/staticfiles/
 /mail/
 /log/*.log*
 /log/nginx/*.log*
