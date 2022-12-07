@@ -1,7 +1,5 @@
 from .models import Data
 from django.views import generic
-from .forms import FormContact
-from django.urls import reverse_lazy
 # Create your views here.
 
 class Index(generic.ListView):
@@ -24,15 +22,6 @@ class Stad(generic.CreateView):
         context = super().get_context_data(**kwargs)
         context['data'] = Data.objects.filter(city_name=self.kwargs['city_name'])
         return context
-
-class ContactSave(generic.FormView):
-    template_name = 'contact.html'
-    form_class = FormContact
-    success_url = reverse_lazy('index')
-
-    def form_valid(self, form):
-        form.save()
-        return super().form_valid(form)
 
 class Hotel(generic.ListView):
     model = Data
