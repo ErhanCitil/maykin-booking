@@ -1,5 +1,6 @@
 from django.test import TestCase
 from .models import *
+from django.core.management import call_command
 # Create your tests here.
 
 class DataTestCase(TestCase):
@@ -25,3 +26,12 @@ class DataTestCase(TestCase):
     def test_hotel_name(self):
         data = Data.objects.get(hotel_name='Hotel1')
         self.assertEqual(data.hotel_name, 'Hotel1')
+
+class TestCustomManagementCommand(TestCase):
+    def test_dataframe_command(self):
+        call_command('dataframe')
+        self.assertEqual(Data.objects.count(), 196)
+
+    def test_fileimport_command(self):
+        call_command('fileimport')
+        self.assertEqual(Data.objects.count(), 196)
