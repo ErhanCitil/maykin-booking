@@ -23,12 +23,12 @@ class Stad(generic.ListView):
         context['data'] = Hotel.objects.filter(city__city_name=self.kwargs['city_name'])
         return context
 
-# class Hotel(generic.ListView):
-#     model = Data
-#     template_name = 'hotels.html'
-#     context_object_name = 'data'
+class HotelDetail(generic.ListView):
+    model = City
+    template_name = 'hotels.html'
+    context_object_name = 'data'
 
-#     def get_context_data(self, **kwargs):
-#         context = super().get_context_data(**kwargs)
-#         context['data'] = Data.objects.values('city_name').distinct()
-#         return context
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['data'] = City.objects.values('city_name').distinct()
+        return context
