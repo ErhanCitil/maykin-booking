@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand
-from base.models import Data
+from base.models import City, Hotel
 import pandas as pd
 import requests
 from requests.auth import HTTPBasicAuth
@@ -22,10 +22,8 @@ class Command(BaseCommand):
       df = pd.merge(citydata, hoteldata, on='city_id')
   
       for index, row in df.iterrows():
-            data = Data()
-            data.city_id = row['city_id']
-            data.city_name = row['city_name']
-            data.hotel_id = row['hotel_id']
-            data.hotel_name = row['hotel_name']
-            data.save()
+            city = City(city_id=row['city_id'], city_name=row['city_name'])
+            city.save()
+            hotel = Hotel(city = city, hotel_id=row['hotel_id'], hotel_name=row['hotel_name'])
+            hotel.save()
             
