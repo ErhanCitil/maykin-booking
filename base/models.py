@@ -9,7 +9,7 @@ class City(models.Model):
         return self.city_name
 
 class Hotel(models.Model):
-    city = models.ForeignKey(City, related_name='city', on_delete=models.CASCADE)
+    city = models.ForeignKey(City, related_name='test', on_delete=models.CASCADE)
     hotel_id = models.CharField(max_length=100)
     hotel_name = models.CharField(max_length=100)
 
