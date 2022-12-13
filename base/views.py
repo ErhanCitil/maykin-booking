@@ -20,7 +20,7 @@ class Stad(generic.ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['data'] = Hotel.objects.prefetch_related('city').filter(city__city_name=self.kwargs['city_name'])
+        context['data'] = Hotel.objects.filter(city__city_name=self.kwargs['city_name'])
         return context
 
 # class Hotel(generic.ListView):
