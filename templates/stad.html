@@ -13,6 +13,7 @@
 <body>
     {% include 'components/header.html'%}
 
+
 <div class="flex flex-wrap w-auto">
     {% for item in data%}
     <div class="h-full w-auto border  border-gray-700 px-2 m-4 hover:bg-sky-400 font-bold">
@@ -21,6 +22,24 @@
         <p>{{item.hotel_id}}</p>
     </div>
     {% endfor %}
+</div>
+
+<div class="pagination">
+  <span class="step-links">
+      {% if page_obj.has_previous %}
+          <a href="?page=1">&laquo; first</a>
+          <a href="?page={{ page_obj.previous_page_number }}">previous</a>
+      {% endif %}
+
+      <span class="current">
+          Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+      </span>
+      <br>
+      {% if page_obj.has_next %}
+          <a href="?page={{ page_obj.next_page_number }}">next</a>
+          <a href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
+      {% endif %}
+  </span>
 </div>
 
     {% include 'components/footer.html'%}
