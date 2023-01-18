@@ -27,6 +27,10 @@ class Stad(generic.ListView):
         context['city_name'] = self.kwargs['city_name']
         return context
 
+    """"
+    Ik filter hier op de stad naam die ik meegeef als paramter binnen de url en die gebruik ik dan voor de paginate. 
+    Eerst filterde ik op alle steden binnen in de database, en toen kreeg ik alle hotels van alle steden in de pagina te zien wat niet de bedoeling is.
+    """
 
 class HotelDetail(generic.ListView):
     model = City
