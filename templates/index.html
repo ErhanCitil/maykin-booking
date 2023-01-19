@@ -59,6 +59,16 @@
     </div>
   </div>
 
+<div class="flex flex-col">
+  <span>Click on me if you want to see the model structure of Maykin Booking!</span>
+
+  <a href="{% url 'database_schema'%}" class="w-auto">
+    <button type="button" class="px-5 py-3 w-auto text-base font-medium text-center text-white bg-blue-700 rounded-lg 
+    hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800 mb-4">
+    Model structure</button>
+  </a>
+</div>
+  
     {% include 'components/footer.html'%}
   </body>
 </html>
