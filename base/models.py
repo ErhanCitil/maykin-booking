@@ -12,7 +12,7 @@ class Hotel(models.Model):
     city = models.ForeignKey(City, related_name='test', on_delete=models.CASCADE)
     hotel_id = models.CharField(max_length=100)
     hotel_name = models.CharField(max_length=100)
-    hotel_image = models.ImageField(upload_to='hotel_img/')
+    hotel_image = models.ImageField(upload_to='hotel_img/', default='default.jpg')
     description = models.TextField(default='')
     price = models.DecimalField(max_digits=6, decimal_places=2, default=0.00)
     is_available = models.BooleanField(default=True)
