@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'base',
     'form',
     'import_export',
+    'django_extensions',
 ]
 
 STATIC_URL = 'static/'
@@ -137,3 +138,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 EMAIL_HOST = 'localhost'
 EMAIL_PORT = 1025
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+GRAPH_MODELS = {
+  'all_applications': True,
+  'group_models': True,
+}
