@@ -6,7 +6,7 @@
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{{data.0.city.city_name}} | Maykin booking</title>
+    <title>{{data.0.city.name}} | Maykin booking</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="shortcut icon" type="image/png" href="{% static 'favicon.ico' %}"/>
   </head>
@@ -18,9 +18,8 @@
     {% for hotel in data%}
     <div class="h-full w-auto border  border-gray-700 px-2 m-4 hover:bg-sky-400 font-bold">
         <img src="/media/{{hotel.hotel_image}}" alt="">
-        <h1 class="">Hotel: {{hotel.hotel_name}}</h1>
-        <p>Stad: {{hotel.city.city_name}}</p>
-        <p>{{hotel.hotel_id}}</p>
+        <h1 class="">Hotel: {{hotel.name}}</h1>
+        <p>Stad: {{hotel.city.name}}</p>
     </div>
     {% endfor %}
 </div>

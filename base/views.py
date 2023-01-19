@@ -9,7 +9,7 @@ class Index(generic.ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['data'] = City.objects.values('city_name').distinct()
+        context['data'] = City.objects.values('name').distinct()
         return context
 
 # Class-Based View voor de stad pagina ik geef de stad naam mee als parameter. Altijd met een hoofdletter de naam van een class
@@ -20,8 +20,8 @@ class Stad(generic.ListView):
     context_object_name = 'data'
 
     def get_queryset(self):
-        return Hotel.objects.filter(city__city_name=self.kwargs['city_name'])
-
+        return Hotel.objects.filter(city__name=self.kwargs['city_name'])
+    
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['city_name'] = self.kwargs['city_name']
@@ -39,5 +39,5 @@ class HotelDetail(generic.ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['data'] = City.objects.values('city_name').distinct()
+        context['data'] = City.objects.values('name').distinct()
         return context
