@@ -1,6 +1,5 @@
 from django.db import models
 # Create your models here.
-# Hier maak ik een database model aan met de naam Data. 
 class City(models.Model):
     city_id = models.CharField(max_length=100)
     name = models.CharField(max_length=100)
@@ -28,4 +27,4 @@ class Room(models.Model):
     description = models.TextField(default='', blank=True, null=True)
 
     def __str__(self):
-        return self.ritle
+        return self.title
