@@ -17,7 +17,7 @@
 <div class="flex flex-wrap w-auto flex items-center justify-center">
     {% for hotel in data%}
     <div class="h-full w-auto border  border-gray-700 px-2 m-4 hover:bg-sky-400 font-bold">
-        <img src="{{hotel.hotel_image}}" alt="">
+        <img src="/media/{{hotel.hotel_image}}" alt="">
         <h1 class="">Hotel: {{hotel.hotel_name}}</h1>
         <p>Stad: {{hotel.city.city_name}}</p>
         <p>{{hotel.hotel_id}}</p>
