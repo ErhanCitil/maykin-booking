@@ -21,3 +21,4 @@ urlpatterns = [
     path('', include('base.urls')),
     path('', include('form.urls')),
 ]
+

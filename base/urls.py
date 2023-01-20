@@ -7,7 +7,7 @@ from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 urlpatterns = [
     path('', Index.as_view(), name='index'),
     path('stad/<str:city_name>', Stad.as_view(), name='stad'),
-    path('hotels/', HotelDetail.as_view(), name='hotel'),
+    path('hotels/', HotelList.as_view(), name='hotel'),
 ]
 
 if settings.DEBUG:

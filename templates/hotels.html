@@ -29,18 +29,18 @@
                 </tr>
               </thead>
   
-              {% for item in data %}
+              {% for city_name in city_name %}
               <tbody>
                 <tr class="bg-gray-800">
                   <td class="p-3">
                     <div class="flex align-items-center">
                       <div class="ml-3">
-                        <div class="font-bold text-white">{{ item.name }}</div>
+                        <div class="font-bold text-white">{{ city_name.name }}</div>
                       </div>
                     </div>
                   </td>
                   <td class="text-white pl-2 pr-2 text-center">
-                    <a href="{% url 'stad' item.name %}"
+                    <a href="{% url 'stad' city_name.name %}"
                       >Bekijk Details</a
                     >
                   </td> 
