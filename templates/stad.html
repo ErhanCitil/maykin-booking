@@ -17,12 +17,13 @@
 
 <div class="flex flex-wrap flex items-center justify-center">
     {% for hotel in object_list%}
+    <a href="{% url 'hotel_detail' hotel.id%}">
     <div class="h-full border w-auto border-gray-700 m-4 flex flex-col">
         <div class="">
             <img src="/media/{{hotel.image}}" class="h-64 w-full" alt="">
         </div>
         <div class="m-4 flex">
-            <h1 class="font-bold text-sm">Hotel: {{hotel.name}}</h1>
+            <h1 class="font-bold text-sm">{{hotel.name}}</h1>
             {% if hotel.is_available %}
             <h1 class="bg-green-500 hover:bg-green-600 text-white font-bold px-2 ml-2 rounded-full">Beschikbaar</h1>
             {% else %}
@@ -36,6 +37,7 @@
             <p class="text-xs overflow-hidden truncate w-64">{{hotel.description}}</p>
         </div>
     </div>
+</a>
     {% endfor %}
 </div>
 

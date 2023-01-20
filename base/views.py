@@ -1,4 +1,4 @@
-from .models import City, Hotel
+from .models import *
 from django.views import generic
 # Create your views here.
 
@@ -38,4 +38,13 @@ class HotelList(generic.ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['city_name'] = City.objects.values('name').distinct()
+        return context
+
+class HotelDetail(generic.DetailView):
+    model = Hotel
+    template_name = 'hotel.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['rooms'] = Room.objects.all()
         return context
