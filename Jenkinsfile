@@ -5,7 +5,7 @@
 node {
     // You can hardcode the settings here, or have it dynamically figured out
     // in the build step.
-    def djangoSettings = "maykinmedia.conf.settings_test"
+    def djangoSettings = "maykintest.settings_test"
     def curDir = pwd()
     def envDir = "${curDir}/env"
 
