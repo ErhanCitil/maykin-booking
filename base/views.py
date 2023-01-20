@@ -1,5 +1,7 @@
 from .models import City, Hotel
 from django.views import generic
+from form.forms import FormOrder, FormCustomer
+from django.urls import reverse_lazy
 # Create your views here.
 
 class Index(generic.ListView):
@@ -41,3 +43,21 @@ class HotelDetail(generic.ListView):
         context = super().get_context_data(**kwargs)
         context['data'] = City.objects.values('city_name').distinct()
         return context
+
+class OrderForm(generic.FormView):
+    template_name = 'order.html'
+    form_class = FormOrder
+    success_url = reverse_lazy('order_customer')
+
+    def form_valid(self, form):
+        form.save()
+        return super().form_valid(form)
+
+class CustomerForm(generic.FormView):
+    template_name = 'order_customer.html'
+    form_class = FormCustomer
+    success_url = reverse_lazy('index')
+
+    def form_valid(self, form):
+        form.save()
+        return super().form_valid(form)
