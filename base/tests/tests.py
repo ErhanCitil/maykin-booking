@@ -1,5 +1,5 @@
 from django.test import TestCase
-from .models import *
+from ..models import *
 from django.core.management import call_command
 # Create your tests here.
 
