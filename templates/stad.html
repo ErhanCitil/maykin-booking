@@ -6,21 +6,38 @@
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{{data.0.city.city_name}} | Maykin booking</title>
+    <title>{{city_name}} | Maykin booking</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="shortcut icon" type="image/png" href="{% static 'favicon.ico' %}"/>
   </head>
 <body>
     {% include 'components/header.html'%}
 
+<h1 class="font-bold text-3xl text-center mt-2">Stad: {{city_name}}</h1>
 
-<div class="flex flex-wrap w-auto flex items-center justify-center">
-    {% for item in data%}
-    <div class="h-full w-auto border  border-gray-700 px-2 m-4 hover:bg-sky-400 font-bold">
-        <h1 class="">Hotel: {{item.hotel_name}}</h1>
-        <p>Stad: {{item.city.city_name}}</p>
-        <p>{{item.hotel_id}}</p>
+<div class="flex flex-wrap flex items-center justify-center">
+    {% for hotel in object_list%}
+    <a href="{% url 'hotel_detail' hotel.id%}">
+    <div class="h-full border w-auto border-gray-700 m-4 flex flex-col">
+        <div class="">
+            <img src="/media/{{hotel.image}}" class="h-64 w-full" alt="">
+        </div>
+        <div class="m-4 flex">
+            <h1 class="font-bold text-sm">{{hotel.name}}</h1>
+            {% if hotel.is_available %}
+            <h1 class="bg-green-500 hover:bg-green-600 text-white font-bold px-2 ml-2 rounded-full">Beschikbaar</h1>
+            {% else %}
+            <h1 class="bg-red-500 hover:bg-red-600 text-white font-bold px-2 ml-2 rounded-full">Niet beschikbaar</h1>
+            {% endif %}
+
+            <h1 class="bg-teal-600 text-white font-bold px-2 ml-2 rounded-md">€{{hotel.price}}</h1>
+        </div>
+
+        <div class="m-4">
+            <p class="text-xs overflow-hidden truncate w-64">{{hotel.description}}</p>
+        </div>
     </div>
+</a>
     {% endfor %}
 </div>
 
