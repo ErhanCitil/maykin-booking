@@ -85,7 +85,7 @@ node {
                 dir("media") {
                     deleteDir()
                 }
-                junit "reports/junit.xml"
+                junit "tests/reports/junit.xml"
 
                 if (testsError) {
                     throw testsError
