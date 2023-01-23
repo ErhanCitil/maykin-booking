@@ -29,7 +29,6 @@ class Room(models.Model):
 
     def __str__(self):
         return self.title
-        return self.hotel_name
 
 class Customer(models.Model):
     order = models.ForeignKey("Order", related_name='order', on_delete=models.CASCADE)
