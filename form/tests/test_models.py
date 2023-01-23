@@ -1,33 +1,28 @@
 from django.test import TestCase
-from ..models import *
+from ..models import ContactForm
 from django_webtest import WebTest
+from .factories import ContactFormFactory
 # Create your tests here.
 class ContactFormTestCase(TestCase):
     def setUp(self):
-        ContactForm.objects.create(naamenachternaam='John Doe', email = 'info@johndoe.nl', onderwerp = 'Test', bericht = 'Dit is een Test Bericht!')
-        ContactForm.objects.create(naamenachternaam='Jane Doe', email = 'info@janedoe.nl', onderwerp = 'Test', bericht = 'Dit is een de tweede test bericht!)')
+        self.contact = ContactFormFactory(naamenachternaam='John Doe', email = 'info@johndoe.nl', onderwerp = 'Test', bericht = 'Dit is een Test Bericht!')
+        self.contact2 = ContactFormFactory(naamenachternaam='Jane Doe', email = 'info@janedoe.nl', onderwerp = 'Test', bericht = 'Dit is een de tweede test bericht!)')
 
     def test_naamenachternaam(self):
-        john = ContactForm.objects.get(naamenachternaam='John Doe')
-        jane = ContactForm.objects.get(naamenachternaam='Jane Doe')
-        self.assertEqual(john.naamenachternaam, 'John Doe')
-        self.assertEqual(jane.naamenachternaam, 'Jane Doe')
+        self.assertEqual(self.contact.naamenachternaam, 'John Doe')
+        self.assertEqual(self.contact2.naamenachternaam, 'Jane Doe')
 
     def test_email(self):
-        john = ContactForm.objects.get(email='info@johndoe.nl')
-        jane = ContactForm.objects.get(email='info@janedoe.nl')
-        self.assertEqual(john.email, 'info@johndoe.nl')
-        self.assertEqual(jane.email, 'info@janedoe.nl')
+        self.assertEqual(self.contact.email, 'info@johndoe.nl')
+        self.assertEqual(self.contact2.email, 'info@janedoe.nl')
 
     def test_onderwerp(self):
-      for onderwerp in ContactForm.objects.all():
-        self.assertEqual(onderwerp.onderwerp, 'Test')
+        self.assertEqual(self.contact.onderwerp, 'Test')
+        self.assertEqual(self.contact2.onderwerp, 'Test')
 
     def test_bericht(self):
-        john = ContactForm.objects.get(bericht='Dit is een Test Bericht!')
-        jane = ContactForm.objects.get(bericht='Dit is een de tweede test bericht!)')
-        self.assertEqual(john.bericht, 'Dit is een Test Bericht!')
-        self.assertEqual(jane.bericht, 'Dit is een de tweede test bericht!)')
+        self.assertEqual(self.contact.bericht, 'Dit is een Test Bericht!')
+        self.assertEqual(self.contact2.bericht, 'Dit is een de tweede test bericht!)')
 
 class ContactFormWebTest(WebTest):
     def test_contactform(self):
