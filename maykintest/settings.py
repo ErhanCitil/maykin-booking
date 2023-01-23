@@ -46,8 +46,6 @@ INSTALLED_APPS = [
     'django_extensions',
 ]
 
-STATIC_URL = 'static/'
-
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -143,3 +141,6 @@ GRAPH_MODELS = {
   'all_applications': True,
   'group_models': True,
 }
+# Media settings
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_URL = '/media/'

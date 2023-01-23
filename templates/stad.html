@@ -6,21 +6,38 @@
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{{data.0.city.city_name}} | Maykin booking</title>
+    <title>{{city_name}} | Maykin booking</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="shortcut icon" type="image/png" href="{% static 'favicon.ico' %}"/>
   </head>
 <body>
     {% include 'components/header.html'%}
 
+<h1 class="font-bold text-3xl text-center mt-2">Stad: {{city_name}}</h1>
 
-<div class="flex flex-wrap w-auto flex items-center justify-center">
-    {% for item in data%}
-    <div class="h-full w-auto border  border-gray-700 px-2 m-4 hover:bg-sky-400 font-bold">
-        <h1 class="">Hotel: {{item.hotel_name}}</h1>
-        <p>Stad: {{item.city.city_name}}</p>
-        <p>{{item.hotel_id}}</p>
+<div class="flex flex-wrap flex items-center justify-center">
+    {% for hotel in object_list%}
+    <a href="{% url 'hotel_detail' hotel.id%}">
+    <div class="h-full border w-auto border-gray-700 m-4 flex flex-col">
+        <div class="">
+            <img src="/media/{{hotel.image}}" class="h-64 w-full" alt="">
+        </div>
+        <div class="m-4 flex">
+            <h1 class="font-bold text-sm">{{hotel.name}}</h1>
+            {% if hotel.is_available %}
+            <h1 class="bg-green-500 hover:bg-green-600 text-white font-bold px-2 ml-2 rounded-full">Beschikbaar</h1>
+            {% else %}
+            <h1 class="bg-red-500 hover:bg-red-600 text-white font-bold px-2 ml-2 rounded-full">Niet beschikbaar</h1>
+            {% endif %}
+
+            <h1 class="bg-teal-600 text-white font-bold px-2 ml-2 rounded-md">€{{hotel.price}}</h1>
+        </div>
+
+        <div class="m-4">
+            <p class="text-xs overflow-hidden truncate w-64">{{hotel.description}}</p>
+        </div>
     </div>
+</a>
     {% endfor %}
 </div>
 
@@ -33,9 +50,15 @@
             Previous
         </a>
         {% endif %}
+        
+        {% for page_number in page_obj.paginator.page_range %}
+        <a href="?page={{page_number}}" class="inline-flex items-center px-4 py-2 ml-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
+            {{page_number}}
+        </a>
+        {% endfor %} 
 
         {% if page_obj.has_next %}
-        <a href="?page={{page_obj.next_page_number}}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
+        <a href="?page={{page_obj.next_page_number}}" class="inline-flex items-center px-4 py-2 ml-3 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
             Next
             <svg aria-hidden="true" class="w-5 h-5 ml-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
         </a>

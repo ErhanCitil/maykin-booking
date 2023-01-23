@@ -41,12 +41,12 @@
                 <td class="p-3">
                   <div class="flex align-items-center">
                     <div class="ml-3">
-                      <div class="font-bold text-white">{{ item.city_name }}</div>
+                      <div class="font-bold text-white">{{ item.name }}</div>
                     </div>
                   </div>
                 </td>
                 <td class="text-white pl-2 pr-2 text-center">
-                  <a href="{% url 'stad' item.city_name %}"
+                  <a href="{% url 'stad' item.name %}"
                     >Bekijk Details</a
                   >
                 </td> 

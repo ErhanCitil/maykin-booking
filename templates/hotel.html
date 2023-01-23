@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+    {% load static %}
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ object.name }} | Maykin Booking</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="shortcut icon" type="image/png" href="{% static 'favicon.ico' %}"/>
+</head>
+<body>
+    {% include 'components/header.html' %}
+    <div class="flex items-center">
+        <div class="flex flex-col justify-between p-4 leading-normal bg-white border rounded-lg md:max-w-xl hover:bg-gray-100 my-4">
+            <h5 class="mb-5 text-2xl font-bold tracking-tight text-gray-900 ">{{object.name}}</h5>
+            <p class="mb-5 font-normal text-gray-700 ">{{object.description}}</p>
+
+            <p class="font-normal text-gray-700">
+                Address details:
+                <br>
+                Keizersgracht 117, Amsterdam
+            </p>
+        </div>
+
+        <div>
+            <div class="max-w-sm bg-white border border-gray-200 rounded-lg shadow-md ml-4 my-4">
+                    <img class="rounded-t-lg" src="/media/{{object.image}}" alt="" />
+                <div class="p-5">
+                        <h5 class="mb-2 text-2xl font-bold tracking-tight text-gray-900 ">{{object.name}}</h5>
+                    <p class="mb-3 font-normal text-gray-700 ">Available from €{{object.price}}</p>
+                    <a href="#" class="inline-flex items-center px-3 py-2 text-sm font-medium text-center text-white bg-blue-700 rounded-lg hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300">
+                        Order now!
+                        <svg aria-hidden="true" class="w-4 h-4 ml-2 -mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
+                    </a>
+                </div>
+            </div> 
+        </div>
+    </div>
+
+    <div class="flex">
+        {% for room in rooms%}
+            <div class="max-w-sm bg-white border border-gray-200 rounded-lg shadow-md ml-4 my-4">
+                    <img class="rounded-t-lg" src="/media/{{room.image}}" alt="" />
+                <div class="p-5">
+                        <h5 class="mb-2 text-2xl font-bold tracking-tight text-gray-900 ">{{room.title}}</h5>
+                    <p class="mb-3 font-normal text-gray-700 ">{{room.description}}</p>
+
+                    <p class="mt-6 font-normal text-gray-700 ">Price per night: €{{room.price}}</p>
+
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+    {% include 'components/footer.html' %}
+</body>
+</html>
