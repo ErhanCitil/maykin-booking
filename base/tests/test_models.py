@@ -6,7 +6,7 @@ class ModelTest(TestCase):
     def setUp(self):
         self.city = CityFactory(city_id="AMS", name="Amsterdam")
         self.hotel = HotelFactory(city=self.city, hotel_id="HOTEL1", name="Hotel 1", price=100.00, is_available=True)
-        self.room = RoomFactory(hotel=self.hotel, title="Room 1", price=100.00)
+        self.room = RoomFactory()
 
     def test_city(self):
         self.assertEqual(self.city.city_id, "AMS")
