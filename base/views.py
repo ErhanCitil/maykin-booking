@@ -48,10 +48,6 @@ class HotelDetail(generic.DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-<<<<<<< HEAD
-        context['rooms'] = Room.objects.all()
-        return context
-=======
         context['data'] = City.objects.values('city_name').distinct()
         return context
 
@@ -72,4 +68,3 @@ class CustomerForm(generic.FormView):
     def form_valid(self, form):
         form.save()
         return super().form_valid(form)
->>>>>>> 79abb6aadf8b81af8a8ea72d4ce6e81fe4c602ae

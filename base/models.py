@@ -18,7 +18,6 @@ class Hotel(models.Model):
     is_available = models.BooleanField(default=True)
 
     def __str__(self):
-<<<<<<< HEAD
         return self.name
 
 class Room(models.Model):
@@ -30,7 +29,6 @@ class Room(models.Model):
 
     def __str__(self):
         return self.title
-=======
         return self.hotel_name
 
 class Customer(models.Model):
@@ -50,4 +48,3 @@ class Customer(models.Model):
 class Order(models.Model):
     start_date = models.DateField()
     end_date = models.DateField()
->>>>>>> 79abb6aadf8b81af8a8ea72d4ce6e81fe4c602ae
