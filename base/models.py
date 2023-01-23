@@ -1,20 +1,36 @@
 from django.db import models
 from django_countries.fields import CountryField
 # Create your models here.
-# Hier maak ik een database model aan met de naam Data. 
 class City(models.Model):
     city_id = models.CharField(max_length=100)
-    city_name = models.CharField(max_length=100)
+    name = models.CharField(max_length=100)
 
     def __str__(self):
-        return self.city_name
+        return self.name
 
 class Hotel(models.Model):
     city = models.ForeignKey(City, related_name='test', on_delete=models.CASCADE)
     hotel_id = models.CharField(max_length=100)
-    hotel_name = models.CharField(max_length=100)
+    name = models.CharField(max_length=100)
+    image = models.ImageField(upload_to='hotel_img/', null=True, blank=True)
+    description = models.TextField(default='', blank=True, null=True)
+    price = models.DecimalField(max_digits=6, decimal_places=2, default=0.00)
+    is_available = models.BooleanField(default=True)
 
     def __str__(self):
+<<<<<<< HEAD
+        return self.name
+
+class Room(models.Model):
+    hotel = models.ForeignKey(Hotel, related_name='room', on_delete=models.CASCADE)
+    image = models.ImageField(upload_to='room_img/')
+    title = models.CharField(max_length=100)
+    price = models.DecimalField(max_digits=6, decimal_places=2, default=0.00)
+    description = models.TextField(default='', blank=True, null=True)
+
+    def __str__(self):
+        return self.title
+=======
         return self.hotel_name
 
 class Customer(models.Model):
@@ -34,3 +50,4 @@ class Customer(models.Model):
 class Order(models.Model):
     start_date = models.DateField()
     end_date = models.DateField()
+>>>>>>> 79abb6aadf8b81af8a8ea72d4ce6e81fe4c602ae

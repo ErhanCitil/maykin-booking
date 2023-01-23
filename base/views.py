@@ -1,4 +1,4 @@
-from .models import City, Hotel
+from .models import *
 from django.views import generic
 from form.forms import FormOrder, FormCustomer
 from django.urls import reverse_lazy
@@ -11,7 +11,7 @@ class Index(generic.ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['data'] = City.objects.values('city_name').distinct()
+        context['data'] = City.objects.values('name').distinct()
         return context
 
 # Class-Based View voor de stad pagina ik geef de stad naam mee als parameter. Altijd met een hoofdletter de naam van een class
@@ -19,11 +19,10 @@ class Stad(generic.ListView):
     paginate_by = 4
     model = Hotel
     template_name = 'stad.html'
-    context_object_name = 'data'
 
     def get_queryset(self):
-        return Hotel.objects.filter(city__city_name=self.kwargs['city_name'])
-
+        return Hotel.objects.filter(city__name=self.kwargs['city_name'])
+    
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['city_name'] = self.kwargs['city_name']
@@ -34,13 +33,25 @@ class Stad(generic.ListView):
     Eerst filterde ik op alle steden binnen in de database, en toen kreeg ik alle hotels van alle steden in de pagina te zien wat niet de bedoeling is.
     """
 
-class HotelDetail(generic.ListView):
+class HotelList(generic.ListView):
     model = City
     template_name = 'hotels.html'
-    context_object_name = 'data'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['city_name'] = City.objects.values('name').distinct()
+        return context
+
+class HotelDetail(generic.DetailView):
+    model = Hotel
+    template_name = 'hotel.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+<<<<<<< HEAD
+        context['rooms'] = Room.objects.all()
+        return context
+=======
         context['data'] = City.objects.values('city_name').distinct()
         return context
 
@@ -61,3 +72,4 @@ class CustomerForm(generic.FormView):
     def form_valid(self, form):
         form.save()
         return super().form_valid(form)
+>>>>>>> 79abb6aadf8b81af8a8ea72d4ce6e81fe4c602ae

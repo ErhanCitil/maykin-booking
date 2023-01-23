@@ -23,6 +23,7 @@ odfpy==1.4.1
 openpyxl==3.0.10
 packaging==23.0
 pandas==1.5.2
+Pillow==9.4.0
 pip-tools==6.12.1
 pip-upgrader==1.4.15
 pyproject_hooks==1.0.0
