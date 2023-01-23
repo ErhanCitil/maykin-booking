@@ -43,7 +43,6 @@ INSTALLED_APPS = [
     'base',
     'form',
     'import_export',
-    'django_jenkins',
 ]
 
 MIDDLEWARE = [
