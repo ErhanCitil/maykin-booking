@@ -47,9 +47,6 @@ INTERNAL_IPS = ('127.0.0.1',)
 # PLUGIN: Django Extensions / Werkzeug
 # http://dev.pocoo.org/projects/werkzeug/
 #
-INSTALLED_APPS += (
-    'django_jenkins',
-)
 
 # Email Backend
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
