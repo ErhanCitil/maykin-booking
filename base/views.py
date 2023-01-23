@@ -48,7 +48,7 @@ class HotelDetail(generic.DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['data'] = City.objects.values('city_name').distinct()
+        context['rooms'] = Room.objects.filter(hotel=self.kwargs['pk'])
         return context
 
 class OrderForm(generic.FormView):

@@ -37,7 +37,7 @@ class Customer(models.Model):
     last_name = models.CharField(max_length=100)
     email = models.EmailField(max_length=100)
     address = models.CharField(max_length=100)
-    zipcode = models.CharField(max_lenth=6)
+    zipcode = models.CharField(max_length=6)
     country = CountryField()
 
     def __str__(self):

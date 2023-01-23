@@ -30,7 +30,7 @@ class FormCustomer(forms.ModelForm):
         widgets = {
             'first_name': forms.TextInput(attrs={'class': 'form-control'}),
             'last_name': forms.TextInput(attrs={'class': 'form-control'}),
-            'email': forms.EmailField(attrs={'class': 'form-control'}),
+            'email': forms.TextInput(attrs={'class': 'form-control'}),
             'address': forms.TextInput(attrs={'class': 'form-control'}),
             'zipcode': forms.TextInput(attrs={'class': 'form-control'}),
             'country': forms.ChoiceField(choices=countries),
