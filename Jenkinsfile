@@ -66,7 +66,6 @@ node {
                         --pep8-rcfile=.pep8 \
                         --coverage-rcfile=.coveragerc \
                         ${keepDbOption} \
-                        --enable-coverage \
                         --settings=${djangoSettings}
                     deactivate
                 """
