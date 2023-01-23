@@ -1,5 +1,6 @@
 from django.test import TestCase
-from .models import *
+from ..models import *
+from django_webtest import WebTest
 # Create your tests here.
 class ContactFormTestCase(TestCase):
     def setUp(self):
@@ -27,3 +28,13 @@ class ContactFormTestCase(TestCase):
         jane = ContactForm.objects.get(bericht='Dit is een de tweede test bericht!)')
         self.assertEqual(john.bericht, 'Dit is een Test Bericht!')
         self.assertEqual(jane.bericht, 'Dit is een de tweede test bericht!)')
+
+class ContactFormWebTest(WebTest):
+    def test_contactform(self):
+        form = self.app.get('/contact/').form
+        form['naamenachternaam'] = 'John Doe'
+        form['email'] = 'johndoe@gmail.nl'
+        form['onderwerp'] = 'Test'
+        form['bericht'] = 'Dit is een test bericht!'
+        response = form.submit().follow()
+        self.assertEqual(response.status_code, 200)
