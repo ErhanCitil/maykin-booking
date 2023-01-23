@@ -48,7 +48,6 @@ INTERNAL_IPS = ('127.0.0.1',)
 # http://dev.pocoo.org/projects/werkzeug/
 #
 INSTALLED_APPS += (
-    'django_extensions',
     'django_jenkins',
 )
 
