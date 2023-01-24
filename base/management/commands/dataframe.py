@@ -19,9 +19,11 @@ class Command(BaseCommand):
 
       # Hier drop ik de kolom 3 omdat deze missende values bevat, daarna merge ik de twee dataframes op basis van de city_id.
       hoteldata.drop(columns=['3'], inplace=True)
-  
-      for index, row in hoteldata.iterrows():
+      
+      for index, row in citydata.iterrows():
             city = City(city_id=row['city_id'], name=row['name'])
             city.save()
+
+      for index, row in hoteldata.iterrows():
             hotel = Hotel(city = city, hotel_id=row['hotel_id'], name=row['name'])
             hotel.save()
