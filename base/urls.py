@@ -11,6 +11,7 @@ urlpatterns = [
     path('hotels/', HotelList.as_view(), name='hotel'),
     path('hotel/<int:pk>', HotelDetail.as_view(), name='hotel_detail'),
     path('order/<int:pk>', OrderView.as_view(), name='order'),
+    path('customerorder/<int:pk>', CustomerView.as_view(), name='customerorder'),
 ]
 
 if settings.DEBUG:

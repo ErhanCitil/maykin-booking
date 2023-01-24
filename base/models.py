@@ -39,7 +39,7 @@ class Room(models.Model):
     room_type = models.CharField(max_length=50, choices=ROOM_CHOICES, default=A)
 
     def __str__(self):
-        return self.title
+        return self.room_type
 
 class Order(models.Model):
     room = models.ForeignKey(Room, related_name='room', on_delete=models.CASCADE, default=1)
@@ -54,4 +54,4 @@ class Order(models.Model):
     country = CountryField(default='NL')
 
     def __str__(self):
-        return self.id
+        return str(self.id)

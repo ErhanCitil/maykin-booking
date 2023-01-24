@@ -69,7 +69,7 @@ class DatabaseSchema(generic.TemplateView):
 class OrderView(generic.FormView):
     template_name = 'order.html'
     form_class = OrderForm
-    success_url = reverse_lazy('index')
+    success_url = reverse_lazy('customerorder')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -80,4 +80,17 @@ class OrderView(generic.FormView):
     def form_valid(self, form):
         form.save()
         return super().form_valid(form)
-        
+
+class CustomerView(generic.TemplateView):
+    template_name = 'ordercustomer.html'
+    form_class = CustomerForm
+    success_url = reverse_lazy('index')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['customer_form'] = CustomerForm()
+        return context
+    
+    def form_valid(self, form):
+        form.save()
+        return super().form_valid(form)

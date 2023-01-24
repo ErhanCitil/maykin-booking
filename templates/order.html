@@ -22,7 +22,8 @@
     <form action="" method='POST'>
         {% csrf_token %}
         {{ form.as_p }}
-        <button class="px-4 py-2 mt-4 text-base font-semibold text-white bg-blue-500 rounded-lg shadow hover:bg-blue-600 focus:outline-none focus:shadow-outline">Submit</button>
+
+        <button class="px-4 py-2 mt-4 text-base font-semibold text-white bg-blue-500 rounded-lg shadow hover:bg-blue-600 focus:outline-none focus:shadow-outline"><a href="{% url 'customerorder' hotel.id%}">Submit</a></button>
     </form>
 </div>
 
