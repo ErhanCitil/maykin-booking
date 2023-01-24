@@ -3,7 +3,6 @@ from django.views import generic
 import io
 from django.core.management import call_command
 import base64
-from form.forms import FormOrder, FormCustomer
 from django.urls import reverse_lazy
 # Create your views here.
 
@@ -65,26 +64,3 @@ class DatabaseSchema(generic.TemplateView):
                 encoded_string = base64.b64encode(image_file.read())
                 context['schema'] = encoded_string
         return context
-
-class OrderForm(generic.FormView):
-    template_name = 'order.html'
-    form_class = FormOrder
-    success_url = reverse_lazy('order_customer')
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['room'] = Room.objects.get(pk=self.kwargs['pk'])
-        return context
-
-    def form_valid(self, form):
-        form.save()
-        return super().form_valid(form)
-
-class CustomerForm(generic.FormView):
-    template_name = 'order_customer.html'
-    form_class = FormCustomer
-    success_url = reverse_lazy('index')
-
-    def form_valid(self, form):
-        form.save()
-        return super().form_valid(form)

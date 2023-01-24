@@ -24,10 +24,10 @@ A = "A"
 B = "B"
 C = "C"
 
-MONTH_CHOICES = (
-    (A, "A"),
-    (B, "B"),
-    (C, "C"),
+ROOM_CHOICES = (
+    (A, "Single"),
+    (B, "Double"),
+    (C, "Family"),
 )
 
 class Room(models.Model):
@@ -36,25 +36,22 @@ class Room(models.Model):
     price = models.DecimalField(max_digits=6, decimal_places=2, default=0.00)
     description = models.TextField(default='', blank=True, null=True)
     is_available = models.BooleanField(default=True)
-    room_type = models.CharField(max_length=1, choices=MONTH_CHOICES, default=A)
+    room_type = models.CharField(max_length=1, choices=ROOM_CHOICES, default=A)
 
     def __str__(self):
         return self.title
 
-class Customer(models.Model):
-    order = models.ForeignKey("Order", related_name='order', on_delete=models.CASCADE)
-    first_name = models.CharField(max_length=100)
-    last_name = models.CharField(max_length=100)
-    email = models.EmailField(max_length=100)
-    address = models.CharField(max_length=100)
-    zipcode = models.CharField(max_length=6)
-    country = CountryField()
-
-    def __str__(self):
-        return self.first_name
-
-# Ik zou ook de Order model in de forms app kunnen zetten, echter wil ik een beetje uitdaging hebben met het verzamelen
-# van data vanuit andere apps
 class Order(models.Model):
+    room = models.ForeignKey(Room, related_name='order', on_delete=models.CASCADE, default=1)
+    hotel = models.ForeignKey(Hotel, related_name='order', on_delete=models.CASCADE, default=1)
     start_date = models.DateField()
     end_date = models.DateField()
+    first_name = models.CharField(max_length=100, blank=False, null=False, default='')
+    last_name = models.CharField(max_length=100, blank=False, null=False, default='')
+    email = models.EmailField(max_length=100, blank=False, null=False, default='')
+    address = models.CharField(max_length=100, blank=False, null=False, default='')
+    zipcode = models.CharField(max_length=6, blank=False, null=False, default='')
+    country = CountryField(default='NL')
+
+    def __str__(self):
+        return self.id
