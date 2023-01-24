@@ -4,6 +4,7 @@ import io
 from django.core.management import call_command
 import base64
 from django.urls import reverse_lazy
+from form.forms import OrderForm, CustomerForm
 # Create your views here.
 
 class Index(generic.ListView):
@@ -31,7 +32,7 @@ class Stad(generic.ListView):
         return context
 
     """"
-    Ik filter hier op de stad naam die ik meegeef als paramter binnen de url en die gebruik ik dan voor de paginate. 
+    Ik filter hier op de stad naam die ik meegeef als parameter binnen de url en die gebruik ik dan voor de paginate. 
     Eerst filterde ik op alle steden binnen in de database, en toen kreeg ik alle hotels van alle steden in de pagina te zien wat niet de bedoeling is.
     """
 
@@ -64,3 +65,19 @@ class DatabaseSchema(generic.TemplateView):
                 encoded_string = base64.b64encode(image_file.read())
                 context['schema'] = encoded_string
         return context
+
+class OrderView(generic.FormView):
+    template_name = 'order.html'
+    form_class = OrderForm
+    success_url = reverse_lazy('index')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['customer_form'] = CustomerForm()
+        context['hotel'] = Hotel.objects.get(pk=self.kwargs['pk'])
+        return context
+
+    def form_valid(self, form):
+        form.save()
+        return super().form_valid(form)
+        

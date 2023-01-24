@@ -20,9 +20,9 @@ class Hotel(models.Model):
     def __str__(self):
         return self.name
 
-A = "A"
-B = "B"
-C = "C"
+A = "Single"
+B = "Double"
+C = "Family"
 
 ROOM_CHOICES = (
     (A, "Single"),
@@ -36,13 +36,13 @@ class Room(models.Model):
     price = models.DecimalField(max_digits=6, decimal_places=2, default=0.00)
     description = models.TextField(default='', blank=True, null=True)
     is_available = models.BooleanField(default=True)
-    room_type = models.CharField(max_length=1, choices=ROOM_CHOICES, default=A)
+    room_type = models.CharField(max_length=50, choices=ROOM_CHOICES, default=A)
 
     def __str__(self):
         return self.title
 
 class Order(models.Model):
-    room = models.ForeignKey(Room, related_name='order', on_delete=models.CASCADE, default=1)
+    room = models.ForeignKey(Room, related_name='room', on_delete=models.CASCADE, default=1)
     hotel = models.ForeignKey(Hotel, related_name='order', on_delete=models.CASCADE, default=1)
     start_date = models.DateField()
     end_date = models.DateField()
