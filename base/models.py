@@ -20,12 +20,23 @@ class Hotel(models.Model):
     def __str__(self):
         return self.name
 
+A = "A"
+B = "B"
+C = "C"
+
+MONTH_CHOICES = (
+    (A, "A"),
+    (B, "B"),
+    (C, "C"),
+)
+
 class Room(models.Model):
     hotel = models.ForeignKey(Hotel, related_name='room', on_delete=models.CASCADE)
     image = models.ImageField(upload_to='room_img/')
-    title = models.CharField(max_length=100)
     price = models.DecimalField(max_digits=6, decimal_places=2, default=0.00)
     description = models.TextField(default='', blank=True, null=True)
+    is_available = models.BooleanField(default=True)
+    room_type = models.CharField(max_length=1, choices=MONTH_CHOICES, default=A)
 
     def __str__(self):
         return self.title
