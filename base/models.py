@@ -1,4 +1,5 @@
 from django.db import models
+from django_countries.fields import CountryField
 # Create your models here.
 class City(models.Model):
     city_id = models.CharField(max_length=100)
@@ -28,3 +29,21 @@ class Room(models.Model):
 
     def __str__(self):
         return self.title
+
+class Customer(models.Model):
+    order = models.ForeignKey("Order", related_name='order', on_delete=models.CASCADE)
+    first_name = models.CharField(max_length=100)
+    last_name = models.CharField(max_length=100)
+    email = models.EmailField(max_length=100)
+    address = models.CharField(max_length=100)
+    zipcode = models.CharField(max_length=6)
+    country = CountryField()
+
+    def __str__(self):
+        return self.first_name
+
+# Ik zou ook de Order model in de forms app kunnen zetten, echter wil ik een beetje uitdaging hebben met het verzamelen
+# van data vanuit andere apps
+class Order(models.Model):
+    start_date = models.DateField()
+    end_date = models.DateField()
