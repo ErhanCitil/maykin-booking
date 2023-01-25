@@ -3,8 +3,11 @@ from django.views import generic
 import io
 from django.core.management import call_command
 import base64
-from django.urls import reverse_lazy
-from form.forms import OrderForm, CustomerForm
+
+from form.forms import OrderForm1, OrderForm2
+
+from django.shortcuts import render
+from formtools.wizard.views import SessionWizardView
 # Create your views here.
 
 class Index(generic.ListView):
@@ -66,31 +69,28 @@ class DatabaseSchema(generic.TemplateView):
                 context['schema'] = encoded_string
         return context
 
-class OrderView(generic.FormView):
+class OrderWizard(SessionWizardView):
     template_name = 'order.html'
-    form_class = OrderForm
-    success_url = reverse_lazy('customerorder')
+    form_list = [OrderForm1, OrderForm2]
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['customer_form'] = CustomerForm()
-        context['hotel'] = Hotel.objects.get(pk=self.kwargs['pk'])
-        return context
+    # def get_context_data(self, form, **kwargs):
+    #     context = super().get_context_data(form=form, **kwargs)
+    #     if self.steps.current == '0':
+    #         context['rooms'] = Room.objects.filter(hotel=self.kwargs['hotel_id'])
+    #     return context
 
-    def form_valid(self, form):
-        form.save()
-        return super().form_valid(form)
-
-class CustomerView(generic.TemplateView):
-    template_name = 'ordercustomer.html'
-    form_class = CustomerForm
-    success_url = reverse_lazy('index')
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['customer_form'] = CustomerForm()
-        return context
-    
-    def form_valid(self, form):
-        form.save()
-        return super().form_valid(form)
+    def done(self, form_list, **kwargs):
+        order = Order()
+        order.room = Room.objects.get(pk=self.kwargs['room_id'])
+        order.customer = Order.objects.create(
+            first_name=form_list[1].cleaned_data['first_name'],
+            last_name=form_list[1].cleaned_data['last_name'],
+            email=form_list[1].cleaned_data['email'],
+            address=form_list[1].cleaned_data['address'],
+            zipcode=form_list[1].cleaned_data['zipcode'],
+            country=form_list[1].cleaned_data['country'],
+        )
+        order.start_date = form_list[0].cleaned_data['start_date']
+        order.end_date = form_list[0].cleaned_data['end_date']
+        order.save()
+        return render(self.request, 'index.html', {'order': order})

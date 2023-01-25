@@ -10,8 +10,7 @@ urlpatterns = [
     path('database_schema/', DatabaseSchema.as_view(), name='database_schema'),
     path('hotels/', HotelList.as_view(), name='hotel'),
     path('hotel/<int:pk>', HotelDetail.as_view(), name='hotel_detail'),
-    path('order/<int:pk>', OrderView.as_view(), name='order'),
-    path('customerorder/<int:pk>', CustomerView.as_view(), name='customerorder'),
+    path('order/', OrderWizard.as_view([OrderForm1, OrderForm2]), name='order'),
 ]
 
 if settings.DEBUG:

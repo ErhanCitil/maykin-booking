@@ -14,18 +14,12 @@ class FormContact(forms.ModelForm):
             'bericht': forms.Textarea(attrs={'class': 'form-control'}),
         }
 
-class OrderForm(forms.ModelForm):
+class OrderForm1(forms.Form):
+    room_type = forms.ChoiceField(choices=ROOM_CHOICES, widget=forms.RadioSelect)
+    start_date = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
+    end_date = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
 
-    class Meta:
-        model = Order
-        fields = ('start_date', 'end_date', 'room')
-        widgets = {
-            'start_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'end_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'room_type': forms.ChoiceField(choices=ROOM_CHOICES, widget=forms.RadioSelect),
-        }
-
-class CustomerForm(OrderForm):
+class OrderForm2(forms.Form):
     first_name = forms.CharField(max_length=100, widget=forms.TextInput(attrs={'class': 'form-control'}))
     last_name = forms.CharField(max_length=100, widget=forms.TextInput(attrs={'class': 'form-control'}))
     email = forms.EmailField(max_length=100, widget=forms.TextInput(attrs={'class': 'form-control'}))
