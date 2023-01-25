@@ -73,15 +73,17 @@ class OrderWizard(SessionWizardView):
     template_name = 'order.html'
     form_list = [OrderForm1, OrderForm2]
 
-    # def get_context_data(self, form, **kwargs):
-    #     context = super().get_context_data(form=form, **kwargs)
-    #     if self.steps.current == '0':
-    #         context['rooms'] = Room.objects.filter(hotel=self.kwargs['hotel_id'])
-    #     return context
+    def get_queryset(self):
+        return Hotel.objects.filter(id= self.kwargs['pk'])
+
+    def get_context_data(self, form, **kwargs):
+        context = super(OrderWizard, self).get_context_data(form=form, **kwargs)
+        if self.steps.current == '0':
+            context['hotel'] = Hotel.objects.get(id=self.kwargs['pk'])
+        return context
 
     def done(self, form_list, **kwargs):
         order = Order()
-        order.room = Room.objects.get(pk=self.kwargs['room_id'])
         order.customer = Order.objects.create(
             first_name=form_list[1].cleaned_data['first_name'],
             last_name=form_list[1].cleaned_data['last_name'],
@@ -89,8 +91,8 @@ class OrderWizard(SessionWizardView):
             address=form_list[1].cleaned_data['address'],
             zipcode=form_list[1].cleaned_data['zipcode'],
             country=form_list[1].cleaned_data['country'],
+            start_date = form_list[0].cleaned_data['start_date'],
+            end_date = form_list[0].cleaned_data['end_date'],
         )
-        order.start_date = form_list[0].cleaned_data['start_date']
-        order.end_date = form_list[0].cleaned_data['end_date']
         order.save()
-        return render(self.request, 'index.html', {'order': order})
+        return render(self.request, 'index.html', {'order': order, 'hotel': Hotel.objects.get(id=self.kwargs['pk'])})
