@@ -46,11 +46,11 @@ class Order(models.Model):
     hotel = models.ForeignKey(Hotel, related_name='order', on_delete=models.CASCADE, default=1)
     start_date = models.DateField()
     end_date = models.DateField()
-    first_name = models.CharField(max_length=100, blank=False, null=False, default='')
-    last_name = models.CharField(max_length=100, blank=False, null=False, default='')
-    email = models.EmailField(max_length=100, blank=False, null=False, default='')
-    address = models.CharField(max_length=100, blank=False, null=False, default='')
-    zipcode = models.CharField(max_length=6, blank=False, null=False, default='')
+    first_name = models.CharField(max_length=100)
+    last_name = models.CharField(max_length=100)
+    email = models.EmailField(max_length=100)
+    address = models.CharField(max_length=100)
+    zipcode = models.CharField(max_length=6)
     country = CountryField(default='NL')
 
     def __str__(self):
