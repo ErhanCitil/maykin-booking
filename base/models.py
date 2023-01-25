@@ -42,8 +42,8 @@ class Room(models.Model):
         return self.room_type
 
 class Order(models.Model):
-    room = models.ForeignKey(Room, related_name='room', on_delete=models.CASCADE, default=1)
-    hotel = models.ForeignKey(Hotel, related_name='order', on_delete=models.CASCADE, default=1)
+    room = models.ForeignKey(Room, related_name='room', on_delete=models.CASCADE, null=True, blank=True)
+    hotel = models.ForeignKey(Hotel, related_name='order', on_delete=models.CASCADE, null=True, blank=True)
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
     first_name = models.CharField(max_length=100)
