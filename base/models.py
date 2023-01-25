@@ -20,14 +20,14 @@ class Hotel(models.Model):
     def __str__(self):
         return self.name
 
-A = "Single"
-B = "Double"
-C = "Family"
+SINGLE = "Single"
+DOUBLE = "Double"
+FAMILY = "Family"
 
 ROOM_CHOICES = (
-    (A, "Single"),
-    (B, "Double"),
-    (C, "Family"),
+    (SINGLE, "Single"),
+    (DOUBLE, "Double"),
+    (FAMILY, "Family"),
 )
 
 class Room(models.Model):
@@ -36,7 +36,7 @@ class Room(models.Model):
     price = models.DecimalField(max_digits=6, decimal_places=2, default=0.00)
     description = models.TextField(default='', blank=True, null=True)
     is_available = models.BooleanField(default=True)
-    room_type = models.CharField(max_length=50, choices=ROOM_CHOICES, default=A)
+    room_type = models.CharField(max_length=50, choices=ROOM_CHOICES)
 
     def __str__(self):
         return self.room_type
