@@ -35,10 +35,9 @@
 {% endif %}
 </table>
 {% if wizard.steps.prev %}
-<button name="wizard_goto_step" class="form-control" type="submit" value="{{ wizard.steps.first }}">{% trans "first step" %}</button>
-<button name="wizard_goto_step" class="form-control" type="submit" value="{{ wizard.steps.prev }}">{% trans "prev step" %}</button>
+<button name="wizard_goto_step" class="form-control w-50 mt-4" type="submit" value="{{ wizard.steps.prev }}">{% trans "Previous step" %}</button>
 {% endif %}
-<input type="submit" class="form-control w-50 mt-4" value="{% trans "Submit" %}"/>
+<input type="submit" class="form-control w-50 mt-2" value="{% trans "Submit" %}"/>
 </form>
 {% endblock %}
 
