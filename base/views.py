@@ -93,6 +93,8 @@ class OrderWizard(SessionWizardView):
             country=form_list[1].cleaned_data['country'],
             start_date = form_list[0].cleaned_data['start_date'],
             end_date = form_list[0].cleaned_data['end_date'],
+            hotel = Hotel.objects.get(id=self.kwargs['pk']),
+            room = Room.objects.filter(room_type=form_list[0].cleaned_data['room']),
         )
         order.save()
         return render(self.request, 'index.html', {'order': order, 'hotel': Hotel.objects.get(id=self.kwargs['pk'])})

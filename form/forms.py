@@ -1,6 +1,6 @@
 from django import forms
 from .models import ContactForm
-from base.models import Order, ROOM_CHOICES
+from base.models import Order, ROOM_CHOICES, Room
 from django_countries import countries
 
 class FormContact(forms.ModelForm):
@@ -21,8 +21,9 @@ class OrderForm1(forms.ModelForm):
         widgets = {
             'start_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'end_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'room': forms.Select(attrs={'class': 'form-control'}),
+            'room_type': forms.Select(attrs={'class': 'form-control'}, choices=ROOM_CHOICES),
         }
+
 
 class OrderForm2(forms.ModelForm):
     class Meta:
