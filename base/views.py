@@ -78,7 +78,7 @@ class OrderWizard(SessionWizardView):
 
     def get_context_data(self, form, **kwargs):
         context = super(OrderWizard, self).get_context_data(form=form, **kwargs)
-        if self.steps.current == '0':
+        if self.steps.current == '0' or self.steps.current == '1':
             context['hotel'] = Hotel.objects.get(id=self.kwargs['pk'])
         return context
 
@@ -94,7 +94,7 @@ class OrderWizard(SessionWizardView):
             start_date = form_list[0].cleaned_data['start_date'],
             end_date = form_list[0].cleaned_data['end_date'],
             hotel = Hotel.objects.get(id=self.kwargs['pk']),
-            room = Room.objects.filter(room_type=form_list[0].cleaned_data['room']),
+            room = Room.objects.get(str(form_list[0].cleaned_data['room_type'])),
         )
         order.save()
         return render(self.request, 'index.html', {'order': order, 'hotel': Hotel.objects.get(id=self.kwargs['pk'])})

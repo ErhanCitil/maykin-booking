@@ -17,13 +17,10 @@ class FormContact(forms.ModelForm):
 class OrderForm1(forms.ModelForm):
     class Meta:
         model = Order
-        fields = ('start_date', 'end_date', 'room')
-        widgets = {
-            'start_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'end_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'room_type': forms.Select(attrs={'class': 'form-control'}, choices=ROOM_CHOICES),
-        }
-
+        exclude = ('first_name', 'last_name', 'email', 'address', 'zipcode', 'country', 'hotel', 'room')
+    start_date = forms.DateField(widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}))
+    end_date = forms.DateField(widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}))
+    room_type = forms.ChoiceField(widget=forms.Select(attrs={'class': 'form-control'}), choices=ROOM_CHOICES)
 
 class OrderForm2(forms.ModelForm):
     class Meta:
