@@ -1,4 +1,4 @@
-from .models import *
+from .models import City, Hotel, Room, Order, ROOM_CHOICES
 from django.views import generic
 import io
 from django.core.management import call_command
@@ -84,7 +84,7 @@ class OrderWizard(SessionWizardView):
 
     def done(self, form_list, **kwargs):
         order = Order()
-        order.customer = Order.objects.create(
+        order = Order.objects.create(
             first_name=form_list[1].cleaned_data['first_name'],
             last_name=form_list[1].cleaned_data['last_name'],
             email=form_list[1].cleaned_data['email'],
@@ -94,7 +94,7 @@ class OrderWizard(SessionWizardView):
             start_date = form_list[0].cleaned_data['start_date'],
             end_date = form_list[0].cleaned_data['end_date'],
             hotel = Hotel.objects.get(id=self.kwargs['pk']),
-            room = Room.objects.get(str(form_list[0].cleaned_data['room_type'])),
+            room = Room.objects.get(id=self.kwargs['pk']),
         )
         order.save()
         return render(self.request, 'index.html', {'order': order, 'hotel': Hotel.objects.get(id=self.kwargs['pk'])})
