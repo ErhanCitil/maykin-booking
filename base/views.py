@@ -6,6 +6,7 @@ import base64
 
 from form.forms import OrderForm1, OrderForm2
 
+from django.http import HttpResponseRedirect
 from django.shortcuts import render
 from formtools.wizard.views import SessionWizardView
 # Create your views here.
@@ -97,4 +98,13 @@ class OrderWizard(SessionWizardView):
             room = Room.objects.get(id=self.kwargs['pk']),
         )
         order.save()
-        return render(self.request, 'index.html', {'order': order, 'hotel': Hotel.objects.get(id=self.kwargs['pk'])})
+        return HttpResponseRedirect('/success/{}'.format(order.id))
+
+class Success(generic.DetailView):
+    model = Order
+    template_name = 'success.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['order'] = Order.objects.get(id=self.kwargs['pk'])
+        return context
