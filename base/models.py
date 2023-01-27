@@ -20,30 +20,38 @@ class Hotel(models.Model):
     def __str__(self):
         return self.name
 
+SINGLE = "Single"
+DOUBLE = "Double"
+FAMILY = "Family"
+
+ROOM_CHOICES = (
+    (SINGLE, "Single"),
+    (DOUBLE, "Double"),
+    (FAMILY, "Family"),
+)
+
 class Room(models.Model):
     hotel = models.ForeignKey(Hotel, related_name='room', on_delete=models.CASCADE)
     image = models.ImageField(upload_to='room_img/')
-    title = models.CharField(max_length=100)
     price = models.DecimalField(max_digits=6, decimal_places=2, default=0.00)
     description = models.TextField(default='', blank=True, null=True)
+    is_available = models.BooleanField(default=True)
+    room_type = models.CharField(max_length=50, choices=ROOM_CHOICES)
 
     def __str__(self):
-        return self.title
+        return self.room_type
 
-class Customer(models.Model):
-    order = models.ForeignKey("Order", related_name='order', on_delete=models.CASCADE)
+class Order(models.Model):
+    room = models.ForeignKey(Room, related_name='room', on_delete=models.CASCADE, null=True, blank=True)
+    hotel = models.ForeignKey(Hotel, related_name='order', on_delete=models.CASCADE, null=True, blank=True)
+    start_date = models.DateField(null=True, blank=True)
+    end_date = models.DateField(null=True, blank=True)
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
     email = models.EmailField(max_length=100)
     address = models.CharField(max_length=100)
     zipcode = models.CharField(max_length=6)
-    country = CountryField()
+    country = CountryField(default='NL')
 
     def __str__(self):
-        return self.first_name
-
-# Ik zou ook de Order model in de forms app kunnen zetten, echter wil ik een beetje uitdaging hebben met het verzamelen
-# van data vanuit andere apps
-class Order(models.Model):
-    start_date = models.DateField()
-    end_date = models.DateField()
+        return str(self.id)
