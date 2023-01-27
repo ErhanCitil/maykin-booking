@@ -12,7 +12,4 @@ urlpatterns = [
     path('hotel/<int:pk>', HotelDetail.as_view(), name='hotel_detail'),
     path('order/<int:pk>', OrderWizard.as_view(), name='order'),
     path('success/<int:pk>', Success.as_view(), name='success'),
-]
-
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+]+ static(settings.MEDIA_URL, document_root = settings.MEDIA_ROOT)
