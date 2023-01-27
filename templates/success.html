@@ -37,6 +37,10 @@
     </div>
 </div>
 
+<a href="{% url 'orderpdf' order.pk%}">
+<button> Generate PDF </button>
+</a>
+
     {% include 'components/footer.html' %}
 </body>
 </html>

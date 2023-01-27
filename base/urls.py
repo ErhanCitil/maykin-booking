@@ -12,6 +12,7 @@ urlpatterns = [
     path('hotel/<int:pk>', HotelDetail.as_view(), name='hotel_detail'),
     path('order/<int:pk>', OrderWizard.as_view(), name='order'),
     path('success/<int:pk>', Success.as_view(), name='success'),
+    path('orderpdf/<int:pk>', OrderPDF.as_view(), name='orderpdf'),
 ]
 
 if settings.DEBUG:

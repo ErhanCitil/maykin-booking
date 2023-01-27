@@ -9,6 +9,10 @@ from form.forms import OrderForm1, OrderForm2
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
 from formtools.wizard.views import SessionWizardView
+
+from django_weasyprint import WeasyTemplateResponseMixin
+from django_weasyprint.views import WeasyTemplateResponse
+import io
 # Create your views here.
 
 class Index(generic.ListView):
@@ -108,3 +112,22 @@ class Success(generic.DetailView):
         context = super().get_context_data(**kwargs)
         context['order'] = Order.objects.get(id=self.kwargs['pk'])
         return context
+
+class OrderPDF(WeasyTemplateResponseMixin, generic.DetailView):
+    model = Order
+    template_name = 'order_pdf.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['order'] = Order.objects.get(id=self.kwargs['pk'])
+        return context
+
+    def get(self, request, *args, **kwargs):
+        response = super().get(request, *args, **kwargs)
+        pdf = WeasyTemplateResponse(
+            request=request,
+            template=self.template_name,
+            context=self.get_context_data(),
+            filename='order_{}.pdf'.format(self.kwargs['pk']),
+        )
+        return pdf
