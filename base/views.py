@@ -81,6 +81,8 @@ class OrderWizard(SessionWizardView):
         context = super(OrderWizard, self).get_context_data(form=form, **kwargs)
         if self.steps.current == '0' or self.steps.current == '1':
             context['hotel'] = Hotel.objects.get(id=self.kwargs['pk'])
+        if self.steps.current == '1':
+            context['step0'] = self.get_cleaned_data_for_step('0')
         return context
 
     def done(self, form_list, **kwargs):
@@ -99,7 +101,6 @@ class OrderWizard(SessionWizardView):
         )
         order.save()
         return HttpResponseRedirect('/success/{}'.format(order.id))
-
 class Success(generic.DetailView):
     model = Order
     template_name = 'success.html'
