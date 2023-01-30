@@ -1,10 +1,14 @@
-from .models import *
+from .models import City, Hotel, Room, Order, ROOM_CHOICES
 from django.views import generic
 import io
 from django.core.management import call_command
 import base64
-from form.forms import FormOrder, FormCustomer
-from django.urls import reverse_lazy
+
+from form.forms import OrderForm1, OrderForm2
+
+from django.http import HttpResponseRedirect
+from django.shortcuts import render
+from formtools.wizard.views import SessionWizardView
 # Create your views here.
 
 class Index(generic.ListView):
@@ -32,7 +36,7 @@ class Stad(generic.ListView):
         return context
 
     """"
-    Ik filter hier op de stad naam die ik meegeef als paramter binnen de url en die gebruik ik dan voor de paginate. 
+    Ik filter hier op de stad naam die ik meegeef als parameter binnen de url en die gebruik ik dan voor de paginate. 
     Eerst filterde ik op alle steden binnen in de database, en toen kreeg ik alle hotels van alle steden in de pagina te zien wat niet de bedoeling is.
     """
 
@@ -66,20 +70,41 @@ class DatabaseSchema(generic.TemplateView):
                 context['schema'] = encoded_string
         return context
 
-class OrderForm(generic.FormView):
+class OrderWizard(SessionWizardView):
     template_name = 'order.html'
-    form_class = FormOrder
-    success_url = reverse_lazy('order_customer')
+    form_list = [OrderForm1, OrderForm2]
 
-    def form_valid(self, form):
-        form.save()
-        return super().form_valid(form)
+    def get_queryset(self):
+        return Hotel.objects.filter(id= self.kwargs['pk'])
 
-class CustomerForm(generic.FormView):
-    template_name = 'order_customer.html'
-    form_class = FormCustomer
-    success_url = reverse_lazy('index')
+    def get_context_data(self, form, **kwargs):
+        context = super(OrderWizard, self).get_context_data(form=form, **kwargs)
+        if self.steps.current == '0' or self.steps.current == '1':
+            context['hotel'] = Hotel.objects.get(id=self.kwargs['pk'])
+        return context
 
-    def form_valid(self, form):
-        form.save()
-        return super().form_valid(form)
+    def done(self, form_list, **kwargs):
+        order = Order()
+        order = Order.objects.create(
+            first_name=form_list[1].cleaned_data['first_name'],
+            last_name=form_list[1].cleaned_data['last_name'],
+            email=form_list[1].cleaned_data['email'],
+            address=form_list[1].cleaned_data['address'],
+            zipcode=form_list[1].cleaned_data['zipcode'],
+            country=form_list[1].cleaned_data['country'],
+            start_date = form_list[0].cleaned_data['start_date'],
+            end_date = form_list[0].cleaned_data['end_date'],
+            hotel = Hotel.objects.get(id=self.kwargs['pk']),
+            room = Room.objects.get(id=self.kwargs['pk']),
+        )
+        order.save()
+        return HttpResponseRedirect('/success/{}'.format(order.id))
+
+class Success(generic.DetailView):
+    model = Order
+    template_name = 'success.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['order'] = Order.objects.get(id=self.kwargs['pk'])
+        return context
