@@ -19,7 +19,7 @@ class Command(BaseCommand):
         writer = csv.writer(response)
         
         for h in hotel:
-            writer.writerow([h.city.city_name, h.city.city_id, h.hotel_name, h.hotel_id])
+            writer.writerow([h.city.name, h.city.city_id, h.name, h.hotel_id])
         
         file.close()
 
