@@ -10,6 +10,7 @@ class City(models.Model):
 
 class Hotel(models.Model):
     city = models.ForeignKey(City, related_name='test', on_delete=models.CASCADE)
+    highlight = models.ManyToManyField('Highlight', related_name='hotel')
     hotel_id = models.CharField(max_length=100)
     name = models.CharField(max_length=100)
     image = models.ImageField(upload_to='hotel_img/', null=True, blank=True)
@@ -55,3 +56,10 @@ class Order(models.Model):
 
     def __str__(self):
         return str(self.id)
+
+class Highlight(models.Model):
+    icon = models.ImageField(upload_to='highlight_img/', null=True, blank=True)
+    name = models.CharField(max_length=100)
+
+    def __str__(self):
+        return self.name

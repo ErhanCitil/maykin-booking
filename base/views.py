@@ -1,4 +1,4 @@
-from .models import City, Hotel, Room, Order, ROOM_CHOICES
+from .models import City, Hotel, Room, Order, ROOM_CHOICES, Highlight
 from django.views import generic
 import io
 from django.core.management import call_command
@@ -56,6 +56,7 @@ class HotelDetail(generic.DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['rooms'] = Room.objects.filter(hotel=self.kwargs['pk'])
+        context['highlights'] = Highlight.objects.filter(hotel=self.kwargs['pk'])
         return context
 
 class DatabaseSchema(generic.TemplateView):
