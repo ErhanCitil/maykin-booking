@@ -96,40 +96,6 @@ node {
         }
     }
 
-    stage ("Quality") {
-        step(
-            [
-                $class: "CoberturaPublisher",
-                coberturaReportFile: "reports/coverage.xml"
-            ]
-        )
-        step(
-            [
-                $class: "WarningsPublisher",
-                parserConfigurations: [
-                    [
-                        parserName: "PyLint",
-                        pattern: "reports/pylint.report",
-                        unstableTotalAll: "10",
-                        usePreviousBuildAsReference: true,
-                    ],
-                    [
-                        parserName: "Pep8",
-                        pattern: "reports/pep8.report",
-                        unstableTotalAll: "50",
-                        usePreviousBuildAsReference: true,
-                    ],
-                    [
-                        parserName: "Dynamic",
-                        pattern: "reports/isort.report",
-                        unstableTotalAll: "10",
-                        usePreviousBuildAsReference: true,
-                    ],
-                ]
-            ]
-        )
-    }
-
 // Enable for SonarQube
 //  stage("Analysis") {
 //    def scannerHome = tool "SonarQube Scanner 2.8";
