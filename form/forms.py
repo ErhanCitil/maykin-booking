@@ -27,10 +27,11 @@ class OrderForm2(forms.ModelForm):
         model = Order
         fields = ('first_name', 'last_name', 'email', 'address', 'zipcode', 'country')
         widgets = {
-            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
-            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
-            'email': forms.TextInput(attrs={'class': 'form-control'}),
-            'address': forms.TextInput(attrs={'class': 'form-control'}),
-            'zipcode': forms.TextInput(attrs={'class': 'form-control'}),
+            'first_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Alex'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'de Landgraaf'}),
+            'email': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'alex@maykin.nl'}),
+            'address': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Keizersgracht 117'}),
+            'zipcode': forms.TextInput(attrs={'class': 'form-control','placeholder': '1015CJ'}),
             'country': forms.Select(attrs={'class': 'form-control'}, choices=countries),
         }
+    terms = forms.BooleanField(error_messages={'required': 'Please accept the terms and conditions.'}, label='I accept the terms and conditions')
