@@ -7,6 +7,24 @@
     <title>PDF #{{order.pk}}</title>
 </head>
 <body>
-    
+    <h1>Order #{{order.pk}}</h1>
+    <p> First- and lastname: {{order.first_name}} {{order.last_name}} </p>
+    <br>
+    <p> Email: {{order.email}} </p>
+    <br>
+    <p> Address: {{order.address}} </p>
+    <br>
+    <p> Zipcode: {{order.zipcode}} </p>
+    <br>
+    <p> Country: {{order.country}} </p>
+
+    <h1>Order details:</h1>
+    <p>Room: {{order.room}}</p>
+    <br>
+    <p>Room price: {{order.room.price}}</p> 
+    <br>
+    <p>Hotel: {{order.hotel}}</p>
+    <br>
+    <p> Check in date: {{order.start_date}}</p>
 </body>
 </html>
