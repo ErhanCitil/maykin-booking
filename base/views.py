@@ -83,6 +83,12 @@ class OrderWizard(SessionWizardView):
             context['hotel'] = Hotel.objects.get(id=self.kwargs['pk'])
         if self.steps.current == '1':
             context['step0'] = self.get_cleaned_data_for_step('0')
+            context['order'] = Order.objects.create(
+                start_date = context['step0']['start_date'],
+                end_date = context['step0']['end_date'],
+                hotel = Hotel.objects.get(id=self.kwargs['pk']),
+                room = Room.objects.get(id=self.kwargs['pk']),
+            )
         return context
 
     def done(self, form_list, **kwargs):

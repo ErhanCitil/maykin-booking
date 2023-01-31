@@ -55,3 +55,7 @@ class Order(models.Model):
 
     def __str__(self):
         return str(self.id)
+
+    @property
+    def total_price(self):
+        return self.room.price * (self.end_date - self.start_date).days 
