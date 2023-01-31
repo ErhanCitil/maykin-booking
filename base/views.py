@@ -90,22 +90,18 @@ class OrderWizard(SessionWizardView):
                 hotel = Hotel.objects.get(id=self.kwargs['pk']),
                 room = Room.objects.filter(hotel=self.kwargs['pk'], room_type=context['step0']['room_type']).first(),
             )
+            self.request.session['order_id'] = context['order'].id
         return context
 
     def done(self, form_list, **kwargs):
-        order = Order()
-        order = Order.objects.create(
-            start_date = self.get_cleaned_data_for_step('0')['start_date'],
-            end_date = self.get_cleaned_data_for_step('0')['end_date'],
-            hotel = Hotel.objects.get(id=self.kwargs['pk']),
-            room = Room.objects.filter(hotel=self.kwargs['pk'], room_type=self.get_cleaned_data_for_step('0')['room_type']).first(),
-            first_name = self.get_cleaned_data_for_step('1')['first_name'],
-            last_name = self.get_cleaned_data_for_step('1')['last_name'],
-            email = self.get_cleaned_data_for_step('1')['email'],
-            address = self.get_cleaned_data_for_step('1')['address'],
-            zipcode = self.get_cleaned_data_for_step('1')['zipcode'],
-            country = self.get_cleaned_data_for_step('1')['country'],
-        )
+        order = Order.objects.get(id=self.request.session['order_id'])
+        order.first_name = form_list[1].cleaned_data['first_name']
+        order.last_name = form_list[1].cleaned_data['last_name']
+        order.email = form_list[1].cleaned_data['email']
+        order.address = form_list[1].cleaned_data['address']
+        order.zipcode = form_list[1].cleaned_data['zipcode']
+        order.country = form_list[1].cleaned_data['country']
+        order.save()
         return HttpResponseRedirect('/success/{}'.format(order.id))
 
 class Success(generic.DetailView):
