@@ -21,7 +21,7 @@ class OrderForm1(forms.ModelForm):
 
     start_date = forms.DateField(widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}))
     end_date = forms.DateField(widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}))
-    room_type = forms.ChoiceField(widget=forms.RadioSelect, choices=ROOM_CHOICES)
+    room_type = forms.ChoiceField(widget=forms.Select(attrs={'class': 'form-control'}), choices=ROOM_CHOICES)
 
 class OrderForm2(forms.ModelForm):
     class Meta:

@@ -1,6 +1,5 @@
 from django.db import models
 from django_countries.fields import CountryField
-from form.validators import validate_room_type_is_available
 # Create your models here.
 class City(models.Model):
     city_id = models.CharField(max_length=100)
@@ -37,7 +36,7 @@ class Room(models.Model):
     price = models.DecimalField(max_digits=6, decimal_places=2, default=0.00)
     description = models.TextField(default='', blank=True, null=True)
     is_available = models.BooleanField(default=True)
-    room_type = models.CharField(max_length=50, choices=ROOM_CHOICES, validators=[validate_room_type_is_available])
+    room_type = models.CharField(max_length=50, choices=ROOM_CHOICES)
 
     def __str__(self):
         return self.room_type
