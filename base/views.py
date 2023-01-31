@@ -83,30 +83,31 @@ class OrderWizard(SessionWizardView):
             context['hotel'] = Hotel.objects.get(id=self.kwargs['pk'])
         if self.steps.current == '1':
             context['step0'] = self.get_cleaned_data_for_step('0')
+            context['step1'] = self.get_cleaned_data_for_step('1')
             context['order'] = Order.objects.create(
                 start_date = context['step0']['start_date'],
                 end_date = context['step0']['end_date'],
                 hotel = Hotel.objects.get(id=self.kwargs['pk']),
-                room = Room.objects.get(id=self.kwargs['pk']),
+                room = Room.objects.filter(hotel=self.kwargs['pk'], room_type=context['step0']['room_type']).first(),
             )
         return context
 
     def done(self, form_list, **kwargs):
         order = Order()
         order = Order.objects.create(
-            first_name=form_list[1].cleaned_data['first_name'],
-            last_name=form_list[1].cleaned_data['last_name'],
-            email=form_list[1].cleaned_data['email'],
-            address=form_list[1].cleaned_data['address'],
-            zipcode=form_list[1].cleaned_data['zipcode'],
-            country=form_list[1].cleaned_data['country'],
-            start_date = form_list[0].cleaned_data['start_date'],
-            end_date = form_list[0].cleaned_data['end_date'],
+            start_date = self.get_cleaned_data_for_step('0')['start_date'],
+            end_date = self.get_cleaned_data_for_step('0')['end_date'],
             hotel = Hotel.objects.get(id=self.kwargs['pk']),
-            room = Room.objects.get(id=self.kwargs['pk']),
+            room = Room.objects.filter(hotel=self.kwargs['pk'], room_type=self.get_cleaned_data_for_step('0')['room_type']).first(),
+            first_name = self.get_cleaned_data_for_step('1')['first_name'],
+            last_name = self.get_cleaned_data_for_step('1')['last_name'],
+            email = self.get_cleaned_data_for_step('1')['email'],
+            address = self.get_cleaned_data_for_step('1')['address'],
+            zipcode = self.get_cleaned_data_for_step('1')['zipcode'],
+            country = self.get_cleaned_data_for_step('1')['country'],
         )
-        order.save()
         return HttpResponseRedirect('/success/{}'.format(order.id))
+
 class Success(generic.DetailView):
     model = Order
     template_name = 'success.html'
