@@ -53,6 +53,7 @@ class Order(models.Model):
     address = models.CharField(max_length=100)
     zipcode = models.CharField(max_length=6)
     country = CountryField(default='NL')
+    token = models.CharField(max_length=100, unique=True, null=True, blank=True)
 
     def __str__(self):
         return str(self.id)

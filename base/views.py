@@ -13,6 +13,8 @@ from formtools.wizard.views import SessionWizardView
 from django_weasyprint import WeasyTemplateResponseMixin
 from django_weasyprint.views import WeasyTemplateResponse
 import io
+import uuid
+from django.http import Http404
 # Create your views here.
 
 class Index(generic.ListView):
@@ -89,6 +91,9 @@ class OrderWizard(SessionWizardView):
         return context
 
     def done(self, form_list, **kwargs):
+        order_token = self.request.session.get('order_token')
+        if not order_token:
+            order_token = self.request.session['order_token'] = str(uuid.uuid4())
         order = Order()
         order = Order.objects.create(
             first_name=form_list[1].cleaned_data['first_name'],
@@ -101,6 +106,7 @@ class OrderWizard(SessionWizardView):
             end_date = form_list[0].cleaned_data['end_date'],
             hotel = Hotel.objects.get(id=self.kwargs['pk']),
             room = Room.objects.filter(hotel=self.kwargs['pk']).filter(room_type=form_list[0].cleaned_data['room_type']).first(),
+            token = order_token
         )
         order.save()
         return HttpResponseRedirect('/success/{}'.format(order.id))
@@ -113,6 +119,14 @@ class Success(generic.DetailView):
         context = super().get_context_data(**kwargs)
         context['order'] = Order.objects.get(id=self.kwargs['pk'])
         return context
+
+    def get(self, request, *args, **kwargs):
+        order_id = self.kwargs['pk']
+        order = Order.objects.get(id=order_id)
+        order_token = request.session.get('order_token')
+        if order_token != order.token:
+            raise Http404
+        return super().get(request, *args, **kwargs)
 
 class OrderPDF(WeasyTemplateResponseMixin, generic.DetailView):
     model = Order
