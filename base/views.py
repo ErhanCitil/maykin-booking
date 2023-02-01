@@ -132,4 +132,4 @@ class Login(LoginView):
     redirect_authenticated_user = True
 
     def get_success_url(self, **kwargs):
-        return reverse_lazy('index')
+        return reverse_lazy('hotel_edit', kwargs={'pk': self.kwargs['pk']})
