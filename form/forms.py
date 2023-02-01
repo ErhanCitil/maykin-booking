@@ -35,3 +35,4 @@ class OrderForm2(forms.ModelForm):
             'zipcode': forms.TextInput(attrs={'class': 'form-control','placeholder': '1015CJ'}),
             'country': forms.Select(attrs={'class': 'form-control'}, choices=countries),
         }
+    terms = forms.BooleanField(error_messages={'required': 'Please accept the terms and conditions.'}, label='I accept the terms and conditions')

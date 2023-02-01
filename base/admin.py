@@ -15,3 +15,4 @@ class HotelAdmin(ImportExportModelAdmin, admin.ModelAdmin):
 admin.site.register(Hotel, HotelAdmin)
 admin.site.register(City, CityAdmin)
 admin.site.register(Order)
+admin.site.register(Highlight)
