@@ -1,5 +1,5 @@
 import factory, factory.fuzzy
-from base.models import Hotel, Room, City, Order
+from base.models import Hotel, Room, City, Order, Highlight
 import datetime 
 
 class CityFactory(factory.django.DjangoModelFactory):
@@ -20,6 +20,14 @@ class HotelFactory(factory.django.DjangoModelFactory):
     description = factory.fuzzy.FuzzyText(length=100)
     price = factory.fuzzy.FuzzyDecimal(100.00)
     is_available = factory.fuzzy.FuzzyChoice([True, False])
+
+    @factory.post_generation
+    def highlight(self, create, extracted, **kwargs):
+        if not create:
+            return
+        if extracted:
+            for highlight in extracted:
+                self.highlight.add(highlight)
 
 class RoomFactory(factory.django.DjangoModelFactory):
     class Meta:
@@ -44,3 +52,9 @@ class OrderFactory(factory.django.DjangoModelFactory):
     address = factory.fuzzy.FuzzyText(length=100)
     zipcode = factory.fuzzy.FuzzyText(length=6)
     country = factory.fuzzy.FuzzyText(length=100)
+class HighlightFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = Highlight
+
+    icon = factory.django.ImageField()
+    name = factory.fuzzy.FuzzyText(length=100)
