@@ -86,22 +86,26 @@ class OrderWizard(SessionWizardView):
         context = super(OrderWizard, self).get_context_data(form=form, **kwargs)
         if self.steps.current == '0' or self.steps.current == '1':
             context['hotel'] = Hotel.objects.get(id=self.kwargs['pk'])
+        if self.steps.current == '1':
+            context['step0'] = self.get_cleaned_data_for_step('0')
+            context['step1'] = self.get_cleaned_data_for_step('1')
+            context['order'] = Order.objects.create(
+                start_date = context['step0']['start_date'],
+                end_date = context['step0']['end_date'],
+                hotel = Hotel.objects.get(id=self.kwargs['pk']),
+                room = Room.objects.filter(hotel=self.kwargs['pk'], room_type=context['step0']['room_type']).first(),
+            )
+            self.request.session['order_id'] = context['order'].id
         return context
 
     def done(self, form_list, **kwargs):
-        order = Order()
-        order = Order.objects.create(
-            first_name=form_list[1].cleaned_data['first_name'],
-            last_name=form_list[1].cleaned_data['last_name'],
-            email=form_list[1].cleaned_data['email'],
-            address=form_list[1].cleaned_data['address'],
-            zipcode=form_list[1].cleaned_data['zipcode'],
-            country=form_list[1].cleaned_data['country'],
-            start_date = form_list[0].cleaned_data['start_date'],
-            end_date = form_list[0].cleaned_data['end_date'],
-            hotel = Hotel.objects.get(id=self.kwargs['pk']),
-            room = Room.objects.filter(hotel=self.kwargs['pk']).filter(room_type=form_list[0].cleaned_data['room_type']).first(),
-        )
+        order = Order.objects.get(id=self.request.session['order_id'])
+        order.first_name = form_list[1].cleaned_data['first_name']
+        order.last_name = form_list[1].cleaned_data['last_name']
+        order.email = form_list[1].cleaned_data['email']
+        order.address = form_list[1].cleaned_data['address']
+        order.zipcode = form_list[1].cleaned_data['zipcode']
+        order.country = form_list[1].cleaned_data['country']
         order.save()
         return HttpResponseRedirect('/success/{}'.format(order.id))
 
