@@ -1,5 +1,6 @@
 from django.db import models
 from django_countries.fields import CountryField
+import uuid
 # Create your models here.
 class City(models.Model):
     city_id = models.CharField(max_length=100)
@@ -53,7 +54,7 @@ class Order(models.Model):
     address = models.CharField(max_length=100)
     zipcode = models.CharField(max_length=6)
     country = CountryField(default='NL')
-    token = models.CharField(max_length=100, unique=True, null=True, blank=True)
+    token = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
     def __str__(self):
         return str(self.id)

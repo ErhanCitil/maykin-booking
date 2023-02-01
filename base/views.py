@@ -102,22 +102,6 @@ class OrderWizard(SessionWizardView):
 
     def done(self, form_list, **kwargs):
         order_token = self.request.session.get('order_token')
-        if not order_token:
-            order_token = self.request.session['order_token'] = str(uuid.uuid4())
-        order = Order()
-        order = Order.objects.create(
-            first_name=form_list[1].cleaned_data['first_name'],
-            last_name=form_list[1].cleaned_data['last_name'],
-            email=form_list[1].cleaned_data['email'],
-            address=form_list[1].cleaned_data['address'],
-            zipcode=form_list[1].cleaned_data['zipcode'],
-            country=form_list[1].cleaned_data['country'],
-            start_date = form_list[0].cleaned_data['start_date'],
-            end_date = form_list[0].cleaned_data['end_date'],
-            hotel = Hotel.objects.get(id=self.kwargs['pk']),
-            room = Room.objects.filter(hotel=self.kwargs['pk']).filter(room_type=form_list[0].cleaned_data['room_type']).first(),
-            token = order_token
-        )
         order = Order.objects.get(id=self.request.session['order_id'])
         order.first_name = form_list[1].cleaned_data['first_name']
         order.last_name = form_list[1].cleaned_data['last_name']
@@ -125,6 +109,7 @@ class OrderWizard(SessionWizardView):
         order.address = form_list[1].cleaned_data['address']
         order.zipcode = form_list[1].cleaned_data['zipcode']
         order.country = form_list[1].cleaned_data['country']
+        order.token = order_token
         order.save()
         return HttpResponseRedirect('/success/{}'.format(order.id))
 
