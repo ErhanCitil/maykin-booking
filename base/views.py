@@ -1,4 +1,4 @@
-from .models import City, Hotel, Room, Order, ROOM_CHOICES
+from .models import City, Hotel, Room, Order, ROOM_CHOICES, Highlight
 from django.views import generic
 import io
 from django.core.management import call_command
@@ -60,6 +60,7 @@ class HotelDetail(generic.DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['rooms'] = Room.objects.filter(hotel=self.kwargs['pk'])
+        context['highlights'] = Highlight.objects.filter(hotel=self.kwargs['pk'])
         return context
 
 class DatabaseSchema(generic.TemplateView):
@@ -99,7 +100,7 @@ class OrderWizard(SessionWizardView):
             start_date = form_list[0].cleaned_data['start_date'],
             end_date = form_list[0].cleaned_data['end_date'],
             hotel = Hotel.objects.get(id=self.kwargs['pk']),
-            room = Room.objects.get(id=self.kwargs['pk']),
+            room = Room.objects.filter(hotel=self.kwargs['pk']).filter(room_type=form_list[0].cleaned_data['room_type']).first(),
         )
         order.save()
         return HttpResponseRedirect('/success/{}'.format(order.id))

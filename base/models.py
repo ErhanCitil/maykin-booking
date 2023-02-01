@@ -10,6 +10,7 @@ class City(models.Model):
 
 class Hotel(models.Model):
     city = models.ForeignKey(City, related_name='test', on_delete=models.CASCADE)
+    highlight = models.ManyToManyField('Highlight', related_name='hotel')
     hotel_id = models.CharField(max_length=100)
     name = models.CharField(max_length=100)
     image = models.ImageField(upload_to='hotel_img/', null=True, blank=True)
@@ -34,7 +35,7 @@ class Room(models.Model):
     hotel = models.ForeignKey(Hotel, related_name='room', on_delete=models.CASCADE)
     image = models.ImageField(upload_to='room_img/')
     price = models.DecimalField(max_digits=6, decimal_places=2, default=0.00)
-    description = models.TextField(default='', blank=True, null=True)
+    description = models.TextField()
     is_available = models.BooleanField(default=True)
     room_type = models.CharField(max_length=50, choices=ROOM_CHOICES)
 
@@ -42,8 +43,8 @@ class Room(models.Model):
         return self.room_type
 
 class Order(models.Model):
-    room = models.ForeignKey(Room, related_name='room', on_delete=models.CASCADE, null=True, blank=True)
-    hotel = models.ForeignKey(Hotel, related_name='order', on_delete=models.CASCADE, null=True, blank=True)
+    room = models.ForeignKey(Room, related_name='room', on_delete=models.CASCADE)
+    hotel = models.ForeignKey(Hotel, related_name='order', on_delete=models.CASCADE)
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
     first_name = models.CharField(max_length=100)
@@ -55,3 +56,10 @@ class Order(models.Model):
 
     def __str__(self):
         return str(self.id)
+
+class Highlight(models.Model):
+    icon = models.ImageField(upload_to='highlight_img/', null=True, blank=True)
+    name = models.CharField(max_length=100)
+
+    def __str__(self):
+        return self.name
