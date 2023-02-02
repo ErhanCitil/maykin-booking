@@ -4,11 +4,13 @@ import io
 from django.core.management import call_command
 import base64
 
-from form.forms import OrderForm1, OrderForm2, EditForm
+from form.forms import OrderForm1, OrderForm2
 
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
 from formtools.wizard.views import SessionWizardView
+
+from django.forms import formset_factory, inlineformset_factory
 # Create your views here.
 
 class Index(generic.ListView):
@@ -114,10 +116,31 @@ class Success(generic.DetailView):
         context['order'] = Order.objects.get(id=self.kwargs['pk'])
         return context
 
+FormSet = inlineformset_factory(Hotel, Room, fields=('room_type', 'description', 'image', 'price'))
+
 class HotelEdit(generic.UpdateView):
     model = Hotel
     template_name = 'hotel_edit.html'
-    form_class = EditForm
+    fields = ('name', 'description', 'image', 'price')
 
     def get_success_url(self):
         return '/hotel/{}'.format(self.kwargs['pk'])
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if self.request.POST:
+            context['formset'] = FormSet(self.request.POST, self.request.FILES, instance=self.object)
+        else:
+            context['formset'] = FormSet(instance=self.object)
+        return context
+
+    def form_valid(self, form):
+        context = self.get_context_data()
+        formset = context['formset']
+        if formset.is_valid():
+            self.object = form.save()
+            formset.instance = self.object
+            formset.save()
+            return super().form_valid(form)
+        else:
+            return self.render_to_response(self.get_context_data(form=form))
