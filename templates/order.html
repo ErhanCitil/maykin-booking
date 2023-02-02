@@ -30,24 +30,51 @@
 {% load i18n %}
 {% block content %}
 <p>Step {{ wizard.steps.step1 }} of {{ wizard.steps.count }}</p>
-<form action="" method="post" class="mt-4">{% csrf_token %}
-<table>
-{{ wizard.management_form }}
-{% if wizard.form.forms %}
-    {{ wizard.form.management_form }}
-    {% for form in wizard.form.forms %}
-        {{ form.as_table }}
-    {% endfor %}
-{% else %}
-    {{ wizard.form }}
-{% endif %}
-</table>
+<div class="flex">
+    <div>
+        <form action="" method="post" class="mt-4">{% csrf_token %}
+        <table>
+        {{ wizard.management_form }}
+        {% if wizard.form.forms %}
+            {{ wizard.form.management_form }}
+            {% for form in wizard.form.forms %}
+                {{ form.as_table }}
+            {% endfor %}
+        {% else %}
+            {{ wizard.form }}
+        {% endif %}
+        </table>
+        {% if wizard.steps.prev %}
+        <button name="wizard_goto_step" class="form-control w-50 mt-4" type="submit" value="{{ wizard.steps.prev }}">{% trans "Previous step" %}</button>
+        {% endif %}
+        <input type="submit" class="form-control w-50 mt-2" value="{% trans "Submit" %}"/>
+        </form>
+    </div>
 
-{% if wizard.steps.prev %}
-<button name="wizard_goto_step" class="form-control w-50 mt-4" type="submit" value="{{ wizard.steps.prev }}">{% trans "Previous step" %}</button>
-{% endif %}
-<input type="submit" class="form-control w-50 mt-2" value="{% trans "Submit" %}"/>
-</form>
+    {% if wizard.steps.next %}
+    <div class="ml-24">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Room</th>
+                    <th>Price</th>
+                    <th>Is available</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for room in room %}
+                    <tr>
+                        <td>{{room.room_type}}</td>
+                        <td>{{room.price}}</td>
+                        <td>{{room.is_available}}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
 {% endblock %}
 
 
