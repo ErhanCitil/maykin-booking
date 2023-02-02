@@ -130,3 +130,9 @@ class Login(LoginView):
     template_name = 'login.html'
     fields = '__all__'
     redirect_authenticated_user = True
+
+class HotelEditList(LoginRequiredMixin, generic.ListView):
+    model = Hotel
+    template_name = 'hotel_edit_list.html'
+
+    
