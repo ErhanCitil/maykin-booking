@@ -98,11 +98,12 @@ class OrderWizard(SessionWizardView):
                 room = Room.objects.filter(hotel=self.kwargs['pk'], room_type=context['step0']['room_type']).first(),
             )
             self.request.session['order_id'] = context['order'].id
+            self.request.session['order_token'] = str(context['order'].token)
         return context
 
     def done(self, form_list, **kwargs):
         order_token = self.request.session.get('order_token')
-        order = Order.objects.get(id=self.request.session['order_id'])
+        order = Order.objects.get(token = order_token)
         order.first_name = form_list[1].cleaned_data['first_name']
         order.last_name = form_list[1].cleaned_data['last_name']
         order.email = form_list[1].cleaned_data['email']
@@ -120,13 +121,13 @@ class Success(generic.DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['order'] = Order.objects.get(id=self.kwargs['pk'])
+        self.request.session['order_token'] = str(context['order'].token)
         return context
 
     def get(self, request, *args, **kwargs):
-        order_id = self.kwargs['pk']
-        order = Order.objects.get(id=order_id)
-        order_token = request.session.get('order_token')
-        if order_token != order.token:
+        order_token = str(self.request.session.get('order_token'))
+        order = Order.objects.get(token = order_token)
+        if order_token != str(order.token):
             raise Http404
         return super().get(request, *args, **kwargs)
 
@@ -137,6 +138,7 @@ class OrderPDF(WeasyTemplateResponseMixin, generic.DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['order'] = Order.objects.get(id=self.kwargs['pk'])
+        self.request.session['order_token'] = str(context['order'].token)
         return context
 
     def get(self, request, *args, **kwargs):
