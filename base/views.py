@@ -4,7 +4,7 @@ import io
 from django.core.management import call_command
 import base64
 
-from form.forms import OrderForm1, OrderForm2
+from form.forms import OrderForm1, OrderForm2, EditForm
 
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
@@ -148,3 +148,11 @@ class OrderPDF(WeasyTemplateResponseMixin, generic.DetailView):
             filename='order_{}.pdf'.format(self.kwargs['pk']),
         )
         return pdf
+        
+class HotelEdit(generic.UpdateView):
+    model = Hotel
+    template_name = 'hotel_edit.html'
+    form_class = EditForm
+
+    def get_success_url(self):
+        return '/hotel/{}'.format(self.kwargs['pk'])
