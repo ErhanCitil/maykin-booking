@@ -88,6 +88,7 @@ class OrderWizard(SessionWizardView):
         context = super(OrderWizard, self).get_context_data(form=form, **kwargs)
         if self.steps.current == '0' or self.steps.current == '1':
             context['hotel'] = Hotel.objects.get(id=self.kwargs['pk'])
+            context['room'] = Room.objects.filter(hotel=self.kwargs['pk'])
         if self.steps.current == '1':
             context['step0'] = self.get_cleaned_data_for_step('0')
             context['step1'] = self.get_cleaned_data_for_step('1')
