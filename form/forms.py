@@ -1,6 +1,6 @@
 from django import forms
 from .models import ContactForm
-from base.models import Order, ROOM_CHOICES, Room
+from base.models import Order, ROOM_CHOICES, Room, Hotel
 from django_countries import countries
 
 class FormContact(forms.ModelForm):
@@ -36,3 +36,15 @@ class OrderForm2(forms.ModelForm):
             'country': forms.Select(attrs={'class': 'form-control'}, choices=countries),
         }
     terms = forms.BooleanField(error_messages={'required': 'Please accept the terms and conditions.'}, label='I accept the terms and conditions')
+
+class EditForm(forms.ModelForm):
+    class Meta:
+        model = Hotel
+        fields = ('name', 'description', 'image', 'price')
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'description': forms.Textarea(attrs={'class': 'form-control'}),
+            'image': forms.FileInput(attrs={'class': 'form-control'}),
+            'price': forms.NumberInput(attrs={'class': 'form-control'}),
+        }
+        

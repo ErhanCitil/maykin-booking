@@ -4,7 +4,7 @@ import io
 from django.core.management import call_command
 import base64
 
-from form.forms import OrderForm1, OrderForm2
+from form.forms import OrderForm1, OrderForm2, EditForm
 
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
@@ -114,3 +114,11 @@ class Success(generic.DetailView):
         context = super().get_context_data(**kwargs)
         context['order'] = Order.objects.get(id=self.kwargs['pk'])
         return context
+
+class HotelEdit(generic.UpdateView):
+    model = Hotel
+    template_name = 'hotel_edit.html'
+    form_class = EditForm
+
+    def get_success_url(self):
+        return '/hotel/{}'.format(self.kwargs['pk'])
