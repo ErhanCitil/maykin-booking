@@ -12,4 +12,5 @@ urlpatterns = [
     path('hotel/<int:pk>', HotelDetail.as_view(), name='hotel_detail'),
     path('order/<int:pk>', OrderWizard.as_view(), name='order'),
     path('success/<int:pk>', Success.as_view(), name='success'),
+    path('hotel_edit/<int:pk>', HotelEdit.as_view(), name='hotel_edit'),
 ]+ static(settings.MEDIA_URL, document_root = settings.MEDIA_ROOT)
