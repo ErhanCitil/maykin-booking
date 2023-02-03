@@ -13,4 +13,5 @@ urlpatterns = [
     path('success/<int:pk>', Success.as_view(), name='success'),
     path('hotel_edit/<int:pk>', HotelEdit.as_view(), name='hotel_edit'),
     path('login/', Login.as_view(), name='login'),
+    path('terms/<int:pk>', Terms.as_view(), name='terms'),
 ]+ static(settings.MEDIA_URL, document_root = settings.MEDIA_ROOT)
