@@ -131,3 +131,6 @@ class Login(LoginView):
     template_name = 'login.html'
     fields = '__all__'
     redirect_authenticated_user = True
+
+class Terms(generic.TemplateView):
+    template_name = 'terms.html'
