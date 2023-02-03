@@ -98,7 +98,6 @@ class OrderWizard(SessionWizardView):
                 hotel = Hotel.objects.get(id=self.kwargs['pk']),
                 room = Room.objects.filter(hotel=self.kwargs['pk'], room_type=context['step0']['room_type']).first(),
             )
-            self.request.session['order_id'] = context['order'].id
             self.request.session['order_token'] = str(context['order'].token)
         return context
 
@@ -138,6 +137,7 @@ class OrderPDF(WeasyTemplateResponseMixin, generic.DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context['order_token'] = Order.objects.get(token  = self.request.session.get('order_token'))
         self.request.session['order_token'] = str(context['order'].token)
         return context
 
