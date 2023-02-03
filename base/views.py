@@ -9,6 +9,10 @@ from form.forms import OrderForm1, OrderForm2, EditForm
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
 from formtools.wizard.views import SessionWizardView
+
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.views import LoginView, LogoutView
+from django.urls import reverse_lazy
 # Create your views here.
 
 class Index(generic.ListView):
@@ -115,10 +119,15 @@ class Success(generic.DetailView):
         context['order'] = Order.objects.get(id=self.kwargs['pk'])
         return context
 
-class HotelEdit(generic.UpdateView):
+class HotelEdit(LoginRequiredMixin, generic.UpdateView):
     model = Hotel
     template_name = 'hotel_edit.html'
     form_class = EditForm
 
     def get_success_url(self):
         return '/hotel/{}'.format(self.kwargs['pk'])
+
+class Login(LoginView):
+    template_name = 'login.html'
+    fields = '__all__'
+    redirect_authenticated_user = True
