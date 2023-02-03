@@ -39,6 +39,7 @@ class Room(models.Model):
     description = models.TextField()
     is_available = models.BooleanField(default=True)
     room_type = models.CharField(max_length=50, choices=ROOM_CHOICES)
+    id = models.AutoField(primary_key=True, editable=False, null=False, default=None)
 
     def __str__(self):
         return self.room_type
