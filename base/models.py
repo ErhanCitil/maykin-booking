@@ -45,6 +45,7 @@ class Room(models.Model):
 class Order(models.Model):
     room = models.ForeignKey(Room, related_name='room', on_delete=models.CASCADE)
     hotel = models.ForeignKey(Hotel, related_name='order', on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
     first_name = models.CharField(max_length=100)
