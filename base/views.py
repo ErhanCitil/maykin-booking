@@ -15,6 +15,9 @@ from django_weasyprint.views import WeasyTemplateResponse
 import io
 import uuid
 from django.http import Http404
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.views import LoginView, LogoutView
+from django.urls import reverse_lazy
 # Create your views here.
 
 class Index(generic.ListView):
@@ -151,10 +154,15 @@ class OrderPDF(WeasyTemplateResponseMixin, generic.DetailView):
         )
         return pdf
         
-class HotelEdit(generic.UpdateView):
+class HotelEdit(LoginRequiredMixin, generic.UpdateView):
     model = Hotel
     template_name = 'hotel_edit.html'
     form_class = EditForm
 
     def get_success_url(self):
         return '/hotel/{}'.format(self.kwargs['pk'])
+
+class Login(LoginView):
+    template_name = 'login.html'
+    fields = '__all__'
+    redirect_authenticated_user = True

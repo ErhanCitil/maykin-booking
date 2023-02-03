@@ -2,7 +2,6 @@ from django.urls import path
 from .views import *
 from django.conf import settings
 from django.conf.urls.static import static
-from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 
 urlpatterns = [
     path('', Index.as_view(), name='index'),
@@ -14,4 +13,5 @@ urlpatterns = [
     path('success/<int:pk>', Success.as_view(), name='success'),
     path('orderpdf/<int:pk>', OrderPDF.as_view(), name='orderpdf'),
     path('hotel_edit/<int:pk>', HotelEdit.as_view(), name='hotel_edit'),
+    path('login/', Login.as_view(), name='login'),
 ]+ static(settings.MEDIA_URL, document_root = settings.MEDIA_ROOT)
