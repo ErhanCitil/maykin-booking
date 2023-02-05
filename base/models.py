@@ -1,5 +1,6 @@
 from django.db import models
 from django_countries.fields import CountryField
+from ckeditor.fields import RichTextField
 # Create your models here.
 class City(models.Model):
     city_id = models.CharField(max_length=100)
@@ -17,7 +18,7 @@ class Hotel(models.Model):
     description = models.TextField(default='', blank=True, null=True)
     price = models.DecimalField(max_digits=6, decimal_places=2, default=0.00)
     is_available = models.BooleanField(default=True)
-
+    terms = RichTextField(blank=True, null=True)
     def __str__(self):
         return self.name
 

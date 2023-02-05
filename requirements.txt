@@ -17,6 +17,7 @@ Django==4.1.5
 django-admin-charts==1.2.4
 django-baton==2.6.0
 django-bower==5.2.0
+django-ckeditor==6.5.1
 django-countries==7.5
 django-elasticsearch-dsl==7.2.2
 django-extensions==3.2.1
@@ -24,6 +25,7 @@ django-formtools==2.4
 django-import-export==3.0.2
 django-jazzmin==2.6.0
 django-jenkins @ git+https://github.com/masaokiba/django-jenkins@9d16fb50b94ed3e736a30e38b8fc882d74028016
+django-js-asset==2.0.0
 django-memoize==2.3.1
 django-multiselectfield==0.1.12
 django-nvd3==0.9.7
@@ -83,6 +85,7 @@ typing_extensions==4.4.0
 tzdata==2022.7
 Unidecode==1.3.6
 urllib3==1.26.14
+uuid==1.30
 waitress==2.1.2
 weasyprint==57.2
 webencodings==0.5.1

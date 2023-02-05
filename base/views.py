@@ -131,3 +131,11 @@ class Login(LoginView):
     template_name = 'login.html'
     fields = '__all__'
     redirect_authenticated_user = True
+
+class Terms(generic.TemplateView):
+    template_name = 'terms.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['terms'] = Hotel.objects.get(id=self.kwargs['pk'])
+        return context
