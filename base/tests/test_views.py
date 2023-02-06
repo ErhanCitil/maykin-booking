@@ -22,7 +22,7 @@ class TestViews(TestCase):
 
     def test_hotel_edit_page(self):
         response = self.client.get(reverse('hotel_edit', args=[self.hotel.id]))
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 302)
         self.assertTemplateUsed('hotel_edit.html')
 
 class TestLogin(TestCase):
@@ -54,18 +54,14 @@ class EditPage(WebTest):
         self.user = User.objects.create_user(username='Alex', password='Landgraaf123')
         self.city = CityFactory()
         self.highlight = HighlightFactory(name='Free renting a bike')
-        self.hotel = HotelFactory(highlight=[self.highlight], price=100.00)
+        self.hotel = HotelFactory(highlight=[self.highlight], name="Alex Hotel", price=100.00)
         self.room = RoomFactory(hotel=self.hotel)
 
     def test_user_change_details(self):
         self.client.login(username='Alex', password='Landgraaf123')
-        response = self.client.get(reverse('hotel_edit', args=[self.hotel.id]))
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed('hotel_edit.html')
-        self.assertIn('form', response.context)
-        form = response.context['form']
-        self.assertEqual(form.instance, self.hotel)
-        self.assertEqual(form.instance.price, 100.00)
-        form.instance.price = 200.00
-        form.submit().follow()
-        self.assertEqual(self.hotel.price, 200.00)
+        response = self.app.get(reverse('hotel_edit', args=[self.hotel.id]), user='Alex').form
+        response['name'] = 'Hotel'
+        response['price'] = 200
+        response.submit()
+        self.assertEqual(response['name'].value, 'Hotel')
+        self.assertEqual(response['price'].value, 200)

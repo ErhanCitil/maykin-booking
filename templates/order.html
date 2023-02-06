@@ -16,7 +16,9 @@
 
 <div class="w-full p-4 mb-4 bg-white border border-gray-200 rounded-lg shadow sm:p-8 ">
         <h5 class="mb-2 text-3xl font-bold text-gray-900 ">Order your stay at {{hotel.name}}</h5>
+        <a href="{% url 'terms' hotel.pk%}">
         <p class="mb-5 text-base text-gray-500 sm:text-lg">[Terms and conditions]</p>
+    </a>
         {% if wizard.steps.prev %}
             Your stay is: from {{step0.start_date}} to {{step0.end_date}}.
             <br>
@@ -30,24 +32,51 @@
 {% load i18n %}
 {% block content %}
 <p>Step {{ wizard.steps.step1 }} of {{ wizard.steps.count }}</p>
-<form action="" method="post" class="mt-4">{% csrf_token %}
-<table>
-{{ wizard.management_form }}
-{% if wizard.form.forms %}
-    {{ wizard.form.management_form }}
-    {% for form in wizard.form.forms %}
-        {{ form.as_table }}
-    {% endfor %}
-{% else %}
-    {{ wizard.form }}
-{% endif %}
-</table>
+<div class="flex">
+    <div>
+        <form action="" method="post" class="mt-4">{% csrf_token %}
+        <table>
+        {{ wizard.management_form }}
+        {% if wizard.form.forms %}
+            {{ wizard.form.management_form }}
+            {% for form in wizard.form.forms %}
+                {{ form.as_table }}
+            {% endfor %}
+        {% else %}
+            {{ wizard.form }}
+        {% endif %}
+        </table>
+        {% if wizard.steps.prev %}
+        <button name="wizard_goto_step" class="form-control w-50 mt-4" type="submit" value="{{ wizard.steps.prev }}">{% trans "Previous step" %}</button>
+        {% endif %}
+        <input type="submit" class="form-control w-50 mt-2" value="{% trans "Submit" %}"/>
+        </form>
+    </div>
 
-{% if wizard.steps.prev %}
-<button name="wizard_goto_step" class="form-control w-50 mt-4" type="submit" value="{{ wizard.steps.prev }}">{% trans "Previous step" %}</button>
-{% endif %}
-<input type="submit" class="form-control w-50 mt-2" value="{% trans "Submit" %}"/>
-</form>
+    {% if wizard.steps.next %}
+    <div class="ml-24">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Room</th>
+                    <th>Price</th>
+                    <th>Is available</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for room in room %}
+                    <tr>
+                        <td>{{room.room_type}}</td>
+                        <td>{{room.price}}</td>
+                        <td>{{room.is_available}}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
 {% endblock %}
 
 
