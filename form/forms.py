@@ -17,8 +17,7 @@ class FormContact(forms.ModelForm):
 class OrderForm1(forms.ModelForm):
     class Meta:
         model = Order
-        exclude = ('first_name', 'last_name', 'email', 'address', 'zipcode', 'country', 'hotel', 'room')
-
+        exclude = ('first_name', 'last_name', 'email', 'address', 'zipcode', 'country', 'hotel', 'room', 'token')
     start_date = forms.DateField(widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}))
     end_date = forms.DateField(widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}))
     room_type = forms.ChoiceField(widget=forms.Select(attrs={'class': 'form-control'}), choices=ROOM_CHOICES)
