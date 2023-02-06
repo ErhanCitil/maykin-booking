@@ -74,8 +74,7 @@ class OrderPage(TestCase):
         self.room = RoomFactory(room_type='Single')
         self.order = OrderFactory(hotel=self.hotel, room=self.room)
 
-    def test_success_page(self):
-        response = self.client.get(reverse('success', args=[self.order.id]))
+    def test_order_page(self):
+        response = self.client.get(reverse('order', args=[self.order.id]))
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed('success.html')
-        
+        self.assertTemplateUsed('order.html')
