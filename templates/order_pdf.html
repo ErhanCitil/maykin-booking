@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF #{{order.pk}}</title>
+</head>
+<body>
+    <h1>Order #{{order_token.pk}}</h1>
+    <p> First- and lastname: {{order_token.first_name}} {{order_token.last_name}} </p>
+    <br>
+    <p> Email: {{order_token.email}} </p>
+    <br>
+    <p> Address: {{order_token.address}} </p>
+    <br>
+    <p> Zipcode: {{order_token.zipcode}} </p>
+    <br>
+    <p> Country: {{order_token.country}} </p>
+
+    <h1>Order details:</h1>
+    <p>Room: {{order_token.room}}</p>
+    <br>
+    <p>Room price: {{order_token.room.price}}</p> 
+    <br>
+    <p>Hotel: {{order_token.hotel}}</p>
+    <br>
+    <p> Check in date: {{order_token.start_date}}</p>
+</body>
+</html>

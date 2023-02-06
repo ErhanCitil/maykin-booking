@@ -1,5 +1,5 @@
 from django.test import TestCase
-from .factories import HotelFactory, RoomFactory, CityFactory, HighlightFactory
+from .factories import HotelFactory, RoomFactory, CityFactory, HighlightFactory, OrderFactory
 from django.urls import reverse
 from django.contrib.auth.models import User
 from django_webtest import WebTest
@@ -65,3 +65,16 @@ class EditPage(WebTest):
         response.submit()
         self.assertEqual(response['name'].value, 'Hotel')
         self.assertEqual(response['price'].value, 200)
+
+class OrderPage(TestCase):
+    def setUp(self):
+        self.city = CityFactory()
+        self.highlight = HighlightFactory(name='Free WiFi')
+        self.hotel = HotelFactory(highlight=[self.highlight], city = self.city)
+        self.room = RoomFactory(room_type='Single')
+        self.order = OrderFactory(hotel=self.hotel, room=self.room)
+
+    def test_order_page(self):
+        response = self.client.get(reverse('order', args=[self.order.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed('order.html')

@@ -52,9 +52,16 @@ class OrderFactory(factory.django.DjangoModelFactory):
     address = factory.fuzzy.FuzzyText(length=100)
     zipcode = factory.fuzzy.FuzzyText(length=6)
     country = factory.fuzzy.FuzzyText(length=100)
+
 class HighlightFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Highlight
 
     icon = factory.django.ImageField()
     name = factory.fuzzy.FuzzyText(length=100)
+
+class OrderFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = Order
+
+    hotel = factory.SubFactory(HotelFactory)
