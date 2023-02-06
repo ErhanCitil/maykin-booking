@@ -16,7 +16,9 @@
 
 <div class="w-full p-4 mb-4 bg-white border border-gray-200 rounded-lg shadow sm:p-8 ">
         <h5 class="mb-2 text-3xl font-bold text-gray-900 ">Order your stay at {{hotel.name}}</h5>
+        <a href="{% url 'terms' hotel.pk%}">
         <p class="mb-5 text-base text-gray-500 sm:text-lg">[Terms and conditions]</p>
+    </a>
         {% if wizard.steps.prev %}
             Your stay is: from {{step0.start_date}} to {{step0.end_date}}.
             <br>
