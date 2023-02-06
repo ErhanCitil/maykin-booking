@@ -10,6 +10,11 @@ from django.http import HttpResponseRedirect
 from django.shortcuts import render
 from formtools.wizard.views import SessionWizardView
 
+from django_weasyprint import WeasyTemplateResponseMixin
+from django_weasyprint.views import WeasyTemplateResponse
+import io
+import uuid
+from django.http import Http404
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView, LogoutView
 from django.urls import reverse_lazy
@@ -96,17 +101,19 @@ class OrderWizard(SessionWizardView):
                 hotel = Hotel.objects.get(id=self.kwargs['pk']),
                 room = Room.objects.filter(hotel=self.kwargs['pk'], room_type=context['step0']['room_type']).first(),
             )
-            self.request.session['order_id'] = context['order'].id
+            self.request.session['order_token'] = str(context['order'].token)
         return context
 
     def done(self, form_list, **kwargs):
-        order = Order.objects.get(id=self.request.session['order_id'])
+        order_token = self.request.session.get('order_token')
+        order = Order.objects.get(token = order_token)
         order.first_name = form_list[1].cleaned_data['first_name']
         order.last_name = form_list[1].cleaned_data['last_name']
         order.email = form_list[1].cleaned_data['email']
         order.address = form_list[1].cleaned_data['address']
         order.zipcode = form_list[1].cleaned_data['zipcode']
         order.country = form_list[1].cleaned_data['country']
+        order.token = order_token
         order.save()
         return HttpResponseRedirect('/success/{}'.format(order.id))
 
@@ -117,8 +124,36 @@ class Success(generic.DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['order'] = Order.objects.get(id=self.kwargs['pk'])
+        self.request.session['order_token'] = str(context['order'].token)
         return context
 
+    def get(self, request, *args, **kwargs):
+        order_token = str(self.request.session.get('order_token'))
+        order = Order.objects.get(token = order_token)
+        if order_token != str(order.token):
+            raise Http404
+        return super().get(request, *args, **kwargs)
+
+class OrderPDF(WeasyTemplateResponseMixin, generic.DetailView):
+    model = Order
+    template_name = 'order_pdf.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['order_token'] = Order.objects.get(token  = self.request.session.get('order_token'))
+        self.request.session['order_token'] = str(context['order'].token)
+        return context
+
+    def get(self, request, *args, **kwargs):
+        response = super().get(request, *args, **kwargs)
+        pdf = WeasyTemplateResponse(
+            request=request,
+            template=self.template_name,
+            context=self.get_context_data(),
+            filename='order_{}.pdf'.format(self.kwargs['pk']),
+        )
+        return pdf
+        
 class HotelEdit(LoginRequiredMixin, generic.UpdateView):
     model = Hotel
     template_name = 'hotel_edit.html'

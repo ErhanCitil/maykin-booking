@@ -1,5 +1,6 @@
 from django.db import models
 from django_countries.fields import CountryField
+import uuid
 from ckeditor.fields import RichTextField
 # Create your models here.
 class City(models.Model):
@@ -39,6 +40,7 @@ class Room(models.Model):
     description = models.TextField()
     is_available = models.BooleanField(default=True)
     room_type = models.CharField(max_length=50, choices=ROOM_CHOICES)
+    id = models.AutoField(primary_key=True, editable=False, null=False, default=None)
 
     def __str__(self):
         return self.room_type
@@ -55,6 +57,8 @@ class Order(models.Model):
     address = models.CharField(max_length=100)
     zipcode = models.CharField(max_length=6)
     country = CountryField(default='NL')
+    token = models.UUIDField(unique=True, default=uuid.uuid4, editable=False, null=False)
+    id = models.AutoField(primary_key=True, editable=False, null=False)
 
     def __str__(self):
         return str(self.id)
