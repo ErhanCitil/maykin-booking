@@ -78,3 +78,16 @@ class OrderPage(TestCase):
         response = self.client.get(reverse('order', args=[self.order.id]))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed('order.html')
+
+class TestSearchFunctionality(TestCase):
+    def setUp(self):
+        self.city = CityFactory()
+        self.highlight = HighlightFactory(name='Free WiFi')
+        self.hotel = HotelFactory(highlight=[self.highlight], city = self.city, name='Alex Hotel')
+        self.room = RoomFactory(room_type='Single')
+
+    def test_search(self):
+        url = '{url}?{filter}={value}'.format(url=reverse('stad', args=[self.city.name]), filter='q', value=self.city.name)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.city.name)
