@@ -21,6 +21,7 @@
                 <br>
                 {% for hightlight in highlights %}
                 <div class="flex mt-4">
+                    
                     <img src="{{hightlight.icon.url}}" alt="" class=" h-20 mb-2">                
                     <span class="inline-flex items-center px-2 py-1 mr-2 text-xs font-bold text-green-100 bg-green-700 w-auto rounded-full mb-2">{{hightlight}}</span>
                 </div>
@@ -36,7 +37,9 @@
 
         <div>
             <div class="max-w-sm bg-white border border-gray-200 rounded-lg shadow-md ml-4 my-4">
+                {% if object.image %}
                     <img class="rounded-t-lg" src="{{object.image.url}}" alt="" />
+                    {% endif %}
                 <div class="p-5">
                         <h5 class="mb-2 text-2xl font-bold tracking-tight text-gray-900 ">{{object.name}}</h5>
                     <p class="mb-3 font-normal text-gray-700 ">Available from €{{object.price}}</p>
