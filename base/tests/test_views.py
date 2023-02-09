@@ -86,8 +86,8 @@ class TestSearchFunctionality(TestCase):
         self.hotel = HotelFactory(highlight=[self.highlight], city = self.city, name='Alex Hotel')
         self.room = RoomFactory(room_type='Single')
 
-    def test_search(self):
-        url = '{url}?{filter}={value}'.format(url=reverse('stad', args=[self.city.name]), filter='q', value=self.city.name)
+    def test_search_hotel(self):
+        url = '{url}?{filter}={value}'.format(url=reverse('stad', args=[self.city.name]), filter='q', value=self.hotel.name)
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, self.city.name)
+        self.assertContains(response, self.hotel.name)
