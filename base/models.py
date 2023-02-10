@@ -75,6 +75,7 @@ class Highlight(models.Model):
         return self.name
 
 class Review(models.Model):
+    hotel = models.ForeignKey(Hotel, related_name='review', on_delete=models.CASCADE, null=True, blank=True)
     name = models.CharField(max_length=100)
     rating = models.IntegerField()
     description = models.TextField()
