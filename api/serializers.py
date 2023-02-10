@@ -14,4 +14,4 @@ class HotelSerializer(serializers.ModelSerializer):
 class ReviewSerializer(serializers.ModelSerializer):
     class Meta:
         model = Review
-        fields = ['url', 'name', 'rating', 'description' ]
+        fields = ['url', 'hotel', 'name', 'rating', 'description' ]
