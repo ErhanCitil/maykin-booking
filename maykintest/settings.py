@@ -42,10 +42,19 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'base',
     'form',
+    'api',
     'import_export',
     'django_extensions',
     'django_jenkins',
+
+    'rest_framework',
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly'
+    ]
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
