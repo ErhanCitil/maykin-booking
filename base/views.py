@@ -37,7 +37,11 @@ class Stad(generic.ListView):
     template_name = 'stad.html'
 
     def get_queryset(self):
-        return Hotel.objects.filter(city__name=self.kwargs['city_name'])
+        search = self.request.GET.get('q')
+        if search:
+            return Hotel.objects.filter(city__name=self.kwargs['city_name'], name__icontains=search)
+        else:
+            return Hotel.objects.filter(city__name=self.kwargs['city_name'])
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
