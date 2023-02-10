@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from base.models import City, Hotel, Room, Order, Highlight
+from base.models import City, Hotel, Room, Order, Highlight, Review
 
 class CitySerializer(serializers.ModelSerializer):
     class Meta:
@@ -11,3 +11,7 @@ class HotelSerializer(serializers.ModelSerializer):
         model = Hotel
         fields = ['url', 'id', 'hotel_id', 'name', 'image', 'description', 'price', 'is_available', 'terms']
         
+class ReviewSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Review
+        fields = ['url', 'name', 'rating', 'description' ]

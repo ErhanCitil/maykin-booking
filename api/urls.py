@@ -6,6 +6,7 @@ from .serializers import *
 router = routers.DefaultRouter()
 router.register(r'city', CityViewSet)
 router.register(r'hotel', HotelViewSet)
+router.register(r'review', ReviewViewSet)
 
 urlpatterns = [
     path('api/', include(router.urls)),
