@@ -17,7 +17,6 @@ class HotelViewSet(viewsets.ModelViewSet):
 class ReviewViewSet(viewsets.ModelViewSet):
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
 class HotelList(generics.ListAPIView):
     queryset = Hotel.objects.all()
