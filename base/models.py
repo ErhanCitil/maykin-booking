@@ -2,6 +2,7 @@ from django.db import models
 from django_countries.fields import CountryField
 import uuid
 from ckeditor.fields import RichTextField
+from django.core.validators import MinValueValidator, MaxValueValidator
 # Create your models here.
 class City(models.Model):
     city_id = models.CharField(max_length=100)
@@ -75,9 +76,9 @@ class Highlight(models.Model):
         return self.name
 
 class Review(models.Model):
-    hotel = models.ForeignKey(Hotel, related_name='review', on_delete=models.CASCADE, null=True, blank=True)
+    hotel = models.ForeignKey(Hotel, related_name='review', on_delete=models.CASCADE)
     name = models.CharField(max_length=100)
-    rating = models.IntegerField()
+    rating = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
     description = models.TextField()
 
     def __str__(self):
