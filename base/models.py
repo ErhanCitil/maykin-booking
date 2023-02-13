@@ -2,6 +2,7 @@ from django.db import models
 from django_countries.fields import CountryField
 import uuid
 from ckeditor.fields import RichTextField
+from django.core.validators import MinValueValidator, MaxValueValidator
 # Create your models here.
 class City(models.Model):
     city_id = models.CharField(max_length=100)
@@ -70,6 +71,15 @@ class Order(models.Model):
 class Highlight(models.Model):
     icon = models.ImageField(upload_to='highlight_img/', null=True, blank=True)
     name = models.CharField(max_length=100)
+
+    def __str__(self):
+        return self.name
+
+class Review(models.Model):
+    hotel = models.ForeignKey(Hotel, related_name='review', on_delete=models.CASCADE)
+    name = models.CharField(max_length=100)
+    rating = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
+    description = models.TextField()
 
     def __str__(self):
         return self.name
