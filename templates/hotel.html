@@ -66,6 +66,14 @@
             </div>
         {% endfor %}
     </div>
+
+    <div>
+        <form action="" method="post">
+            {% csrf_token %}
+            {{form.as_p}}
+            <button class="mt-24 btn btn-success"> Verzenden </button>
+        </form>
+    </div>
     {% include 'components/footer.html' %}
 </body>
 </html>

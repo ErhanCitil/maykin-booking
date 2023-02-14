@@ -4,10 +4,9 @@ import io
 from django.core.management import call_command
 import base64
 
-from form.forms import OrderForm1, OrderForm2, EditForm
+from form.forms import OrderForm1, OrderForm2, EditForm, UploadForm
 
 from django.http import HttpResponseRedirect
-from django.shortcuts import render
 from formtools.wizard.views import SessionWizardView
 
 from django_weasyprint import WeasyTemplateResponseMixin
@@ -18,6 +17,8 @@ from django.http import Http404
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView, LogoutView
 from django.urls import reverse_lazy
+
+from django.views.generic.edit import ModelFormMixin
 # Create your views here.
 
 class Index(generic.ListView):
@@ -62,9 +63,23 @@ class HotelList(generic.ListView):
         context['city_name'] = City.objects.values('name').distinct()
         return context
 
-class HotelDetail(generic.DetailView):
+class HotelDetail(ModelFormMixin, generic.DetailView):
     model = Hotel
     template_name = 'hotel.html'
+    form_class = UploadForm
+
+    def get_initial(self):
+        return {'hotel': self.kwargs['pk']}
+
+    def post(self, request, *args, **kwargs):
+        form = self.get_form()
+        if form.is_valid():
+            return self.form_valid(form)
+        else:
+            return self.form_invalid(form)
+
+    def get_success_url(self):
+        return reverse_lazy('index')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'import_export',
     'django_extensions',
     'django_jenkins',
+    'ckeditor',
 
     'rest_framework',
 ]
