@@ -21,6 +21,7 @@ class Hotel(models.Model):
     price = models.DecimalField(max_digits=6, decimal_places=2, default=0.00)
     is_available = models.BooleanField(default=True)
     terms = RichTextField(blank=True, null=True)
+    upload = models.ImageField(upload_to='hotel_img/', null=True, blank=True)
     def __str__(self):
         return self.name
 
@@ -58,7 +59,7 @@ class Order(models.Model):
     address = models.CharField(max_length=100)
     zipcode = models.CharField(max_length=6)
     country = CountryField(default='NL')
-    token = models.UUIDField(unique=True, default=uuid.uuid4, editable=False, null=False)
+    token = models.UUIDField(default=uuid.uuid4, editable=False, null=False)
     id = models.AutoField(primary_key=True, editable=False, null=False)
 
     def __str__(self):

@@ -47,3 +47,10 @@ class EditForm(forms.ModelForm):
             'price': forms.NumberInput(attrs={'class': 'form-control'}),
         }
         
+class UploadForm(forms.ModelForm):
+    class Meta:
+        model = Hotel
+        fields = ('upload',)
+        widgets = {
+            'upload': forms.FileInput(attrs={'class': 'form-control'}),
+        }
