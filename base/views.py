@@ -19,6 +19,7 @@ from django.contrib.auth.views import LoginView, LogoutView
 from django.urls import reverse_lazy
 
 from django.views.generic.edit import ModelFormMixin
+from django.shortcuts import render
 # Create your views here.
 
 class Index(generic.ListView):
@@ -63,29 +64,32 @@ class HotelList(generic.ListView):
         context['city_name'] = City.objects.values('name').distinct()
         return context
 
-class HotelDetail(ModelFormMixin, generic.DetailView):
-    model = Hotel
-    template_name = 'hotel.html'
-    form_class = UploadForm
+# class HotelDetail(generic.UpdateView):
+#     model = Hotel
+#     template_name = 'hotel.html'
+#     fields = ('upload',)
+#     success_url = reverse_lazy('index')
 
-    def get_initial(self):
-        return {'hotel': self.kwargs['pk']}
+#     def get_context_data(self, **kwargs):
+#         context = super().get_context_data(**kwargs)
+#         context['rooms'] = Room.objects.filter(hotel=self.kwargs['pk'])
+#         context['highlights'] = Highlight.objects.filter(hotel=self.kwargs['pk'])
+#         return context
 
-    def post(self, request, *args, **kwargs):
-        form = self.get_form()
+def hotel_detail(request, pk):
+    hotel = Hotel.objects.get(id=pk)
+    rooms = Room.objects.filter(hotel=pk)
+    highlights = Highlight.objects.filter(hotel=pk)
+    
+    if request.method == 'POST':
+        form = UploadForm(request.POST, request.FILES)
         if form.is_valid():
-            return self.form_valid(form)
-        else:
-            return self.form_invalid(form)
-
-    def get_success_url(self):
-        return reverse_lazy('index')
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['rooms'] = Room.objects.filter(hotel=self.kwargs['pk'])
-        context['highlights'] = Highlight.objects.filter(hotel=self.kwargs['pk'])
-        return context
+            hotel.upload = form.cleaned_data['upload']
+            hotel.save()
+            return HttpResponseRedirect('/hotel/' + str(pk))
+    else:
+        form = UploadForm()
+    return render(request, 'hotel.html', {'object': hotel, 'rooms': rooms, 'highlights': highlights, 'form': form})
 
 class DatabaseSchema(generic.TemplateView):
     template_name = 'database_schema.html'
