@@ -64,32 +64,17 @@ class HotelList(generic.ListView):
         context['city_name'] = City.objects.values('name').distinct()
         return context
 
-# class HotelDetail(generic.UpdateView):
-#     model = Hotel
-#     template_name = 'hotel.html'
-#     fields = ('upload',)
-#     success_url = reverse_lazy('index')
+class HotelDetail(generic.UpdateView):
+    model = Hotel
+    template_name = 'hotel.html'
+    form_class = UploadForm
+    success_url = '/'
 
-#     def get_context_data(self, **kwargs):
-#         context = super().get_context_data(**kwargs)
-#         context['rooms'] = Room.objects.filter(hotel=self.kwargs['pk'])
-#         context['highlights'] = Highlight.objects.filter(hotel=self.kwargs['pk'])
-#         return context
-
-def hotel_detail(request, pk):
-    hotel = Hotel.objects.get(id=pk)
-    rooms = Room.objects.filter(hotel=pk)
-    highlights = Highlight.objects.filter(hotel=pk)
-    
-    if request.method == 'POST':
-        form = UploadForm(request.POST, request.FILES)
-        if form.is_valid():
-            hotel.upload = form.cleaned_data['upload']
-            hotel.save()
-            return HttpResponseRedirect('/hotel/' + str(pk))
-    else:
-        form = UploadForm()
-    return render(request, 'hotel.html', {'object': hotel, 'rooms': rooms, 'highlights': highlights, 'form': form})
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['rooms'] = Room.objects.filter(hotel=self.kwargs['pk'])
+        context['highlights'] = Highlight.objects.filter(hotel=self.kwargs['pk'])
+        return context
 
 class DatabaseSchema(generic.TemplateView):
     template_name = 'database_schema.html'
