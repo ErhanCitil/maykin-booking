@@ -11,6 +11,11 @@
 </head>
 <body>
     {% include 'components/header.html' %}
+
+    {% if object.upload %}
+    <img src="{{object.upload.url}}" alt="">
+    {% endif %}
+
     <div class="flex items-center">
         <div class="flex flex-col justify-between p-4 leading-normal bg-white border rounded-lg md:max-w-xl hover:bg-gray-100 my-4">
             <h5 class="mb-5 text-2xl font-bold tracking-tight text-gray-900 ">{{object.name}}</h5>
