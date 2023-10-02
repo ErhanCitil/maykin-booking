@@ -44,7 +44,7 @@ development machine.
 
    .. code-block:: bash
 
-       $ git clone git@bitbucket.org:maykinmedia/maykinbooking.git
+       $ git clone git@github.com:ErhanCitil/maykin-booking.git
        $ cd maykinbooking
 
 3. Install all required (backend) libraries.
@@ -162,7 +162,7 @@ The easiest way to get the project started is by using `Docker Compose`_.
 
    .. code-block:: bash
 
-       $ git clone git@bitbucket.org:maykinmedia/maykinbooking.git
+       $ git clone git@github.com:ErhanCitil/maykin-booking.git
        Cloning into 'maykinbooking'...
        ...
 
@@ -216,7 +216,7 @@ The easiest way to get the project started is by using `Docker Compose`_.
    system you can run ``docker system prune``.
 
 .. _Docker Compose: https://docs.docker.com/compose/install/
-.. _Github: https://github.com/maykinmedia/maykinbooking/
+.. _Github: hgit@github.com:ErhanCitil/maykin-booking
 
 
 More Docker
