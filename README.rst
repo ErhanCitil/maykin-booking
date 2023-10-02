@@ -13,7 +13,7 @@ Maykin Booking
 Introduction
 ============
 
-``This GitHub repository houses the Maykin Booking project, originally crafted to secure an internship at Maykin and subsequently expanded during the internship. Dive into the development of this hotel booking website, aimed at simplifying hotel reservations and improving user interactions. ``
+``This GitHub repository houses the Maykin Booking project, originally crafted to secure an internship at Maykin and subsequently expanded during the internship. Dive into the development of this hotel booking website, aimed at simplifying hotel reservations and improving user interactions.``
 
 
 Documentation
