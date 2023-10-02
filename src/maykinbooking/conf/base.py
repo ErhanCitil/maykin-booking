@@ -410,7 +410,7 @@ AXES_COOLOFF_TIME = 1
 # If set, specifies a template to render when a user is locked out. Template
 # receives cooloff_time and failure_limit as context variables. Default: None
 AXES_LOCKOUT_TEMPLATE = "account_blocked.html"
-AXES_LOCKOUT_PARAMETERS = ["username", "email", "ip"]
+# AXES_LOCKOUT_PARAMETERS = ["username", "email", "ip"]
 
 
 # The default meta precedence order
