@@ -117,7 +117,21 @@ INSTALLED_APPS = [
     "maykinbooking.api",
     "maykinbooking.base",
     "maykinbooking.form",
+
+    'import_export',
+    'django_extensions',
+    'django_jenkins',
+    'ckeditor',
+
+    'rest_framework',
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly'
+    ]
+}
+
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
