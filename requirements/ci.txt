@@ -62,6 +62,7 @@ django==3.2.21
     #   django-phonenumber-field
     #   django-redis
     #   django-rosetta
+    #   djangorestframework
     #   maykin-django-two-factor-auth
 django-admin-index==3.1.0
     # via
@@ -124,6 +125,10 @@ django-rosetta==0.9.9
     #   -r requirements/base.txt
 django-webtest==1.9.11
     # via -r requirements/test-tools.in
+djangorestframework==3.14.0
+    # via
+    #   -c requirements/base.txt
+    #   -r requirements/base.txt
 ecs-logging==2.1.0
     # via
     #   -c requirements/base.txt
@@ -224,6 +229,7 @@ pytz==2023.3.post1
     #   -c requirements/base.txt
     #   -r requirements/base.txt
     #   django
+    #   djangorestframework
 pyyaml==6.0.1
     # via
     #   -c requirements/base.txt

@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework import routers
-from api import views
+from maykinbooking.api import views
 from .serializers import *
 
 router = routers.DefaultRouter()

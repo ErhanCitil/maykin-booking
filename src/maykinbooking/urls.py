@@ -38,7 +38,9 @@ urlpatterns = [
         name="password_reset_complete",
     ),
     # Simply show the master template.
-    path("", TemplateView.as_view(template_name="master.html"), name="root"),
+    path('', include('maykinbooking.base.urls')),
+    path('', include('maykinbooking.api.urls')),
+    path('', include('maykinbooking.form.urls')),
 ]
 
 # NOTE: The staticfiles_urlpatterns also discovers static files (ie. no need to run collectstatic). Both the static

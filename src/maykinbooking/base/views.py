@@ -4,7 +4,7 @@ import io
 from django.core.management import call_command
 import base64
 
-from form.forms import OrderForm1, OrderForm2, EditForm, UploadForm
+from maykinbooking.form.forms import OrderForm1, OrderForm2, EditForm, UploadForm
 
 from django.http import HttpResponseRedirect
 from formtools.wizard.views import SessionWizardView
@@ -44,21 +44,21 @@ class Stad(generic.ListView):
             return Hotel.objects.filter(city__name=self.kwargs['city_name'], name__icontains=search)
         else:
             return Hotel.objects.filter(city__name=self.kwargs['city_name'])
-    
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['city_name'] = self.kwargs['city_name']
         return context
 
     """"
-    Ik filter hier op de stad naam die ik meegeef als parameter binnen de url en die gebruik ik dan voor de paginate. 
+    Ik filter hier op de stad naam die ik meegeef als parameter binnen de url en die gebruik ik dan voor de paginate.
     Eerst filterde ik op alle steden binnen in de database, en toen kreeg ik alle hotels van alle steden in de pagina te zien wat niet de bedoeling is.
     """
 
 class HotelList(generic.ListView):
     model = City
     template_name = 'hotels.html'
-    
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['city_name'] = City.objects.values('name').distinct()
@@ -161,7 +161,7 @@ class OrderPDF(WeasyTemplateResponseMixin, generic.DetailView):
             filename='order_{}.pdf'.format(self.kwargs['pk']),
         )
         return pdf
-        
+
 class HotelEdit(LoginRequiredMixin, generic.UpdateView):
     model = Hotel
     template_name = 'hotel_edit.html'
@@ -179,7 +179,7 @@ class HotelEditList(LoginRequiredMixin, generic.ListView):
     model = Hotel
     template_name = 'hotel_edit_list.html'
 
-    
+
 class Terms(generic.TemplateView):
     template_name = 'terms.html'
 

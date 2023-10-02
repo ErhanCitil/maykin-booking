@@ -1,6 +1,6 @@
 from django import forms
 from .models import ContactForm
-from base.models import Order, ROOM_CHOICES, Room, Hotel
+from maykinbooking.base.models import Order, ROOM_CHOICES, Room, Hotel
 from django_countries import countries
 
 class FormContact(forms.ModelForm):
@@ -17,7 +17,8 @@ class FormContact(forms.ModelForm):
 class OrderForm1(forms.ModelForm):
     class Meta:
         model = Order
-        exclude = ('first_name', 'last_name', 'email', 'address', 'zipcode', 'country', 'hotel', 'room', 'token')
+        # exclude = ('first_name', 'last_name', 'email', 'address', 'zipcode', 'country', 'hotel', 'room', 'token')
+        fields = ('start_date', 'end_date', 'room_type')
     start_date = forms.DateField(widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}))
     end_date = forms.DateField(widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}))
     room_type = forms.ChoiceField(widget=forms.Select(attrs={'class': 'form-control'}), choices=ROOM_CHOICES)
@@ -46,7 +47,7 @@ class EditForm(forms.ModelForm):
             'image': forms.FileInput(attrs={'class': 'form-control'}),
             'price': forms.NumberInput(attrs={'class': 'form-control'}),
         }
-        
+
 class UploadForm(forms.ModelForm):
     class Meta:
         model = Hotel
