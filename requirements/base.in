@@ -16,6 +16,7 @@ maykin-django-two-factor-auth
 phonenumbers
 django-countries==7.5
 django-ckeditor
+django-import-export
 
 # API libraries
 # djangorestframework

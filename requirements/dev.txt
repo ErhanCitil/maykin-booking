@@ -63,6 +63,16 @@ cssselect==1.2.0
     #   pyquery
 ddt-api-calls==0.3.2
     # via -r requirements/dev.in
+defusedxml==0.7.1
+    # via
+    #   -c requirements/ci.txt
+    #   -r requirements/ci.txt
+    #   odfpy
+diff-match-patch==20230430
+    # via
+    #   -c requirements/ci.txt
+    #   -r requirements/ci.txt
+    #   django-import-export
 dill==0.3.7
     # via
     #   -c requirements/ci.txt
@@ -80,6 +90,7 @@ django==3.2.21
     #   django-extensions
     #   django-formtools
     #   django-hijack
+    #   django-import-export
     #   django-jenkins
     #   django-js-asset
     #   django-otp
@@ -113,6 +124,10 @@ django-formtools==2.4.1
     #   -r requirements/ci.txt
     #   maykin-django-two-factor-auth
 django-hijack==3.4.1
+    # via
+    #   -c requirements/ci.txt
+    #   -r requirements/ci.txt
+django-import-export==3.3.1
     # via
     #   -c requirements/ci.txt
     #   -r requirements/ci.txt
@@ -165,6 +180,11 @@ elastic-apm==6.18.0
     # via
     #   -c requirements/ci.txt
     #   -r requirements/ci.txt
+et-xmlfile==1.1.0
+    # via
+    #   -c requirements/ci.txt
+    #   -r requirements/ci.txt
+    #   openpyxl
 factory-boy==3.3.0
     # via
     #   -c requirements/ci.txt
@@ -215,6 +235,11 @@ lxml==4.9.3
     #   -c requirements/ci.txt
     #   -r requirements/ci.txt
     #   pyquery
+markuppy==1.14
+    # via
+    #   -c requirements/ci.txt
+    #   -r requirements/ci.txt
+    #   tablib
 markupsafe==2.1.3
     # via jinja2
 maykin-django-two-factor-auth==2.0.4
@@ -229,6 +254,16 @@ mccabe==0.7.0
     #   pylint
 mypy-extensions==1.0.0
     # via black
+odfpy==1.4.1
+    # via
+    #   -c requirements/ci.txt
+    #   -r requirements/ci.txt
+    #   tablib
+openpyxl==3.1.2
+    # via
+    #   -c requirements/ci.txt
+    #   -r requirements/ci.txt
+    #   tablib
 packaging==23.2
     # via
     #   black
@@ -302,6 +337,11 @@ pytz==2023.3.post1
     #   -c requirements/ci.txt
     #   -r requirements/ci.txt
     #   django
+pyyaml==6.0.1
+    # via
+    #   -c requirements/ci.txt
+    #   -r requirements/ci.txt
+    #   tablib
 qrcode==6.1
     # via
     #   -c requirements/ci.txt
@@ -377,6 +417,11 @@ sqlparse==0.4.4
     #   -r requirements/ci.txt
     #   django
     #   django-debug-toolbar
+tablib[html,ods,xls,xlsx,yaml]==3.5.0
+    # via
+    #   -c requirements/ci.txt
+    #   -r requirements/ci.txt
+    #   django-import-export
 tblib==2.0.0
     # via
     #   -c requirements/ci.txt
@@ -438,6 +483,16 @@ wrapt==1.15.0
     #   -r requirements/ci.txt
     #   astroid
     #   elastic-apm
+xlrd==2.0.1
+    # via
+    #   -c requirements/ci.txt
+    #   -r requirements/ci.txt
+    #   tablib
+xlwt==1.3.0
+    # via
+    #   -c requirements/ci.txt
+    #   -r requirements/ci.txt
+    #   tablib
 zipp==3.17.0
     # via importlib-metadata
 
