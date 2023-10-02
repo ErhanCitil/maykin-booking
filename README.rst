@@ -1,22 +1,46 @@
 ==================
-Maykin Booking
+maykinbooking
 ==================
 
 :Version: 0.1.0
-:Source: https://github.com/ErhanCitil/maykin-booking
-:Keywords: ``Python, Django``
-:PythonVersion: 3.9
+:Source: https://bitbucket.org/maykinmedia/maykinbooking
+:Keywords: ``<keywords>``
+:PythonVersion: 3.10
 
-``Django project for a booking website``
+|build-status| |requirements|
+
+``<oneliner describing the project>``
+
+Developed by `Maykin Media B.V.`_ for ``<client>``
+
 
 Introduction
 ============
 
-a Django project that I created both to be accepted as a Maykin Media intern and to complete during my internship.
-This service allows you to make hotel reservations in six cities. 
+``<describe the project in a few paragraphs and briefly mention the features>``
 
-Installation
-============
 
-Create and activate a virtual environment first, then install each of the prerequisites given in the requirements.txt file.
-The management command `python manage.py dataframe` should then be used after configuring your database settings. 
+Documentation
+=============
+
+See ``INSTALL.rst`` for installation instructions, available settings and
+commands.
+
+
+References
+==========
+
+* `Issues <https://taiga.maykinmedia.nl/project/maykinbooking>`_
+* `Code <https://bitbucket.org/maykinmedia/maykinbooking>`_
+
+
+.. |build-status| image:: http://jenkins.maykin.nl/buildStatus/icon?job=bitbucket/maykinbooking/master
+    :alt: Build status
+    :target: http://jenkins.maykin.nl/job/maykinbooking
+
+.. |requirements| image:: https://requires.io/bitbucket/maykinmedia/maykinbooking/requirements.svg?branch=master
+     :target: https://requires.io/bitbucket/maykinmedia/maykinbooking/requirements/?branch=master
+     :alt: Requirements status
+
+
+.. _Maykin Media B.V.: https://www.maykinmedia.nl

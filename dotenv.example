@@ -1,0 +1,10 @@
+SECRET_KEY="django-insecure-hjafzqtg!)^h8mqn9pd6+@$b7bc_+ksu$*=agg(g&$&_jcxwdp"
+DB_NAME="maykinbooking"
+DB_USER="maykinbooking"
+#
+# For peer authentication via unix domain socket
+# these should be kept empty.
+#
+DB_PASSWORD=""
+DB_HOST=""
+DB_PORT=""

@@ -6,9 +6,6 @@
 .vscode/
 .sass-cache/
 *.db
-*db
-*.sqlite
-*.sqlite3
 *.pyc
 __pycache__
 *~
@@ -33,8 +30,11 @@ local.py
 /venv/
 /media/
 /static/
-/staticfiles/
 /mail/
 /log/*.log*
 /log/nginx/*.log*
 /.env
+
+# Static files
+src/maykinbooking/static/bundles/
+src/maykinbooking/fonts/
