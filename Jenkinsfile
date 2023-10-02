@@ -5,14 +5,14 @@
 node {
     // You can hardcode the settings here, or have it dynamically figured out
     // in the build step.
-    def djangoSettings = "maykintest.settings_test"
+    def djangoSettings = null
     def curDir = pwd()
     def envDir = "${curDir}/env"
 
     stage ("Build") {
         // Submit to Chucks will
-	chuckNorris()
-        cleanWs()
+        chuckNorris()
+
         // Use the clean option that fits best in the project.
         // Clean build when changing target
         if (env.CHANGE_TARGET) {
@@ -32,7 +32,13 @@ node {
         checkout scm
 
         // Hard way of determining the Django settings path.
-	// Might break if you have multiple directories in src
+        // Might break if you have multiple directories in src
+        if (!djangoSettings) {
+            djangoSettings = sh(
+                script: 'projectFolder=`cd src; ls -d */ | head -n 1`; echo "${projectFolder%?}.conf.jenkins"',
+                returnStdout: true
+            )
+        }
 
         if (!installed) {
             sh "virtualenv ${envDir} -p python3"
@@ -42,9 +48,28 @@ node {
     stage ("Install backend requirements") {
         sh """
             . ${envDir}/bin/activate
-            pip install -r requirements.txt
+            pip install pip --upgrade
+            pip install --exists-action=w -r requirements/ci.txt
             deactivate
           """
+    }
+
+    stage ("Install frontend requirements") {
+        sh """
+            npm ci
+            npm run build --production --sourcemap
+           """
+
+        withEnv(["SECRET_KEY=test_key"]) {
+            sh """
+                . ${envDir}/bin/activate
+                python src/manage.py collectstatic \
+                    --link \
+                    --noinput \
+                    --settings=${djangoSettings}
+                deactivate
+           """
+        }
     }
 
     stage ("Test backend") {
@@ -59,13 +84,14 @@ node {
             try {
                 sh """
                     . ${envDir}/bin/activate
-                    python manage.py jenkins \
+                    python src/manage.py jenkins \
                         --project-apps-tests \
                         --verbosity 2 \
                         --noinput \
                         --pep8-rcfile=.pep8 \
                         --coverage-rcfile=.coveragerc \
                         ${keepDbOption} \
+                        --enable-coverage \
                         --settings=${djangoSettings}
                     deactivate
                 """
@@ -96,11 +122,56 @@ node {
         }
     }
 
-// Enable for SonarQube
-//  stage("Analysis") {
-//    def scannerHome = tool "SonarQube Scanner 2.8";
-//    withSonarQubeEnv("Jenkins Scanner") {
-//      sh "${scannerHome}/bin/sonar-scanner"
-//    }
-//  }
+    stage ("Test frontend") {
+        def testsError = null
+
+        try {
+            sh "xvfb-run -a --server-args='-screen 0, 1920x1200x16' npm test"
+        }
+        catch(err) {
+            testsError = err
+            currentBuild.result = "FAILURE"
+        }
+        finally {
+            junit "reports/jstests/junit.xml"
+
+            if (testsError) {
+                throw testsError
+            }
+        }
+    }
+
+    stage ("Quality") {
+        step(
+            [
+                $class: "CoberturaPublisher",
+                coberturaReportFile: "reports/coverage.xml"
+            ]
+        )
+        step(
+            [
+                $class: "WarningsPublisher",
+                parserConfigurations: [
+                    [
+                        parserName: "PyLint",
+                        pattern: "reports/pylint.report",
+                        unstableTotalAll: "10",
+                        usePreviousBuildAsReference: true,
+                    ],
+                    [
+                        parserName: "Pep8",
+                        pattern: "reports/pep8.report",
+                        unstableTotalAll: "50",
+                        usePreviousBuildAsReference: true,
+                    ],
+                    [
+                        parserName: "Dynamic",
+                        pattern: "reports/isort.report",
+                        unstableTotalAll: "10",
+                        usePreviousBuildAsReference: true,
+                    ],
+                ]
+            ]
+        )
+    }
 }
