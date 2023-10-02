@@ -13,7 +13,7 @@ class City(models.Model):
 
 class Hotel(models.Model):
     city = models.ForeignKey(City, related_name='test', on_delete=models.CASCADE)
-    highlight = models.ManyToManyField('Highlight', related_name='hotel')
+    highlight = models.ManyToManyField('Highlight', related_name='hotel', null=True, blank=True)
     hotel_id = models.CharField(max_length=100)
     name = models.CharField(max_length=100)
     image = models.ImageField(upload_to='hotel_img/', null=True, blank=True)

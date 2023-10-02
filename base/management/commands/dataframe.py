@@ -26,5 +26,5 @@ class Command(BaseCommand):
 
       for index, row in hoteldata.iterrows():
             city = City.objects.get(city_id=row['city_id'])
-            hotel = Hotel(city = city, hotel_id=row['hotel_id'], name=row['name'], image='https://picsum.photos/64/100')
+            hotel = Hotel(city = city, hotel_id=row['hotel_id'], name=row['name'])
             hotel.save()
