@@ -1,23 +1,19 @@
 ==================
-maykinbooking
+Maykin Booking
 ==================
 
 :Version: 0.1.0
-:Source: https://bitbucket.org/maykinmedia/maykinbooking
-:Keywords: ``<keywords>``
+:Source: https://github.com/erhancitil/maykin-booking
+:Keywords: ``Python, Django``
 :PythonVersion: 3.10
 
-|build-status| |requirements|
-
-``<oneliner describing the project>``
-
-Developed by `Maykin Media B.V.`_ for ``<client>``
+``Maykin Booking: A user-friendly hotel reservation website designed to simplify bookings and enhance the overall user experience.``
 
 
 Introduction
 ============
 
-``<describe the project in a few paragraphs and briefly mention the features>``
+``This GitHub repository houses the Maykin Booking project, originally crafted to secure an internship at Maykin and subsequently expanded during the internship. Dive into the development of this hotel booking website, aimed at simplifying hotel reservations and improving user interactions.``
 
 
 Documentation
@@ -30,17 +26,5 @@ commands.
 References
 ==========
 
-* `Issues <https://taiga.maykinmedia.nl/project/maykinbooking>`_
-* `Code <https://bitbucket.org/maykinmedia/maykinbooking>`_
-
-
-.. |build-status| image:: http://jenkins.maykin.nl/buildStatus/icon?job=bitbucket/maykinbooking/master
-    :alt: Build status
-    :target: http://jenkins.maykin.nl/job/maykinbooking
-
-.. |requirements| image:: https://requires.io/bitbucket/maykinmedia/maykinbooking/requirements.svg?branch=master
-     :target: https://requires.io/bitbucket/maykinmedia/maykinbooking/requirements/?branch=master
-     :alt: Requirements status
-
-
-.. _Maykin Media B.V.: https://www.maykinmedia.nl
+* `Issues <https://github.com/erhancitil/maykin-booking/Issues>`_
+* `Code <https://github.com/erhancitil/maykin-booking>`_
