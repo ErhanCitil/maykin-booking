@@ -1,7 +1,7 @@
 from django.test import TestCase
 from ..models import City, Hotel, Room, Order
 from django.urls import reverse
-from base.tests import factories
+from maykinbooking.base.tests import factories
 from datetime import timedelta, datetime, date
 from django_webtest import WebTest
 from form.forms import OrderForm1, OrderForm2

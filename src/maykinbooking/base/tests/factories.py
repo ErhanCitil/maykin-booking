@@ -1,6 +1,6 @@
 import factory, factory.fuzzy
-from base.models import Hotel, Room, City, Order, Highlight
-import datetime 
+from maykinbooking.base.models import Hotel, Room, City, Order, Highlight
+import datetime
 
 class CityFactory(factory.django.DjangoModelFactory):
     class Meta:
