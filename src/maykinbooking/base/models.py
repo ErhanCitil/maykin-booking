@@ -3,6 +3,9 @@ from django_countries.fields import CountryField
 import uuid
 from ckeditor.fields import RichTextField
 from django.core.validators import MinValueValidator, MaxValueValidator
+
+from django.core.files.storage import FileSystemStorage
+from django.conf import settings
 # Create your models here.
 class City(models.Model):
     city_id = models.CharField(max_length=100)
@@ -35,9 +38,11 @@ ROOM_CHOICES = (
     (FAMILY, "Family"),
 )
 
+upload_storage = FileSystemStorage(location=settings.STATIC_ROOT, base_url=settings.STATIC_URL)
+
 class Room(models.Model):
     hotel = models.ForeignKey(Hotel, related_name='room', on_delete=models.CASCADE)
-    image = models.ImageField(upload_to='room_img/')
+    image = models.ImageField(upload_to='', storage=upload_storage)
     price = models.DecimalField(max_digits=6, decimal_places=2, default=0.00)
     description = models.TextField()
     is_available = models.BooleanField(default=True)
@@ -67,8 +72,8 @@ class Order(models.Model):
 
     @property
     def total_price(self):
-        return self.room.price * (self.end_date - self.start_date).days 
-        
+        return self.room.price * (self.end_date - self.start_date).days
+
 class Highlight(models.Model):
     icon = models.ImageField(upload_to='highlight_img/', null=True, blank=True)
     name = models.CharField(max_length=100)
