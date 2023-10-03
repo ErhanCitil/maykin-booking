@@ -127,8 +127,7 @@ INSTALLED_APPS = [
 ]
 
 GRAPH_MODELS = {
-  'all_applications': True,
-  'group_models': True,
+    'app_labels': ['base', 'form'],
 }
 
 REST_FRAMEWORK = {
