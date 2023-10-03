@@ -13,6 +13,12 @@ class FormContact(forms.ModelForm):
             'onderwerp': forms.TextInput(attrs={'class': 'form-control'}),
             'bericht': forms.Textarea(attrs={'class': 'form-control'}),
         }
+        labels = {
+            'naamenachternaam': 'Naam en achternaam',
+            'email': 'E-mailadres',
+            'onderwerp': 'Onderwerp',
+            'bericht': 'Bericht',
+        }
 
 class OrderForm1(forms.ModelForm):
     class Meta:
