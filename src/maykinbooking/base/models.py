@@ -6,7 +6,9 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 
 from django.core.files.storage import FileSystemStorage
 from django.conf import settings
-# Create your models here.
+
+upload_storage = FileSystemStorage(location=settings.STATIC_ROOT, base_url=settings.STATIC_URL)
+
 class City(models.Model):
     city_id = models.CharField(max_length=100)
     name = models.CharField(max_length=100)
@@ -19,7 +21,7 @@ class Hotel(models.Model):
     highlight = models.ManyToManyField('Highlight', related_name='hotel', null=True, blank=True)
     hotel_id = models.CharField(max_length=100)
     name = models.CharField(max_length=100)
-    image = models.ImageField(upload_to='hotel_img/', null=True, blank=True)
+    image = models.ImageField(upload_to='', storage=upload_storage, null=True, blank=True)
     description = models.TextField(default='', blank=True, null=True)
     price = models.DecimalField(max_digits=6, decimal_places=2, default=0.00)
     is_available = models.BooleanField(default=True)
@@ -37,8 +39,6 @@ ROOM_CHOICES = (
     (DOUBLE, "Double"),
     (FAMILY, "Family"),
 )
-
-upload_storage = FileSystemStorage(location=settings.STATIC_ROOT, base_url=settings.STATIC_URL)
 
 class Room(models.Model):
     hotel = models.ForeignKey(Hotel, related_name='room', on_delete=models.CASCADE)

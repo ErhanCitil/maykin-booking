@@ -19,7 +19,7 @@ class Command(BaseCommand):
 
       for index, row in hoteldata.iterrows():
             city = City.objects.get(city_id=row['city_id'])
-            hotel = Hotel(city = city, hotel_id=row['hotel_id'], name=row['name'])
+            hotel = Hotel(city = city, hotel_id=row['hotel_id'], name=row['name'], image='amsterdamibishotel.jpg')
             hotel.save()
             room = Room(hotel=hotel, image='hotelroom.webp', price=100.00, description='''Welcome to our cozy double room, designed to provide you and your companion with a comfortable and memorable stay. Nestled in the heart of our charming hotel, this room offers a perfect blend of modern amenities and a warm, inviting ambiance. As you enter, you'll be greeted by a spacious and tastefully decorated room, featuring a plush queen-sized bed adorned with soft, luxurious linens. The room's neutral color palette creates a calming atmosphere, allowing you to relax and unwind after a day of exploring the city.
 For your convenience, the room is equipped with a flat-screen TV, offering a variety of channels for your entertainment. A well-lit work desk is also provided, in case you need to catch up on some work or plan your next adventure. Complimentary high-speed Wi-Fi ensures you stay connected throughout your stay.
