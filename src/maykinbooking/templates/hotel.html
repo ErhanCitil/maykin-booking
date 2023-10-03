@@ -21,7 +21,7 @@
             <h5 class="mb-5 text-2xl font-bold tracking-tight text-gray-900 ">{{object.name}}</h5>
             <p class="mb-5 font-normal text-gray-700 ">{{object.description}}</p>
 
-            <p>
+            {% comment %} <p>
                 Highlights:
                 <br>
                 {% for hightlight in highlights %}
@@ -31,7 +31,7 @@
                     <span class="inline-flex items-center px-2 py-1 mr-2 text-xs font-bold text-green-100 bg-green-700 w-auto rounded-full mb-2">{{hightlight}}</span>
                 </div>
                 {% endfor %}
-            </p>
+            </p> {% endcomment %}
 
             <p class="font-normal text-gray-700">
                 Address details:
