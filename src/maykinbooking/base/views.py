@@ -12,14 +12,10 @@ from formtools.wizard.views import SessionWizardView
 from django_weasyprint import WeasyTemplateResponseMixin
 from django_weasyprint.views import WeasyTemplateResponse
 import io
-import uuid
+
 from django.http import Http404
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView, LogoutView
-from django.urls import reverse_lazy
-
-from django.views.generic.edit import ModelFormMixin
-from django.shortcuts import render
 # Create your views here.
 
 class Index(generic.ListView):
