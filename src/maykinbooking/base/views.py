@@ -11,7 +11,6 @@ from formtools.wizard.views import SessionWizardView
 
 from django_weasyprint import WeasyTemplateResponseMixin
 from django_weasyprint.views import WeasyTemplateResponse
-import io
 
 from django.http import Http404
 from django.contrib.auth.mixins import LoginRequiredMixin

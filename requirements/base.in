@@ -20,6 +20,8 @@ django-import-export
 djangorestframework
 django-weasyprint
 pandas
+pydot
+pyparsing
 
 # API libraries
 # djangorestframework
