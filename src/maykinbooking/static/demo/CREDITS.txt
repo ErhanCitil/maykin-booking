@@ -1,0 +1,40 @@
+﻿# Fotoverantwoording demodata
+
+Alle foto's in `demo/hotels/` en `demo/rooms/` zijn echte foto's met een vrije licentie.
+Ze zijn gevonden via [Openverse](https://openverse.org/) (bron: Flickr) en
+[Wikimedia Commons](https://commons.wikimedia.org/). Wijzigingen ten opzichte van het
+origineel: verkleind tot max. 1200 px breed, opnieuw gecomprimeerd als JPEG en alle
+metadata (EXIF) verwijderd. `hotels/hotel-16.jpg` is daarnaast aan de bovenkant bijgesneden.
+
+De foto's tonen willekeurige hotels en zijn ter illustratie aan de demohotels
+toegewezen; ze laten niet het hotel zelf zien. Foto's onder CC BY-SA blijven onder
+dezelfde licentie beschikbaar. De licenties van de Flickr-foto's zijn op 25 november 2026
+op de fotopagina zelf gecontroleerd.
+
+| Bestand | Titel | Maker | Licentie | Bron |
+| --- | --- | --- | --- | --- |
+| `hotels/hotel-01.jpg` | Hotel Lobby | Steve Parker | [CC BY 2.0](https://creativecommons.org/licenses/by/2.0/) | https://www.flickr.com/photos/56553246@N00/7519263166 |
+| `hotels/hotel-02.jpg` | Lobby of the hotel Crowne Plaza Vientiane.jpg | Basile Morin | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0) | https://commons.wikimedia.org/wiki/File:Lobby_of_the_hotel_Crowne_Plaza_Vientiane.jpg |
+| `hotels/hotel-03.jpg` | Moscow Petrovka Street 30 Hotel Facade Detail 2026-05-03 8439.jpg | Mike1979 Russia | [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0) | https://commons.wikimedia.org/wiki/File:Moscow_Petrovka_Street_30_Hotel_Facade_Detail_2026-05-03_8439.jpg |
+| `hotels/hotel-04.jpg` | Hotel Corridor (184413335).jpeg | Uwe Jelting | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) | https://commons.wikimedia.org/wiki/File:Hotel_Corridor_(184413335).jpeg |
+| `hotels/hotel-05.jpg` | Lounge InterContinental Singapore.jpg | Basile Morin | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0) | https://commons.wikimedia.org/wiki/File:Lounge_InterContinental_Singapore.jpg |
+| `hotels/hotel-06.jpg` | Corridor at Hotel Esplanade Stockholm.jpg | JIP | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0) | https://commons.wikimedia.org/wiki/File:Corridor_at_Hotel_Esplanade_Stockholm.jpg |
+| `hotels/hotel-07.jpg` | Sunlight and reflections in a Gangneung hotel lobby (55607724066).jpg | Sergiy Galyonkin | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0) | https://commons.wikimedia.org/wiki/File:Sunlight_and_reflections_in_a_Gangneung_hotel_lobby_(55607724066).jpg |
+| `hotels/hotel-08.jpg` | Reception and cashier desk of the Grand Hi-Lai Hotel, Kaohsiung-02.20241111.jpg | 阿道 | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0) | https://commons.wikimedia.org/wiki/File:Reception_and_cashier_desk_of_the_Grand_Hi-Lai_Hotel,_Kaohsiung-02.20241111.jpg |
+| `hotels/hotel-09.jpg` | Reception, front desk 1 - Paris Opera Cadet Hotel.jpg | Opera Cadet from PARIS, FRANCE | [CC BY-SA 2.0](https://creativecommons.org/licenses/by-sa/2.0) | https://commons.wikimedia.org/wiki/File:Reception,_front_desk_1_-_Paris_Opera_Cadet_Hotel.jpg |
+| `hotels/hotel-10.jpg` | Hotel Lobby, Kathmandu, Nepal 2020.jpg | Gaurav Dhwaj Khadka | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0) | https://commons.wikimedia.org/wiki/File:Hotel_Lobby,_Kathmandu,_Nepal_2020.jpg |
+| `hotels/hotel-11.jpg` | Interior view of the Wangz hotel lounge with shining parquet curved ceiling and round table Singapore.jpg | Basile Morin | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0) | https://commons.wikimedia.org/wiki/File:Interior_view_of_the_Wangz_hotel_lounge_with_shining_parquet_curved_ceiling_and_round_table_Singapore.jpg |
+| `hotels/hotel-12.jpg` | Modern Hotel, Baku (IMG 20190714 025335).jpg | Matti Blume | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/deed.en) | https://commons.wikimedia.org/wiki/File:Modern_Hotel,_Baku_(IMG_20190714_025335).jpg |
+| `hotels/hotel-13.jpg` | Exterior facade of Residence Bassac at blue hour, town of Champasak, Laos.jpg | Basile Morin | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0) | https://commons.wikimedia.org/wiki/File:Exterior_facade_of_Residence_Bassac_at_blue_hour,_town_of_Champasak,_Laos.jpg |
+| `hotels/hotel-14.jpg` | Hall du Dusit Inya Lake Hotel, Rangoun (2005).jpg | ICOLEF / visualtravelguide.com | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0) | https://commons.wikimedia.org/wiki/File:Hall_du_Dusit_Inya_Lake_Hotel,_Rangoun_(2005).jpg |
+| `hotels/hotel-15.jpg` | 1983 Seoul Hilton Hotel 02.jpg | Jong Soung Kimm | [CC BY-SA 3.0](http://creativecommons.org/licenses/by-sa/3.0/) | https://commons.wikimedia.org/wiki/File:1983_Seoul_Hilton_Hotel_02.jpg |
+| `hotels/hotel-16.jpg` | Praha Dejvice Evropska 15 Hotel Diplomat vstupni hala.jpg | JiriMatejicek | [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0) | https://commons.wikimedia.org/wiki/File:Praha_Dejvice_Evropska_15_Hotel_Diplomat_vstupni_hala.jpg |
+| `rooms/single-1.jpg` | Single room in Victoria hotel in Minsk.jpg | Наталья Бутрим | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) | https://commons.wikimedia.org/wiki/File:Single_room_in_Victoria_hotel_in_Minsk.jpg |
+| `rooms/single-2.jpg` | Hotel Ciechocinek - pokój jednoosobowy.jpg | Radoslawsalacinski | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0) | https://commons.wikimedia.org/wiki/File:Hotel_Ciechocinek_-_pok%C3%B3j_jednoosobowy.jpg |
+| `rooms/single-3.jpg` | Osaka Dai-ichi Hotel Moderate Single Room 20100211-001.jpg | J o | [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0) | https://commons.wikimedia.org/wiki/File:Osaka_Dai-ichi_Hotel_Moderate_Single_Room_20100211-001.jpg |
+| `rooms/double-1.jpg` | Lake Yellowstone Hotel 1 Queen | YellowstoneNPS | [Public Domain Mark 1.0](https://creativecommons.org/publicdomain/mark/1.0/) | https://www.flickr.com/photos/80223459@N05/17157015782 |
+| `rooms/double-2.jpg` | Charleston Hotel Room | Mr.TinDC | [CC BY 2.0](https://creativecommons.org/licenses/by/2.0/) | https://www.flickr.com/photos/7471115@N08/3348335200 |
+| `rooms/double-3.jpg` | Glenbeigh-Hotel-Double-Room-Killorglin-Reeks-District-Kerry-1024x560 | Reeks District | [CC BY 2.0](https://creativecommons.org/licenses/by/2.0/) | https://www.flickr.com/photos/156905670@N02/46866688242 |
+| `rooms/family-1.jpg` | Standard Double room | Prayitno | [CC BY 2.0](https://creativecommons.org/licenses/by/2.0/) | https://www.flickr.com/photos/34128007@N04/5798709915 |
+| `rooms/family-2.jpg` | Double Room 2 | toddwight1 | [CC BY 2.0](https://creativecommons.org/licenses/by/2.0/) | https://www.flickr.com/photos/35598032@N06/6077268784 |
+| `rooms/family-3.jpg` | Mammoth Hot Springs Hotel Double Room | puroticorico | [CC BY 2.0](https://creativecommons.org/licenses/by/2.0/) | https://www.flickr.com/photos/10058483@N00/3633888591 |
