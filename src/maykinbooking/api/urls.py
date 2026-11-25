@@ -4,8 +4,6 @@ from rest_framework import routers
 
 from maykinbooking.api import views
 
-from .serializers import *
-
 router = routers.DefaultRouter()
 router.register(r"city", views.CityViewSet)
 router.register(r"hotel", views.HotelViewSet)

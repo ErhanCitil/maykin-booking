@@ -4,7 +4,18 @@ from django.contrib.auth.views import LogoutView
 from django.urls import path
 from django.views.generic import RedirectView
 
-from .views import *
+from .views import (
+    Checkout,
+    DatabaseSchema,
+    HotelDetail,
+    HotelList,
+    Index,
+    Login,
+    OrderPDF,
+    Stad,
+    Success,
+    Terms,
+)
 
 urlpatterns = [
     path("", Index.as_view(), name="index"),

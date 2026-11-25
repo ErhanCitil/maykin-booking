@@ -1,10 +1,10 @@
 import csv
 
-from django.core.mail import EmailMessage, send_mail
+from django.core.mail import EmailMessage
 from django.core.management.base import BaseCommand
 from django.http import HttpResponse
 
-from maykinbooking.base.models import City, Hotel
+from maykinbooking.base.models import Hotel
 
 
 class Command(BaseCommand):

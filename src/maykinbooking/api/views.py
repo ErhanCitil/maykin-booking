@@ -1,8 +1,8 @@
-from django.shortcuts import render
-
 from rest_framework import generics, permissions, viewsets
 
-from .serializers import *
+from maykinbooking.base.models import City, Hotel, Review
+
+from .serializers import CitySerializer, HotelSerializer, ReviewSerializer
 
 # Create your views here.
 

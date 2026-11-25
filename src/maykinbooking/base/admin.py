@@ -2,7 +2,7 @@ from django.contrib import admin
 
 from import_export.admin import ImportExportModelAdmin
 
-from .models import *
+from .models import City, Highlight, Hotel, Order, Room
 
 
 # Register your models here.

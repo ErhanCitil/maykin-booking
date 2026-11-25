@@ -1,9 +1,7 @@
-from datetime import date, datetime, timedelta
+from datetime import date
 
 from django.test import TestCase
-from django.urls import reverse
 
-from maykinbooking.base.models import City, Hotel, Order, Room
 from maykinbooking.base.tests import factories
 
 

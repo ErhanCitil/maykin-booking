@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from maykinbooking.base.models import City, Highlight, Hotel, Order, Review, Room
+from maykinbooking.base.models import City, Hotel, Review
 
 
 class CitySerializer(serializers.ModelSerializer):

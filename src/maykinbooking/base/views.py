@@ -16,7 +16,7 @@ from formtools.wizard.views import SessionWizardView
 
 from maykinbooking.form.forms import ConfirmForm, GuestForm, StayForm
 
-from .models import ROOM_CHOICES, City, Highlight, Hotel, Order, Room
+from .models import City, Highlight, Hotel, Order, Room
 
 # Create your views here.
 
