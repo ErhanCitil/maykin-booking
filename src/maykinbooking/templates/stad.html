@@ -51,7 +51,7 @@
               <p class="mt-2 text-sm text-muted line-clamp-2">{{ hotel.description }}</p>
               {% endif %}
               <div class="mt-auto pt-5 flex items-end justify-between">
-                <span class="text-[13px] text-muted">vanaf <span class="font-display font-semibold text-2xl text-ink">€ {% firstof hotel.min_price hotel.price as price %}{{ price|floatformat:0 }}</span></span>
+                <span class="text-[13px] text-muted">vanaf <span class="font-display font-semibold text-2xl text-ink">€ {{ hotel.min_price|default:hotel.price|floatformat:0 }}</span></span>
                 <span class="text-sm font-semibold text-brick">Bekijk →</span>
               </div>
             </div>
