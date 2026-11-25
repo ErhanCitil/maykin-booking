@@ -33,11 +33,14 @@
           <p class="font-display font-semibold text-xl mb-4">Overzicht</p>
           <dl class="text-sm space-y-3">
             <div class="flex justify-between gap-4"><dt class="text-muted">Naam</dt><dd>{{ order.first_name }} {{ order.last_name }}</dd></div>
-            <div class="flex justify-between gap-4"><dt class="text-muted">Kamer</dt><dd>{{ order.room }}</dd></div>
-            <div class="flex justify-between gap-4"><dt class="text-muted">Inchecken</dt><dd>{{ order.start_date }}</dd></div>
-            <div class="flex justify-between gap-4"><dt class="text-muted">Uitchecken</dt><dd>{{ order.end_date }}</dd></div>
-            <div class="flex justify-between gap-4 pt-3 border-t border-seam"><dt class="font-semibold">Totaal</dt><dd class="font-display font-semibold text-2xl">€ {{ order.total_price }}</dd></div>
+            <div class="flex justify-between gap-4"><dt class="text-muted">E-mailadres</dt><dd>{{ order.email }}</dd></div>
+            <div class="flex justify-between gap-4"><dt class="text-muted">Kamer</dt><dd>{{ order.room.get_room_type_display }}</dd></div>
+            <div class="flex justify-between gap-4"><dt class="text-muted">Inchecken</dt><dd>{{ order.start_date|date:"l j F Y" }}</dd></div>
+            <div class="flex justify-between gap-4"><dt class="text-muted">Uitchecken</dt><dd>{{ order.end_date|date:"l j F Y" }}</dd></div>
+            <div class="flex justify-between gap-4"><dt class="text-muted">€ {{ order.room.price|floatformat:"-2" }} × {{ nights }} nacht{{ nights|pluralize:"en" }}</dt><dd>€ {{ order.total_price|floatformat:2 }}</dd></div>
+            <div class="flex justify-between items-baseline gap-4 pt-3 border-t border-seam"><dt class="font-semibold">Totaal</dt><dd class="font-display font-semibold text-2xl">€ {{ order.total_price|floatformat:2 }}</dd></div>
           </dl>
+          <p class="mt-3 text-[13px] text-muted">Je betaalt in het hotel bij aankomst.</p>
           <a href="{% url 'orderpdf' order.pk %}" class="btn-dark w-full mt-6">Download bevestiging (PDF)</a>
         </div>
       </div>

@@ -1,30 +1,51 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="nl">
 <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDF #{{order.pk}}</title>
+  <meta charset="UTF-8">
+  <title>Boekingsbevestiging #{{ order.pk }}</title>
+  <style>
+    @page { size: A4; margin: 22mm 20mm; }
+    body { font-family: Helvetica, Arial, sans-serif; color: #13243A; font-size: 11pt; line-height: 1.5; }
+    .brand { font-family: Georgia, serif; font-size: 20pt; font-weight: bold; letter-spacing: -0.02em; }
+    .brand small { display: block; font-family: Helvetica, Arial, sans-serif; font-size: 7pt; letter-spacing: 0.28em; text-transform: uppercase; color: #4F5A6B; font-weight: normal; }
+    h1 { font-family: Georgia, serif; font-size: 22pt; margin: 18mm 0 2mm; }
+    .muted { color: #4F5A6B; }
+    h2 { font-size: 9pt; letter-spacing: 0.14em; text-transform: uppercase; color: #B4492A; margin: 9mm 0 2mm; }
+    table { width: 100%; border-collapse: collapse; }
+    td { padding: 2mm 0; border-bottom: 0.5pt solid #E4DCCD; vertical-align: top; }
+    td:last-child { text-align: right; }
+    .total td { border-bottom: none; padding-top: 4mm; font-size: 14pt; font-weight: bold; }
+    .note { margin-top: 10mm; padding: 4mm 5mm; background: #F6F1E8; border-radius: 3mm; }
+  </style>
 </head>
 <body>
-    <h1>Order #{{order_token.pk}}</h1>
-    <p> First- and lastname: {{order_token.first_name}} {{order_token.last_name}} </p>
-    <br>
-    <p> Email: {{order_token.email}} </p>
-    <br>
-    <p> Address: {{order_token.address}} </p>
-    <br>
-    <p> Zipcode: {{order_token.zipcode}} </p>
-    <br>
-    <p> Country: {{order_token.country}} </p>
+  <div class="brand">maykin<small>booking</small></div>
 
-    <h1>Order details:</h1>
-    <p>Room: {{order_token.room}}</p>
-    <br>
-    <p>Room price: {{order_token.room.price}}</p> 
-    <br>
-    <p>Hotel: {{order_token.hotel}}</p>
-    <br>
-    <p> Check in date: {{order_token.start_date}}</p>
+  <h1>Boekingsbevestiging</h1>
+  <p class="muted">Boekingsnummer #{{ order.pk }} · geboekt op {{ order.created_at|date:"j F Y" }}</p>
+
+  <h2>Hotel</h2>
+  <table>
+    <tr><td>Hotel</td><td>{{ order.hotel.name }}</td></tr>
+    <tr><td>Stad</td><td>{{ order.hotel.city.name }}</td></tr>
+    <tr><td>Kamer</td><td>{{ order.room.get_room_type_display }}</td></tr>
+    <tr><td>Inchecken</td><td>{{ order.start_date|date:"l j F Y" }}</td></tr>
+    <tr><td>Uitchecken</td><td>{{ order.end_date|date:"l j F Y" }}</td></tr>
+  </table>
+
+  <h2>Gast</h2>
+  <table>
+    <tr><td>Naam</td><td>{{ order.first_name }} {{ order.last_name }}</td></tr>
+    <tr><td>E-mailadres</td><td>{{ order.email }}</td></tr>
+    <tr><td>Adres</td><td>{{ order.address }}, {{ order.zipcode }}, {{ order.country.name }}</td></tr>
+  </table>
+
+  <h2>Prijs</h2>
+  <table>
+    <tr><td>Prijs per nacht</td><td>€ {{ order.room.price|floatformat:2 }}</td></tr>
+    <tr class="total"><td>Totaal</td><td>€ {{ order.total_price|floatformat:2 }}</td></tr>
+  </table>
+
+  <p class="note">Je betaalt het totaalbedrag in het hotel bij aankomst. Vragen? Mail naar info@maykinbooking.nl of bel 020 753 0523.</p>
 </body>
 </html>
