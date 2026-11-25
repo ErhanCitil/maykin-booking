@@ -1,18 +1,15 @@
-<nav class=" bg-gray-800">
-    <div class="container p-6 mx-auto ">
-        <div>
-            {% load static %}
-            <img src="{% static 'MAYKIN.png' %}" alt="Maykin Logo" class="w-20 h-20 ">
-        </div>
-        <div class="flex items-center justify-center mt-6 text-gray-300 text-gray-300">
-            <a href="{% url 'index'%}" class="border-b-2 border-transparent hover:text-gray-300 hover:border-blue-500 mx-1.5 sm:mx-6">Home</a>
-
-            <a href="{% url 'hotel'%}" class="border-b-2 border-transparent hover:text-gray-300 hover:border-blue-500 mx-1.5 sm:mx-6">Hotels</a>
-
-            <a href="{% url 'contact' %}" class="border-b-2 border-transparent hover:text-gray-300 hover:border-blue-500 mx-1.5 sm:mx-6">Contact</a>
-            <div class="right">
-                <a href="{% url 'admin:index' %}" class="border-b-2 border-transparent hover:text-gray-300 hover:border-blue-500 mx-1.5 sm:mx-6 right">Login</a>
-            </div>
-        </div>
+{% with current=request.resolver_match.url_name %}
+<header class="bg-ink">
+  <nav aria-label="Hoofdmenu" class="max-w-site mx-auto px-6 md:px-8 py-5 flex flex-wrap items-center justify-between gap-4">
+    <a href="{% url 'index' %}" aria-label="Maykin Booking home" class="no-underline">
+      {% include 'components/logo.html' with variant='light' %}
+    </a>
+    <div class="flex flex-wrap items-center gap-x-7 gap-y-2 text-[15px]">
+      <a href="{% url 'index' %}" class="no-underline hover:text-linen {% if current == 'index' %}text-linen font-semibold{% else %}text-linen/80{% endif %}">Home</a>
+      <a href="{% url 'hotel' %}" class="no-underline hover:text-linen {% if current == 'hotel' or current == 'stad' or current == 'hotel_detail' %}text-linen font-semibold{% else %}text-linen/80{% endif %}">Hotels</a>
+      <a href="{% url 'contact' %}" class="no-underline hover:text-linen {% if current == 'contact' %}text-linen font-semibold{% else %}text-linen/80{% endif %}">Contact</a>
+      <a href="{% url 'admin:index' %}" class="inline-flex items-center min-h-[44px] px-5 rounded-full border-[1.5px] border-linen/35 text-linen font-semibold no-underline hover:bg-linen hover:text-ink transition-colors">Inloggen</a>
     </div>
-</nav>
+  </nav>
+</header>
+{% endwith %}

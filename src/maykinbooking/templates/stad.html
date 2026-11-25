@@ -1,89 +1,85 @@
 <!DOCTYPE html>
 {% load static %}
-
-<html lang="en">
+<html lang="nl">
   <head>
     <meta charset="UTF-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{{city_name}} | Maykin booking</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="shortcut icon" type="image/png" href="{% static 'favicon.ico' %}"/>
+    <title>Hotels in {{ city_name }} · Maykin Booking</title>
+    {% include 'components/head.html' %}
   </head>
-<body>
-    {% include 'components/header.html'%}
+  <body class="min-h-screen flex flex-col bg-linen text-ink font-sans antialiased">
+    {% include 'components/header.html' %}
 
-    <form action="" method="GET" class="mt-10">
-    <div class="flex justify-center">
-        <div class="mb-3 xl:w-96">
-          <div class="input-group relative flex flex-wrap items-stretch w-full mb-4">
-            <input type="search" name='q' class="form-control relative flex-auto min-w-0 block w-full px-3 py-1.5 text-base font-normal text-gray-700 bg-white bg-clip-padding border border-solid border-gray-300 rounded transition ease-in-out m-0 focus:text-gray-700 focus:bg-white focus:border-blue-600 focus:outline-none" placeholder="Search" aria-label="Search" aria-describedby="button-addon2">
-            <button class="btn inline-block px-6 py-2.5 bg-blue-600 text-white font-medium text-xs leading-tight uppercase rounded shadow-md hover:bg-blue-700 hover:shadow-lg focus:bg-blue-700  focus:shadow-lg focus:outline-none focus:ring-0 active:bg-blue-800 active:shadow-lg transition duration-150 ease-in-out flex items-center" type="button" id="button-addon2">
-              <svg aria-hidden="true" focusable="false" data-prefix="fas" data-icon="search" class="w-4" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-                <path fill="currentColor" d="M505 442.7L405.3 343c-4.5-4.5-10.6-7-17-7H372c27.6-35.3 44-79.7 44-128C416 93.1 322.9 0 208 0S0 93.1 0 208s93.1 208 208 208c48.3 0 92.7-16.4 128-44v16.3c0 6.4 2.5 12.5 7 17l99.7 99.7c9.4 9.4 24.6 9.4 33.9 0l28.3-28.3c9.4-9.4 9.4-24.6.1-34zM208 336c-70.7 0-128-57.2-128-128 0-70.7 57.2-128 128-128 70.7 0 128 57.2 128 128 0 70.7-57.2 128-128 128z"></path>
-              </svg>
+    <main class="flex-1">
+      <section class="bg-ink text-linen">
+        <div class="max-w-site mx-auto px-6 md:px-8 pt-12 pb-14">
+          <a href="{% url 'hotel' %}" class="text-sm text-linen/75 hover:text-linen no-underline">← Alle steden</a>
+          <p class="mt-6 text-[13px] font-semibold uppercase tracking-[0.16em] text-lantern mb-3">Hotels in</p>
+          <h1 class="font-display font-semibold text-5xl md:text-6xl leading-[1.05] tracking-[-0.02em]">{{ city_name }}</h1>
+
+          <form action="" method="GET" role="search" class="mt-8 flex flex-wrap gap-3 max-w-xl">
+            <label for="hotel-search" class="sr-only">Zoek op hotelnaam</label>
+            <input id="hotel-search" type="search" name="q" value="{{ request.GET.q }}" placeholder="Zoek op hotelnaam" class="form-control flex-1 min-w-[220px]">
+            <button type="submit" class="btn bg-linen text-ink hover:bg-white">
+              <svg aria-hidden="true" viewBox="0 0 24 24" class="w-[18px] h-[18px]" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+              Zoeken
             </button>
-          </div>
+          </form>
         </div>
-      </div>    
-    </form>
+      </section>
 
+      <section class="max-w-site mx-auto px-6 md:px-8 py-14">
+        <p class="text-sm text-muted mb-6">
+          {{ paginator.count }} hotel{{ paginator.count|pluralize:"s" }}{% if request.GET.q %} gevonden voor “{{ request.GET.q }}”{% endif %}
+        </p>
 
-<h1 class="font-bold text-3xl text-center mt-2">Stad: {{city_name}}</h1>
-
-<div class="flex flex-wrap flex items-center justify-center">
-    {% for hotel in object_list%}
-    <a href="{% url 'hotel_detail' hotel.id%}">
-    <div class="h-full border w-auto border-gray-700 m-4 flex flex-col">
-        <div class="">
+        <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {% for hotel in object_list %}
+          <a href="{% url 'hotel_detail' hotel.id %}" class="card overflow-hidden flex flex-col no-underline text-ink hover:border-ink transition-colors">
             {% if hotel.image %}
-            <img src="{{hotel.image.url}}" class="h-64 w-full" alt="">
-            {% endif %}
-        </div>
-        <div class="m-4 flex">
-            <h1 class="font-bold text-sm">{{hotel.name}}</h1>
-            {% if hotel.is_available %}
-            <h1 class="bg-green-500 hover:bg-green-600 text-white font-bold px-2 ml-2 rounded-full">Beschikbaar</h1>
+            <img src="{{ hotel.image.url }}" alt="{{ hotel.name }}" class="h-44 w-full object-cover">
             {% else %}
-            <h1 class="bg-red-500 hover:bg-red-600 text-white font-bold px-2 ml-2 rounded-full">Niet beschikbaar</h1>
+            <div class="h-44 w-full bg-seam"></div>
             {% endif %}
-
-            <h1 class="bg-teal-600 text-white font-bold px-2 ml-2 rounded-md">€{{hotel.price}}</h1>
+            <div class="p-5 flex flex-col flex-1">
+              <div class="flex items-center justify-between gap-3">
+                <span class="text-[13px] text-muted">{{ city_name }}</span>
+                {% include 'components/availability.html' with available=hotel.is_available %}
+              </div>
+              <h2 class="font-display font-semibold text-xl mt-2 leading-snug">{{ hotel.name }}</h2>
+              {% if hotel.description %}
+              <p class="mt-2 text-sm text-muted line-clamp-2">{{ hotel.description }}</p>
+              {% endif %}
+              <div class="mt-auto pt-5 flex items-end justify-between">
+                <span class="text-[13px] text-muted">vanaf <span class="font-display font-semibold text-2xl text-ink">€ {% firstof hotel.min_price hotel.price as price %}{{ price|floatformat:0 }}</span></span>
+                <span class="text-sm font-semibold text-brick">Bekijk →</span>
+              </div>
+            </div>
+          </a>
+          {% empty %}
+          <div class="card p-8 sm:col-span-2 lg:col-span-4">
+            <p class="font-display font-semibold text-xl">Geen hotels gevonden</p>
+            <p class="mt-2 text-muted">Probeer een andere zoekterm, of <a href="{% url 'stad' city_name %}" class="text-brick font-semibold">bekijk alle hotels in {{ city_name }}</a>.</p>
+          </div>
+          {% endfor %}
         </div>
 
-        <div class="m-4">
-            <p class="text-xs overflow-hidden truncate w-64">{{hotel.description}}</p>
-        </div>
-    </div>
-</a>
-    {% endfor %}
-</div>
-
-<ul class="inline-flex -space-x-px ml-4 flex flex-col">
-    <span class="text-base text-gray-900 font-semibold text-center"> Page <span class="font-semibold text-gray-900"> {{ page_obj.number }} </span> of <span class="font-semibold text-gray-900"> {{ page_obj.paginator.num_pages }} </span></span>
-    <li class="flex mt-4 mb-4">
-        {% if page_obj.has_previous%}
-        <a href="?page={{ page_obj.previous_page_number }}" class="inline-flex items-center px-4 py-2 mr-3 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
-            <svg aria-hidden="true" class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M7.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l2.293 2.293a1 1 0 010 1.414z" clip-rule="evenodd"></path></svg>
-            Previous
-        </a>
+        {% if is_paginated %}
+        <nav aria-label="Paginering" class="mt-12 flex flex-wrap items-center justify-between gap-4">
+          <span class="text-sm text-muted">Pagina {{ page_obj.number }} van {{ page_obj.paginator.num_pages }}</span>
+          <div class="flex items-center gap-2">
+            {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q|urlencode }}{% endif %}" class="btn-outline min-h-[44px] px-5 text-sm">← Vorige</a>
+            {% endif %}
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q|urlencode }}{% endif %}" class="btn-dark min-h-[44px] px-5 text-sm">Volgende →</a>
+            {% endif %}
+          </div>
+        </nav>
         {% endif %}
-        
-        {% for page_number in page_obj.paginator.page_range %}
-        <a href="?page={{page_number}}" class="inline-flex items-center px-4 py-2 ml-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
-            {{page_number}}
-        </a>
-        {% endfor %} 
+      </section>
+    </main>
 
-        {% if page_obj.has_next %}
-        <a href="?page={{page_obj.next_page_number}}" class="inline-flex items-center px-4 py-2 ml-3 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
-            Next
-            <svg aria-hidden="true" class="w-5 h-5 ml-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
-        </a>
-        {% endif %}
-    </li>
-</ul>
-
-    {% include 'components/footer.html'%}
-
-</body>
+    {% include 'components/footer.html' %}
+  </body>
+</html>

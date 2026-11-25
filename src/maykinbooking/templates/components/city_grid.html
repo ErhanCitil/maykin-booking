@@ -1,0 +1,17 @@
+<div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+  {% for city in cities %}
+  <a href="{% url 'stad' city.name %}"
+     class="group flex flex-col justify-between min-h-[200px] p-7 rounded-[20px] no-underline transition-transform hover:-translate-y-0.5
+            {% if forloop.first %}bg-ink text-linen{% else %}bg-white border border-seam text-ink hover:border-ink{% endif %}">
+    <span class="text-[13px] {% if forloop.first %}text-linen/75{% else %}text-muted{% endif %}">
+      {{ city.hotel_count }} hotel{{ city.hotel_count|pluralize:"s" }}
+    </span>
+    <span class="flex items-end justify-between gap-3">
+      <span class="font-display font-semibold text-[34px] leading-tight">{{ city.name }}</span>
+      <span class="text-sm font-semibold {% if forloop.first %}text-lantern{% else %}text-brick{% endif %}">Bekijk →</span>
+    </span>
+  </a>
+  {% empty %}
+  <p class="text-muted">Er zijn nog geen steden. Importeer de data met <code>python src/manage.py fileimport</code>.</p>
+  {% endfor %}
+</div>

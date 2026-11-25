@@ -1,85 +1,66 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Order | Maykin Booking</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
-    <script src="https://cdn.tailwindcss.com"></script>
-
-    
-</head>
-<body>
-    
+{% load static i18n %}
+<html lang="nl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Boeken · {{ hotel.name }} · Maykin Booking</title>
+    {% include 'components/head.html' %}
+  </head>
+  <body class="min-h-screen flex flex-col bg-linen text-ink font-sans antialiased">
     {% include 'components/header.html' %}
 
-<div class="w-full p-4 mb-4 bg-white border border-gray-200 rounded-lg shadow sm:p-8 ">
-        <h5 class="mb-2 text-3xl font-bold text-gray-900 ">Order your stay at {{hotel.name}}</h5>
-        <a href="{% url 'terms' hotel.pk%}">
-        <p class="mb-5 text-base text-gray-500 sm:text-lg">[Terms and conditions]</p>
-    </a>
-        {% if wizard.steps.prev %}
-            Your stay is: from {{step0.start_date}} to {{step0.end_date}}.
-            <br>
-            Room type: {{step0.room_type}}.
-            <br>
-            Total price: {{order.total_price}}.
-        {% endif %}
-        
-</div>
+    <main class="flex-1 max-w-site w-full mx-auto px-6 md:px-8 py-12">
+      <a href="{% url 'hotel_detail' hotel.pk %}" class="text-sm text-muted hover:text-ink no-underline">← Terug naar {{ hotel.name }}</a>
+      <p class="eyebrow mt-6 mb-2.5">Stap {{ wizard.steps.step1 }} van {{ wizard.steps.count }}</p>
+      <h1 class="font-display font-semibold text-4xl md:text-5xl tracking-[-0.02em]">Boek je verblijf bij {{ hotel.name }}</h1>
 
-{% load i18n %}
-{% block content %}
-<p>Step {{ wizard.steps.step1 }} of {{ wizard.steps.count }}</p>
-<div class="flex">
-    <div>
-        <form action="" method="post" class="mt-4">{% csrf_token %}
-        <table>
-        {{ wizard.management_form }}
-        {% if wizard.form.forms %}
+      <div class="mt-10 grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px] items-start">
+        <form action="" method="post" class="card p-7 md:p-9 form-stack">
+          {% csrf_token %}
+          {{ wizard.management_form }}
+          {% if wizard.form.forms %}
             {{ wizard.form.management_form }}
-            {% for form in wizard.form.forms %}
-                {{ form.as_table }}
-            {% endfor %}
-        {% else %}
-            {{ wizard.form }}
-        {% endif %}
-        </table>
-        {% if wizard.steps.prev %}
-        <button name="wizard_goto_step" class="form-control w-50 mt-4" type="submit" value="{{ wizard.steps.prev }}">{% trans "Previous step" %}</button>
-        {% endif %}
-        <input type="submit" class="form-control w-50 mt-2" value="{% trans "Submit" %}"/>
+            {% for form in wizard.form.forms %}{{ form.as_p }}{% endfor %}
+          {% else %}
+            {{ wizard.form.as_p }}
+          {% endif %}
+          <div class="flex flex-wrap gap-3 pt-2">
+            {% if wizard.steps.prev %}
+            <button name="wizard_goto_step" type="submit" value="{{ wizard.steps.prev }}" formnovalidate class="btn-outline">{% trans "Vorige stap" %}</button>
+            {% endif %}
+            <button type="submit" class="btn-primary">{% if wizard.steps.next %}Volgende stap{% else %}Bevestig boeking{% endif %}</button>
+          </div>
+          <p class="mt-6 text-sm text-muted">Door te boeken ga je akkoord met de <a href="{% url 'terms' hotel.pk %}" class="text-brick font-semibold">voorwaarden</a>.</p>
         </form>
-    </div>
 
-    {% if wizard.steps.next %}
-    <div class="ml-24">
-        <table class="table table-hover">
-            <thead>
-                <tr>
-                    <th>Room</th>
-                    <th>Price</th>
-                    <th>Is available</th>
-                </tr>
-            </thead>
-
-            <tbody>
-                {% for room in room %}
-                    <tr>
-                        <td>{{room.room_type}}</td>
-                        <td>{{room.price}}</td>
-                        <td>{{room.is_available}}</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-    {% endif %}
-</div>
-{% endblock %}
-
+        <aside class="card p-7">
+          {% if wizard.steps.prev %}
+          <p class="font-display font-semibold text-xl mb-4">Je verblijf</p>
+          <dl class="text-sm space-y-3">
+            <div class="flex justify-between gap-4"><dt class="text-muted">Inchecken</dt><dd>{{ step0.start_date }}</dd></div>
+            <div class="flex justify-between gap-4"><dt class="text-muted">Uitchecken</dt><dd>{{ step0.end_date }}</dd></div>
+            <div class="flex justify-between gap-4"><dt class="text-muted">Kamer</dt><dd>{{ step0.room_type }}</dd></div>
+            <div class="flex justify-between gap-4 pt-3 border-t border-seam"><dt class="font-semibold">Totaal</dt><dd class="font-display font-semibold text-2xl">€ {{ order.total_price }}</dd></div>
+          </dl>
+          {% else %}
+          <p class="font-display font-semibold text-xl mb-4">Kamers</p>
+          <ul class="divide-y divide-seam text-sm">
+            {% for r in room %}
+            <li class="py-3 flex items-center justify-between gap-3">
+              <span class="font-medium">{{ r.get_room_type_display }}</span>
+              <span class="flex items-center gap-3">
+                <span>€ {{ r.price|floatformat:0 }}</span>
+                {% include 'components/availability.html' with available=r.is_available %}
+              </span>
+            </li>
+            {% endfor %}
+          </ul>
+          {% endif %}
+        </aside>
+      </div>
+    </main>
 
     {% include 'components/footer.html' %}
-</body>
+  </body>
 </html>
