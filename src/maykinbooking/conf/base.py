@@ -118,22 +118,20 @@ INSTALLED_APPS = [
     "maykinbooking.base",
     "maykinbooking.form",
     "maykinbooking.dashboard",
-
-    'import_export',
-    'django_extensions',
-    'django_jenkins',
-    'ckeditor',
-
-    'rest_framework',
+    "import_export",
+    "django_extensions",
+    "django_jenkins",
+    "ckeditor",
+    "rest_framework",
 ]
 
 GRAPH_MODELS = {
-    'app_labels': ['base', 'form'],
+    "app_labels": ["base", "form"],
 }
 
 REST_FRAMEWORK = {
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly'
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly"
     ]
 }
 
@@ -181,7 +179,7 @@ TEMPLATES = [
 WSGI_APPLICATION = "maykinbooking.wsgi.application"
 
 # Translations
-LOCALE_PATHS = (DJANGO_PROJECT_DIR / "conf" / "locale", )
+LOCALE_PATHS = (DJANGO_PROJECT_DIR / "conf" / "locale",)
 
 #
 # SERVING of static and media files
@@ -375,7 +373,9 @@ elif (BASE_DIR / ".git").exists():
         repo = git.Repo(search_parent_directories=True)
         try:
             GIT_SHA = repo.head.object.hexsha
-        except ValueError:  # on startproject initial runs before any git commits have been made
+        except (
+            ValueError
+        ):  # on startproject initial runs before any git commits have been made
             GIT_SHA = repo.active_branch.name
 else:
     GIT_SHA = None

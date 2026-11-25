@@ -4,21 +4,27 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='ContactForm',
+            name="ContactForm",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('naamenachternaam', models.CharField(max_length=100)),
-                ('email', models.CharField(max_length=100)),
-                ('onderwerp', models.CharField(max_length=100)),
-                ('bericht', models.CharField(max_length=100)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("naamenachternaam", models.CharField(max_length=100)),
+                ("email", models.CharField(max_length=100)),
+                ("onderwerp", models.CharField(max_length=100)),
+                ("bericht", models.CharField(max_length=100)),
             ],
         ),
     ]

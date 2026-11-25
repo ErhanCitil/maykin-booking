@@ -39,9 +39,9 @@ urlpatterns = [
     ),
     path("dashboard/", include("maykinbooking.dashboard.urls")),
     # Simply show the master template.
-    path('', include('maykinbooking.base.urls')),
-    path('', include('maykinbooking.api.urls')),
-    path('', include('maykinbooking.form.urls')),
+    path("", include("maykinbooking.base.urls")),
+    path("", include("maykinbooking.api.urls")),
+    path("", include("maykinbooking.form.urls")),
 ]
 
 # NOTE: The staticfiles_urlpatterns also discovers static files (ie. no need to run collectstatic). Both the static
