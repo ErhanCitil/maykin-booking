@@ -1,59 +1,29 @@
 <!DOCTYPE html>
 {% load static %}
-<html lang="en">
+<html lang="nl">
   <head>
     <meta charset="UTF-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Hotels | Maykin booking</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="shortcut icon" type="image/png" href="{% static 'favicon.ico' %}"/>
+    <title>Hotels · Maykin Booking</title>
+    {% include 'components/head.html' %}
   </head>
-<body>
+  <body class="min-h-screen flex flex-col bg-linen text-ink font-sans antialiased">
+    {% include 'components/header.html' %}
 
-    {% include 'components/header.html'%}
-
-    <h1 class="font-bold text-3xl text-center pt-4">Hier vindt u al de steden waarvan wij hotelen beschikbaar hebben.</h1>
-
-    <div class="flex justify-center mt-10" style="height: 350px">
-        <!-- Table Series -->
-        <div class="col-span-12 h-screen">
-          <div class="overflow-auto lg:overflow-visible">
-            <table
-              class="table text-whiteborder-separate space-y-6 text-sm"
-            >
-              <thead class="bg-gray-800 text-white">
-                <tr>
-                  <th class="p-3 w-48">Steden</th>
-                  <th class="p-3 w-48">Detail</th>
-                </tr>
-              </thead>
-  
-              {% for city_name in city_name %}
-              <tbody>
-                <tr class="bg-gray-800">
-                  <td class="p-3">
-                    <div class="flex align-items-center">
-                      <div class="ml-3">
-                        <div class="font-bold text-white">{{ city_name.name }}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td class="text-white pl-2 pr-2 text-center">
-                    <a href="{% url 'stad' city_name.name %}"
-                      >Bekijk Details!</a
-                    >
-                  </td> 
-                </tr>
-              </tbody>
-              {% endfor %}
-            </table>
-          </div>
+    <main class="flex-1">
+      <section class="bg-ink text-linen">
+        <div class="max-w-site mx-auto px-6 md:px-8 pt-14 pb-16">
+          <p class="text-[13px] font-semibold uppercase tracking-[0.16em] text-lantern mb-4">Bestemmingen</p>
+          <h1 class="font-display font-semibold text-5xl md:text-6xl leading-[1.05] tracking-[-0.02em]">Alle steden</h1>
+          <p class="mt-5 max-w-xl text-lg leading-relaxed text-linen/85">Kies een stad om de hotels, prijzen en beschikbaarheid te bekijken.</p>
         </div>
-      </div>
-    </div>
-  
-      {% include 'components/footer.html'%}
+      </section>
 
+      <section class="max-w-site mx-auto px-6 md:px-8 py-16">
+        {% include 'components/city_grid.html' with cities=city_name %}
+      </section>
+    </main>
 
-</body>
+    {% include 'components/footer.html' %}
+  </body>
+</html>

@@ -1,0 +1,50 @@
+{% load static %}
+<meta name="color-scheme" content="light" />
+<link rel="icon" type="image/svg+xml" href="{% static 'ico/maykin-mark.svg' %}" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  // Maykin Booking brand tokens (zie brand guide)
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          ink: '#13243A',       // Grachtblauw
+          linen: '#F6F1E8',     // Linnen
+          brick: { DEFAULT: '#B4492A', dark: '#933A20' }, // Baksteen
+          moss: '#2E6B62',      // Kademos
+          lantern: '#E0A43A',   // Lantaarn
+          muted: '#4F5A6B',     // Leisteen
+          seam: '#E4DCCD',      // Naad
+        },
+        fontFamily: {
+          display: ['Fraunces', 'Georgia', 'serif'],
+          sans: ['Inter', 'Arial', 'sans-serif'],
+        },
+        maxWidth: { site: '1180px' },
+      },
+    },
+  };
+</script>
+<style type="text/tailwindcss">
+  .eyebrow { @apply text-[13px] font-semibold uppercase tracking-[0.16em] text-brick; }
+  .btn { @apply inline-flex items-center justify-center gap-2 min-h-[48px] px-6 rounded-full font-semibold text-[15px] transition-colors no-underline cursor-pointer; }
+  .btn-primary { @apply btn bg-brick text-white hover:bg-brick-dark; }
+  .btn-dark { @apply btn bg-ink text-linen hover:bg-[#0c1828]; }
+  .btn-outline { @apply btn border-[1.5px] border-ink text-ink hover:bg-ink hover:text-linen; }
+  .card { @apply bg-white border border-seam rounded-[20px]; }
+  .form-stack p { @apply flex flex-col gap-1.5 mb-5; }
+  .form-stack label { @apply text-[13px] font-semibold text-ink; }
+  .form-stack .helptext { @apply text-[13px] text-muted; }
+  .form-stack input:not([type=submit]):not([type=checkbox]):not([type=file]),
+  .form-stack select,
+  .form-stack textarea,
+  .form-control {
+    @apply w-full min-h-[48px] px-3.5 py-2 border-[1.5px] border-seam rounded-xl bg-white text-ink text-base
+           focus:outline-none focus:border-ink focus:ring-4 focus:ring-brick/15;
+  }
+  .form-stack textarea { @apply min-h-[140px]; }
+  .form-stack .errorlist { @apply text-sm text-brick-dark font-medium; }
+</style>

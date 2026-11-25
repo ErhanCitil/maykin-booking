@@ -1,4 +1,5 @@
 from .models import City, Hotel, Room, Order, ROOM_CHOICES, Highlight
+from django.db.models import Count, Min
 from django.views import generic
 import io
 from django.core.management import call_command
@@ -24,21 +25,21 @@ class Index(generic.ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['data'] = City.objects.values('name').distinct()
+        context['data'] = City.objects.values('name').annotate(hotel_count=Count('test')).order_by('name')
         return context
 
 # Class-Based View voor de stad pagina ik geef de stad naam mee als parameter. Altijd met een hoofdletter de naam van een class
 class Stad(generic.ListView):
-    paginate_by = 4
+    paginate_by = 12
     model = Hotel
     template_name = 'stad.html'
 
     def get_queryset(self):
         search = self.request.GET.get('q')
         if search:
-            return Hotel.objects.filter(city__name=self.kwargs['city_name'], name__icontains=search)
+            return Hotel.objects.filter(city__name=self.kwargs['city_name'], name__icontains=search).annotate(min_price=Min('room__price')).order_by('name')
         else:
-            return Hotel.objects.filter(city__name=self.kwargs['city_name'])
+            return Hotel.objects.filter(city__name=self.kwargs['city_name']).annotate(min_price=Min('room__price')).order_by('name')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -56,7 +57,7 @@ class HotelList(generic.ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['city_name'] = City.objects.values('name').distinct()
+        context['city_name'] = City.objects.values('name').annotate(hotel_count=Count('test')).order_by('name')
         return context
 
 class HotelDetail(generic.UpdateView):
@@ -68,6 +69,7 @@ class HotelDetail(generic.UpdateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['rooms'] = Room.objects.filter(hotel=self.kwargs['pk'])
+        context['min_price'] = context['rooms'].aggregate(p=Min('price'))['p'] or self.object.price
         context['highlights'] = Highlight.objects.filter(hotel=self.kwargs['pk'])
         return context
 
