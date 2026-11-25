@@ -1,0 +1,18 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Nieuwe stad{% endblock %}
+
+{% block content %}
+<a href="{% url 'dashboard:home' %}" class="text-sm text-muted hover:text-ink no-underline">← Alle hotels</a>
+<h1 class="mt-4 font-display font-semibold text-4xl md:text-5xl tracking-[-0.02em]">Nieuwe stad</h1>
+<p class="mt-3 text-muted max-w-xl">Na het toevoegen kun je direct een hotel in deze stad aanmaken.</p>
+
+<form method="post" class="card p-7 md:p-9 mt-8 max-w-xl">
+  {% csrf_token %}
+  {% include 'dashboard/_fields.html' %}
+  <div class="flex flex-wrap gap-3 pt-2">
+    <button type="submit" class="btn-primary">Stad toevoegen</button>
+    <a href="{% url 'dashboard:home' %}" class="btn-outline">Annuleren</a>
+  </div>
+</form>
+{% endblock %}

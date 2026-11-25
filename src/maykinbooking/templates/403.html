@@ -1,10 +1,20 @@
-{% extends 'master.html' %}
-
-{% block menu %}{% endblock %}
-
-{% block content %}
-
-  <h1>Sorry, you don't have access to this page (403)</h1>
-
-
-{% endblock content %}
+<!DOCTYPE html>
+{% load static %}
+<html lang="nl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Geen toegang · Maykin Booking</title>
+    {% include 'components/head.html' %}
+  </head>
+  <body class="min-h-screen flex flex-col bg-linen text-ink font-sans antialiased">
+    {% include 'components/header.html' %}
+    <main class="flex-1 w-full max-w-xl mx-auto px-6 py-20">
+      <p class="eyebrow mb-2.5">Foutcode 403</p>
+      <h1 class="font-display font-semibold text-4xl md:text-5xl tracking-[-0.02em]">Geen toegang</h1>
+      <p class="mt-4 text-[17px] leading-relaxed text-muted">Je bent ingelogd, maar je account heeft geen toegang tot deze pagina. Het dashboard is alleen voor medewerkers.</p>
+      <a href="{% url 'index' %}" class="btn-dark mt-8">Naar de homepage</a>
+    </main>
+    {% include 'components/footer.html' %}
+  </body>
+</html>
