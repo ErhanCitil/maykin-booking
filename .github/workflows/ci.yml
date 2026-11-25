@@ -8,9 +8,9 @@ on:
   workflow_dispatch:
 
 # A new push to a pull request cancels its runs that are still in progress.
-# Runs on main always finish, so every commit on main gets a green or red check.
+# Every commit on main gets its own group, so each one gets a green or red check.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
@@ -28,8 +28,9 @@ jobs:
       postgres:
         image: postgres:14
         env:
+          # Throwaway database that only lives inside this job, so no password.
+          POSTGRES_HOST_AUTH_METHOD: trust
           POSTGRES_USER: maykinbooking
-          POSTGRES_PASSWORD: maykinbooking
           POSTGRES_DB: maykinbooking
         ports:
           - 5432:5432
@@ -46,7 +47,6 @@ jobs:
       DB_PORT: 5432
       DB_NAME: maykinbooking
       DB_USER: maykinbooking
-      DB_PASSWORD: maykinbooking
 
     steps:
       - uses: actions/checkout@v6

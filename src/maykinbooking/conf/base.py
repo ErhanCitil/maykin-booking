@@ -373,9 +373,8 @@ elif (BASE_DIR / ".git").exists():
         repo = git.Repo(search_parent_directories=True)
         try:
             GIT_SHA = repo.head.object.hexsha
-        except (
-            ValueError
-        ):  # on startproject initial runs before any git commits have been made
+        # on startproject initial runs before any git commits have been made
+        except ValueError:
             GIT_SHA = repo.active_branch.name
 else:
     GIT_SHA = None
