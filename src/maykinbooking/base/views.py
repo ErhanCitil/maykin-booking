@@ -5,14 +5,15 @@ import io
 from django.core.management import call_command
 import base64
 
-from maykinbooking.form.forms import OrderForm1, OrderForm2
+from maykinbooking.form.forms import ConfirmForm, GuestForm, StayForm
 
-from django.http import HttpResponseRedirect
+from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
+from functools import cached_property
+from django_countries import countries
 from formtools.wizard.views import SessionWizardView
 
 from django_weasyprint import WeasyTemplateResponseMixin
-from django_weasyprint.views import WeasyTemplateResponse
 
 from django.http import Http404
 from django.contrib.auth.views import LoginView
@@ -83,79 +84,126 @@ class DatabaseSchema(generic.TemplateView):
                 context['schema'] = encoded_string
         return context
 
-class OrderWizard(SessionWizardView):
-    template_name = 'order.html'
-    form_list = [OrderForm1, OrderForm2]
+CHECKOUT_STEPS = [
+    ('stay', 'Je verblijf'),
+    ('guest', 'Je gegevens'),
+    ('confirm', 'Controleren'),
+]
 
-    def get_queryset(self):
-        return Hotel.objects.filter(id= self.kwargs['pk'])
+
+class Checkout(SessionWizardView):
+    """
+    Three step checkout: choose your stay, enter your details, review and confirm.
+    The order is only created when the guest confirms in the last step.
+    """
+
+    template_name = 'order.html'
+    form_list = [
+        ('stay', StayForm),
+        ('guest', GuestForm),
+        ('confirm', ConfirmForm),
+    ]
+
+    @cached_property
+    def hotel(self):
+        return get_object_or_404(Hotel.objects.select_related('city'), pk=self.kwargs['pk'])
+
+    @property
+    def bookable(self):
+        return self.hotel.is_available and self.hotel.room.filter(is_available=True).exists()
+
+    def get_form_kwargs(self, step=None):
+        kwargs = super().get_form_kwargs(step)
+        if step == 'stay':
+            kwargs['hotel'] = self.hotel
+        return kwargs
+
+    def post(self, *args, **kwargs):
+        if not self.bookable:
+            return self.render(self.get_form())
+        return super().post(*args, **kwargs)
+
+    def get_stay(self):
+        """The chosen stay with its price breakdown, once step 1 is completed."""
+        if self.steps.current == 'stay':
+            return None
+        data = self.get_cleaned_data_for_step('stay')
+        if not data:
+            return None
+        nights = (data['end_date'] - data['start_date']).days
+        return {
+            'start_date': data['start_date'],
+            'end_date': data['end_date'],
+            'nights': nights,
+            'room': data['room'],
+            'price_per_night': data['room'].price,
+            'total': data['room'].price * nights,
+        }
 
     def get_context_data(self, form, **kwargs):
-        context = super(OrderWizard, self).get_context_data(form=form, **kwargs)
-        if self.steps.current == '0' or self.steps.current == '1':
-            context['hotel'] = Hotel.objects.get(id=self.kwargs['pk'])
-            context['room'] = Room.objects.filter(hotel=self.kwargs['pk'])
-        if self.steps.current == '1':
-            context['step0'] = self.get_cleaned_data_for_step('0')
-            context['step1'] = self.get_cleaned_data_for_step('1')
-            context['order'] = Order.objects.create(
-                start_date = context['step0']['start_date'],
-                end_date = context['step0']['end_date'],
-                hotel = Hotel.objects.get(id=self.kwargs['pk']),
-                room = Room.objects.filter(hotel=self.kwargs['pk'], room_type=context['step0']['room_type']).first(),
-            )
-            self.request.session['order_token'] = str(context['order'].token)
+        context = super().get_context_data(form=form, **kwargs)
+        current_index = self.steps.index
+        context.update({
+            'hotel': self.hotel,
+            'bookable': self.bookable,
+            'stay': self.get_stay(),
+            'checkout_steps': [
+                {
+                    'number': index + 1,
+                    'label': label,
+                    'done': index < current_index,
+                    'current': index == current_index,
+                }
+                for index, (name, label) in enumerate(CHECKOUT_STEPS)
+            ],
+        })
+        if self.steps.current == 'confirm':
+            guest = self.get_cleaned_data_for_step('guest') or {}
+            context['guest'] = {**guest, 'country_name': countries.name(guest.get('country', ''))}
         return context
 
-    def done(self, form_list, **kwargs):
-        order_token = self.request.session.get('order_token')
-        order = Order.objects.get(token = order_token)
-        order.first_name = form_list[1].cleaned_data['first_name']
-        order.last_name = form_list[1].cleaned_data['last_name']
-        order.email = form_list[1].cleaned_data['email']
-        order.address = form_list[1].cleaned_data['address']
-        order.zipcode = form_list[1].cleaned_data['zipcode']
-        order.country = form_list[1].cleaned_data['country']
-        order.token = order_token
+    def done(self, form_list, form_dict, **kwargs):
+        stay = form_dict['stay'].cleaned_data
+        order = form_dict['guest'].save(commit=False)
+        order.hotel = self.hotel
+        order.room = stay['room']
+        order.start_date = stay['start_date']
+        order.end_date = stay['end_date']
         order.save()
-        return HttpResponseRedirect('/success/{}'.format(order.id))
+        self.request.session['order_token'] = str(order.token)
+        return redirect('success', pk=order.pk)
 
-class Success(generic.DetailView):
+
+class GuestOrderMixin:
+    """Only the guest who made the booking (same session) can see it."""
+
     model = Order
+    context_object_name = 'order'
+
+    def get_queryset(self):
+        return Order.objects.select_related('hotel__city', 'room')
+
+    def get_object(self, queryset=None):
+        order = super().get_object(queryset)
+        if self.request.session.get('order_token') != str(order.token):
+            raise Http404
+        return order
+
+
+class Success(GuestOrderMixin, generic.DetailView):
     template_name = 'success.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['order'] = Order.objects.get(id=self.kwargs['pk'])
-        self.request.session['order_token'] = str(context['order'].token)
+        context['nights'] = (self.object.end_date - self.object.start_date).days
         return context
 
-    def get(self, request, *args, **kwargs):
-        order_token = str(self.request.session.get('order_token'))
-        order = Order.objects.get(token = order_token)
-        if order_token != str(order.token):
-            raise Http404
-        return super().get(request, *args, **kwargs)
 
-class OrderPDF(WeasyTemplateResponseMixin, generic.DetailView):
-    model = Order
+class OrderPDF(GuestOrderMixin, WeasyTemplateResponseMixin, generic.DetailView):
     template_name = 'order_pdf.html'
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['order_token'] = Order.objects.get(token  = self.request.session.get('order_token'))
-        self.request.session['order_token'] = str(context['order'].token)
-        return context
-
-    def get(self, request, *args, **kwargs):
-        response = super().get(request, *args, **kwargs)
-        pdf = WeasyTemplateResponse(
-            request=request,
-            template=self.template_name,
-            context=self.get_context_data(),
-            filename='order_{}.pdf'.format(self.kwargs['pk']),
-        )
-        return pdf
+    def get_pdf_filename(self):
+        return 'boeking_{}.pdf'.format(self.object.pk)
 
 class Login(LoginView):
     template_name = 'login.html'
