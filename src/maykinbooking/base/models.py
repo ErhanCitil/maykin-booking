@@ -9,6 +9,18 @@ from django.conf import settings
 
 upload_storage = FileSystemStorage(location=settings.STATIC_ROOT, base_url=settings.STATIC_URL)
 
+
+def _first_file_url(*files):
+    """Return the URL of the first file that is set, or an empty string."""
+    for file in files:
+        if file:
+            try:
+                return file.url
+            except ValueError:
+                continue
+    return ""
+
+
 class City(models.Model):
     city_id = models.CharField(max_length=100)
     name = models.CharField(max_length=100)
@@ -27,8 +39,14 @@ class Hotel(models.Model):
     is_available = models.BooleanField(default=True)
     terms = RichTextField(blank=True, null=True)
     upload = models.ImageField(upload_to='hotel_img/', null=True, blank=True)
+
     def __str__(self):
         return self.name
+
+    @property
+    def photo_url(self):
+        # Photos uploaded via the dashboard take precedence over the imported image.
+        return _first_file_url(self.upload, self.image)
 
 SINGLE = "Single"
 DOUBLE = "Double"
@@ -48,9 +66,14 @@ class Room(models.Model):
     is_available = models.BooleanField(default=True)
     room_type = models.CharField(max_length=50, choices=ROOM_CHOICES)
     id = models.AutoField(primary_key=True, editable=False, null=False, default=None)
+    upload = models.ImageField(upload_to='room_img/', null=True, blank=True)
 
     def __str__(self):
         return self.room_type
+
+    @property
+    def photo_url(self):
+        return _first_file_url(self.upload, self.image)
 
 class Order(models.Model):
     room = models.ForeignKey(Room, related_name='room', on_delete=models.CASCADE)

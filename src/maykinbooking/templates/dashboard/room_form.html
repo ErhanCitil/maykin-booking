@@ -1,0 +1,31 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}{% if object %}Kamer bewerken{% else %}Nieuwe kamer{% endif %} · {{ hotel.name }}{% endblock %}
+
+{% block content %}
+<a href="{% url 'dashboard:hotel_edit' hotel.pk %}" class="text-sm text-muted hover:text-ink no-underline">← {{ hotel.name }}</a>
+
+<div class="mt-4">
+  <p class="eyebrow mb-2">{{ hotel.name }}</p>
+  <h1 class="font-display font-semibold text-4xl md:text-5xl tracking-[-0.02em]">{% if object %}{{ object.get_room_type_display }} kamer{% else %}Nieuwe kamer{% endif %}</h1>
+</div>
+
+<div class="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_400px] items-start">
+  <form method="post" enctype="multipart/form-data" class="card p-7 md:p-9">
+    {% csrf_token %}
+    {% include 'dashboard/_fields.html' with photo_url=object.photo_url %}
+    <div class="flex flex-wrap gap-3 pt-2">
+      <button type="submit" class="btn-primary">{% if object %}Wijzigingen opslaan{% else %}Kamer toevoegen{% endif %}</button>
+      <a href="{% url 'dashboard:hotel_edit' hotel.pk %}" class="btn-outline">Annuleren</a>
+    </div>
+  </form>
+
+  {% if object %}
+  <aside class="card p-7">
+    <h2 class="font-semibold">Kamer verwijderen</h2>
+    <p class="mt-1 text-sm text-muted">Verwijdert ook de boekingen voor deze kamer.</p>
+    <a href="{% url 'dashboard:room_delete' object.pk %}" class="inline-block mt-3 text-sm font-semibold text-brick-dark hover:text-ink">Kamer verwijderen…</a>
+  </aside>
+  {% endif %}
+</div>
+{% endblock %}

@@ -117,6 +117,7 @@ INSTALLED_APPS = [
     "maykinbooking.api",
     "maykinbooking.base",
     "maykinbooking.form",
+    "maykinbooking.dashboard",
 
     'import_export',
     'django_extensions',

@@ -1,0 +1,104 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Hotels beheren{% endblock %}
+
+{% block content %}
+<div class="flex flex-wrap items-end justify-between gap-4">
+  <div>
+    <p class="eyebrow mb-2">Beheer</p>
+    <h1 class="font-display font-semibold text-4xl md:text-5xl tracking-[-0.02em]">Hotels</h1>
+  </div>
+  <div class="flex flex-wrap gap-3">
+    <a href="{% url 'dashboard:city_create' %}" class="btn-outline">Nieuwe stad</a>
+    <a href="{% url 'dashboard:hotel_create' %}" class="btn-primary">
+      <svg aria-hidden="true" viewBox="0 0 24 24" class="w-[18px] h-[18px]" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      Nieuw hotel
+    </a>
+  </div>
+</div>
+
+<dl class="mt-8 grid gap-4 grid-cols-2 lg:grid-cols-4">
+  {% for label, value in stats %}
+  <div class="card p-5">
+    <dt class="text-[13px] text-muted">{{ label }}</dt>
+    <dd class="font-display font-semibold text-4xl mt-1">{{ value }}</dd>
+  </div>
+  {% endfor %}
+</dl>
+
+<form method="get" role="search" class="mt-8 card p-4 flex flex-wrap items-end gap-3">
+  <div class="flex-[2_1_240px] flex flex-col gap-1.5">
+    <label for="filter-q" class="text-[13px] font-semibold">Zoek op naam</label>
+    <input id="filter-q" type="search" name="q" value="{{ query }}" placeholder="Bijv. Ibis" class="form-control">
+  </div>
+  <div class="flex-[1_1_180px] flex flex-col gap-1.5">
+    <label for="filter-city" class="text-[13px] font-semibold">Stad</label>
+    <select id="filter-city" name="city" class="form-control">
+      <option value="">Alle steden</option>
+      {% for city in cities %}
+      <option value="{{ city.pk }}" {% if selected_city == city.pk|stringformat:'s' %}selected{% endif %}>{{ city.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <button type="submit" class="btn-dark">Filteren</button>
+  {% if query or selected_city %}
+  <a href="{% url 'dashboard:home' %}" class="btn text-muted hover:text-ink">Wissen</a>
+  {% endif %}
+</form>
+
+<p class="mt-6 mb-3 text-sm text-muted">{{ paginator.count }} hotel{{ paginator.count|pluralize:"s" }}</p>
+
+{% if hotels %}
+<div class="card overflow-x-auto">
+  <table class="w-full text-sm text-left">
+    <thead class="text-[12px] uppercase tracking-[0.1em] text-muted border-b border-seam">
+      <tr>
+        <th scope="col" class="px-5 py-3 font-semibold">Hotel</th>
+        <th scope="col" class="px-5 py-3 font-semibold">Stad</th>
+        <th scope="col" class="px-5 py-3 font-semibold">Kamers</th>
+        <th scope="col" class="px-5 py-3 font-semibold">Vanaf</th>
+        <th scope="col" class="px-5 py-3 font-semibold">Status</th>
+        <th scope="col" class="px-5 py-3"><span class="sr-only">Acties</span></th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-seam">
+      {% for hotel in hotels %}
+      <tr class="hover:bg-linen/60">
+        <td class="px-5 py-3.5">
+          <a href="{% url 'dashboard:hotel_edit' hotel.pk %}" class="font-semibold text-ink no-underline hover:text-brick">{{ hotel.name }}</a>
+          <span class="block text-[12px] text-muted">{{ hotel.hotel_id }}</span>
+        </td>
+        <td class="px-5 py-3.5">{{ hotel.city.name }}</td>
+        <td class="px-5 py-3.5">{{ hotel.room_count }}</td>
+        <td class="px-5 py-3.5 whitespace-nowrap">{% if hotel.min_price is not None %}€ {{ hotel.min_price|floatformat:2 }}{% else %}<span class="text-muted">Geen kamers</span>{% endif %}</td>
+        <td class="px-5 py-3.5">{% include 'components/availability.html' with available=hotel.is_available %}</td>
+        <td class="px-5 py-3.5 text-right whitespace-nowrap">
+          <a href="{% url 'dashboard:hotel_edit' hotel.pk %}" class="font-semibold text-brick no-underline hover:text-ink">Bewerken</a>
+          <a href="{% url 'hotel_detail' hotel.pk %}" class="ml-4 text-muted no-underline hover:text-ink">Bekijk</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="card p-8">
+  <p class="font-display font-semibold text-xl">Geen hotels gevonden</p>
+  <p class="mt-2 text-muted">Pas de filters aan of <a href="{% url 'dashboard:hotel_create' %}" class="text-brick font-semibold">voeg een nieuw hotel toe</a>.</p>
+</div>
+{% endif %}
+
+{% if is_paginated %}
+<nav aria-label="Paginering" class="mt-8 flex flex-wrap items-center justify-between gap-4">
+  <span class="text-sm text-muted">Pagina {{ page_obj.number }} van {{ paginator.num_pages }}</span>
+  <div class="flex gap-2">
+    {% if page_obj.has_previous %}
+    <a href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page_obj.previous_page_number }}" class="btn-outline min-h-[44px] px-5 text-sm">← Vorige</a>
+    {% endif %}
+    {% if page_obj.has_next %}
+    <a href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page_obj.next_page_number }}" class="btn-dark min-h-[44px] px-5 text-sm">Volgende →</a>
+    {% endif %}
+  </div>
+</nav>
+{% endif %}
+{% endblock %}

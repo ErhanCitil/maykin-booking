@@ -1,0 +1,36 @@
+{% comment %}
+  Renders all fields of `form` in the brand style.
+  Shows a preview of `photo_url` above the file input when it is set.
+{% endcomment %}
+{% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+
+{% if form.non_field_errors %}
+<div role="alert" class="mb-6 rounded-xl px-4 py-3 text-sm font-medium bg-[#F3E3DD] text-[#8A3519]">
+  {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+</div>
+{% endif %}
+
+{% for field in form.visible_fields %}
+  {% if field.widget_type == 'checkbox' %}
+  <div class="mb-6 flex items-start gap-3">
+    {{ field }}
+    <div>
+      <label for="{{ field.id_for_label }}" class="font-semibold text-[15px]">{{ field.label }}</label>
+      {% if field.help_text %}<p class="mt-0.5 text-[13px] text-muted">{{ field.help_text }}</p>{% endif %}
+      {% for error in field.errors %}<p class="mt-1 text-sm font-medium text-brick-dark">{{ error }}</p>{% endfor %}
+    </div>
+  </div>
+  {% else %}
+  <div class="mb-6 flex flex-col gap-1.5">
+    <label for="{{ field.id_for_label }}" class="text-[13px] font-semibold">
+      {{ field.label }}{% if not field.field.required %} <span class="font-normal text-muted">(optioneel)</span>{% endif %}
+    </label>
+    {% if field.widget_type == 'file' and photo_url %}
+    <img src="{{ photo_url }}" alt="Huidige foto" class="mb-2 w-full max-w-sm aspect-[16/9] object-cover rounded-xl border border-seam">
+    {% endif %}
+    {{ field }}
+    {% if field.help_text %}<p class="text-[13px] text-muted">{{ field.help_text }}</p>{% endif %}
+    {% for error in field.errors %}<p class="text-sm font-medium text-brick-dark">{{ error }}</p>{% endfor %}
+  </div>
+  {% endif %}
+{% endfor %}

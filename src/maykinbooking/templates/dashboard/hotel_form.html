@@ -1,0 +1,71 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}{% if object %}{{ object.name }} bewerken{% else %}Nieuw hotel{% endif %}{% endblock %}
+
+{% block content %}
+<a href="{% url 'dashboard:home' %}" class="text-sm text-muted hover:text-ink no-underline">← Alle hotels</a>
+
+<div class="mt-4 flex flex-wrap items-end justify-between gap-4">
+  <div>
+    {% if object %}<p class="eyebrow mb-2">{{ object.city.name }} · {{ object.hotel_id }}</p>{% endif %}
+    <h1 class="font-display font-semibold text-4xl md:text-5xl tracking-[-0.02em]">{% if object %}{{ object.name }}{% else %}Nieuw hotel{% endif %}</h1>
+  </div>
+  {% if object %}
+  <a href="{% url 'hotel_detail' object.pk %}" class="btn-outline min-h-[44px] px-5 text-sm">Bekijk op de site</a>
+  {% endif %}
+</div>
+
+<div class="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_400px] items-start">
+  <form method="post" enctype="multipart/form-data" class="card p-7 md:p-9">
+    {% csrf_token %}
+    {% include 'dashboard/_fields.html' with photo_url=object.photo_url %}
+    <div class="flex flex-wrap gap-3 pt-2">
+      <button type="submit" class="btn-primary">{% if object %}Wijzigingen opslaan{% else %}Hotel toevoegen{% endif %}</button>
+      <a href="{% url 'dashboard:home' %}" class="btn-outline">Annuleren</a>
+    </div>
+  </form>
+
+  {% if object %}
+  <aside class="space-y-6">
+    <section class="card p-7" aria-labelledby="rooms-title">
+      <div class="flex items-center justify-between gap-3 mb-2">
+        <h2 id="rooms-title" class="font-display font-semibold text-2xl">Kamers en prijzen</h2>
+        {% if rooms %}<a href="{% url 'dashboard:room_create' object.pk %}" class="text-sm font-semibold text-brick no-underline hover:text-ink">+ Kamer</a>{% endif %}
+      </div>
+      {% if rooms %}
+      <ul class="divide-y divide-seam">
+        {% for room in rooms %}
+        <li class="py-3.5 flex items-center justify-between gap-3">
+          <div>
+            <p class="font-semibold">{{ room.get_room_type_display }}</p>
+            <p class="text-[13px] text-muted">{% if room.is_available %}Beschikbaar{% else %}Niet beschikbaar{% endif %}</p>
+          </div>
+          <div class="flex items-center gap-4">
+            <span class="font-display font-semibold text-xl whitespace-nowrap">€ {{ room.price|floatformat:2 }}</span>
+            <a href="{% url 'dashboard:room_edit' room.pk %}" class="text-sm font-semibold text-brick no-underline hover:text-ink">Bewerken</a>
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+      <p class="mt-3 text-[13px] text-muted">Op de site tonen we de laagste kamerprijs als “vanaf”-prijs.</p>
+      {% else %}
+      <p class="text-sm text-muted">Dit hotel heeft nog geen kamers. Gasten kunnen pas boeken als er minstens één kamer is.</p>
+      <a href="{% url 'dashboard:room_create' object.pk %}" class="btn-dark mt-5">Eerste kamer toevoegen</a>
+      {% endif %}
+    </section>
+
+    <section class="card p-7" aria-labelledby="delete-title">
+      <h2 id="delete-title" class="font-semibold">Hotel verwijderen</h2>
+      <p class="mt-1 text-sm text-muted">Verwijdert ook alle kamers en boekingen van dit hotel.</p>
+      <a href="{% url 'dashboard:hotel_delete' object.pk %}" class="inline-block mt-3 text-sm font-semibold text-brick-dark hover:text-ink">Hotel verwijderen…</a>
+    </section>
+  </aside>
+  {% else %}
+  <aside class="card p-7 text-sm leading-relaxed text-muted">
+    <p class="font-semibold text-ink mb-2">Zo werkt het</p>
+    <p>Na het opslaan voeg je kamers toe. De prijs per nacht stel je per kamer in, en op de site tonen we de laagste kamerprijs als “vanaf”-prijs.</p>
+    <p class="mt-3">Staat de stad er niet tussen? <a href="{% url 'dashboard:city_create' %}" class="text-brick font-semibold">Voeg een nieuwe stad toe</a>.</p>
+  </aside>
+  {% endif %}
+</div>
+{% endblock %}

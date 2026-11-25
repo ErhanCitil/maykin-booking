@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="nl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <title>{% block title %}Dashboard{% endblock %} · Maykin Booking</title>
+    {% include 'components/head.html' %}
+  </head>
+  <body class="min-h-screen flex flex-col bg-linen text-ink font-sans antialiased">
+    {% include 'components/header.html' %}
+
+    {% with current=request.resolver_match.url_name %}
+    <div class="bg-white border-b border-seam">
+      <nav aria-label="Dashboard" class="max-w-site mx-auto px-6 md:px-8 py-3 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+        <span class="text-[12px] font-semibold uppercase tracking-[0.14em] text-muted">Dashboard</span>
+        <a href="{% url 'dashboard:home' %}" class="no-underline {% if current == 'home' or current == 'hotel_edit' or current == 'room_create' or current == 'room_edit' %}font-semibold text-ink{% else %}text-muted hover:text-ink{% endif %}">Hotels</a>
+        <a href="{% url 'dashboard:hotel_create' %}" class="no-underline {% if current == 'hotel_create' %}font-semibold text-ink{% else %}text-muted hover:text-ink{% endif %}">Nieuw hotel</a>
+        <a href="{% url 'dashboard:city_create' %}" class="no-underline {% if current == 'city_create' %}font-semibold text-ink{% else %}text-muted hover:text-ink{% endif %}">Nieuwe stad</a>
+        <div class="ml-auto flex items-center gap-4">
+          <span class="text-muted">Ingelogd als <span class="font-semibold text-ink">{{ user.get_username }}</span></span>
+          <form method="post" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button type="submit" class="font-semibold text-brick hover:text-ink">Uitloggen</button>
+          </form>
+        </div>
+      </nav>
+    </div>
+    {% endwith %}
+
+    <main class="flex-1 max-w-site w-full mx-auto px-6 md:px-8 py-10">
+      {% if messages %}
+      <div class="mb-6 space-y-2">
+        {% for message in messages %}
+        <div role="status" class="rounded-xl px-4 py-3 text-sm font-medium {% if message.tags == 'error' %}bg-[#F3E3DD] text-[#8A3519]{% else %}bg-[#E3F0EC] text-[#1F5148]{% endif %}">{{ message }}</div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {% block content %}{% endblock %}
+    </main>
+
+    {% include 'components/footer.html' %}
+  </body>
+</html>
