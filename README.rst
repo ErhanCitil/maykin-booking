@@ -2,6 +2,10 @@
 Maykin Booking
 ==================
 
+.. image:: https://github.com/ErhanCitil/maykin-booking/actions/workflows/ci.yml/badge.svg
+   :target: https://github.com/ErhanCitil/maykin-booking/actions/workflows/ci.yml
+   :alt: CI status
+
 :Version: 0.1.0
 :Source: https://github.com/erhancitil/maykin-booking
 :Keywords: ``Python, Django``
