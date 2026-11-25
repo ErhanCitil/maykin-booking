@@ -68,7 +68,7 @@
               {% with room=radio.data.value.instance %}
               <label for="{{ radio.id_for_label }}" class="flex items-center gap-4 p-4 rounded-2xl border-[1.5px] border-seam bg-white cursor-pointer hover:border-ink has-[:checked]:border-ink has-[:checked]:bg-linen">
                 {{ radio.tag }}
-                {% if room.image %}<img src="{{ room.image.url }}" alt="" class="hidden sm:block w-24 h-16 object-cover rounded-lg">{% endif %}
+                {% if room.photo_url %}<img src="{{ room.photo_url }}" alt="" class="hidden sm:block w-24 h-16 object-cover rounded-lg">{% endif %}
                 <span class="flex-1 min-w-0">
                   <span class="block font-semibold">{{ room.get_room_type_display }}</span>
                   <span class="mt-0.5 text-[13px] leading-snug text-muted line-clamp-2">{{ room.description }}</span>
@@ -155,10 +155,8 @@
         {% endif %}
 
         <aside class="card overflow-hidden lg:sticky lg:top-6" aria-labelledby="summary-title">
-          {% if hotel.upload %}
-          <img src="{{ hotel.upload.url }}" alt="" class="h-40 w-full object-cover">
-          {% elif hotel.image %}
-          <img src="{{ hotel.image.url }}" alt="" class="h-40 w-full object-cover">
+          {% if hotel.photo_url %}
+          <img src="{{ hotel.photo_url }}" alt="" class="h-40 w-full object-cover">
           {% endif %}
           <div class="p-6">
             <p class="eyebrow">{{ hotel.city.name }}</p>

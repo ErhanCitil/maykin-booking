@@ -19,8 +19,8 @@
 
       <div class="mt-10 grid gap-6 lg:grid-cols-2 items-start">
         <div class="card overflow-hidden">
-          {% if order.hotel.image %}
-          <img src="{{ order.hotel.image.url }}" alt="{{ order.hotel.name }}" class="h-56 w-full object-cover">
+          {% if order.hotel.photo_url %}
+          <img src="{{ order.hotel.photo_url }}" alt="{{ order.hotel.name }}" class="h-56 w-full object-cover">
           {% endif %}
           <div class="p-6">
             <p class="eyebrow">{{ order.hotel.city.name }}</p>
