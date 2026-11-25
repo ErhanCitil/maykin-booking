@@ -5,9 +5,10 @@ import io
 from django.core.management import call_command
 import base64
 
-from maykinbooking.form.forms import ConfirmForm, EditForm, GuestForm, StayForm, UploadForm
+from maykinbooking.form.forms import ConfirmForm, GuestForm, StayForm
 
 from django.shortcuts import get_object_or_404, redirect
+from django.urls import reverse
 from functools import cached_property
 from django_countries import countries
 from formtools.wizard.views import SessionWizardView
@@ -15,8 +16,7 @@ from formtools.wizard.views import SessionWizardView
 from django_weasyprint import WeasyTemplateResponseMixin
 
 from django.http import Http404
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.contrib.auth.views import LoginView, LogoutView
+from django.contrib.auth.views import LoginView
 # Create your views here.
 
 class Index(generic.ListView):
@@ -61,11 +61,9 @@ class HotelList(generic.ListView):
         context['city_name'] = City.objects.values('name').annotate(hotel_count=Count('test')).order_by('name')
         return context
 
-class HotelDetail(generic.UpdateView):
+class HotelDetail(generic.DetailView):
     model = Hotel
     template_name = 'hotel.html'
-    form_class = UploadForm
-    success_url = '/'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -207,23 +205,18 @@ class OrderPDF(GuestOrderMixin, WeasyTemplateResponseMixin, generic.DetailView):
     def get_pdf_filename(self):
         return 'boeking_{}.pdf'.format(self.object.pk)
 
-class HotelEdit(LoginRequiredMixin, generic.UpdateView):
-    model = Hotel
-    template_name = 'hotel_edit.html'
-    form_class = EditForm
-
-    def get_success_url(self):
-        return '/hotel/{}'.format(self.kwargs['pk'])
-
 class Login(LoginView):
     template_name = 'login.html'
     fields = '__all__'
     redirect_authenticated_user = True
 
-class HotelEditList(LoginRequiredMixin, generic.ListView):
-    model = Hotel
-    template_name = 'hotel_edit_list.html'
-
+    def get_success_url(self):
+        # Staff members go straight to the dashboard, unless ?next= says otherwise.
+        if self.get_redirect_url():
+            return self.get_redirect_url()
+        if self.request.user.is_staff:
+            return reverse('dashboard:home')
+        return reverse('index')
 
 class Terms(generic.TemplateView):
     template_name = 'terms.html'

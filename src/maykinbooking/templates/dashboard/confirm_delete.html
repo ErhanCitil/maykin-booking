@@ -1,0 +1,22 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}{{ label }} verwijderen{% endblock %}
+
+{% block content %}
+<a href="{{ cancel_url }}" class="text-sm text-muted hover:text-ink no-underline">← Terug</a>
+
+<div class="card p-8 max-w-xl mt-6">
+  <h1 class="font-display font-semibold text-3xl tracking-[-0.015em]">{{ label }} verwijderen?</h1>
+  {% if consequences %}
+  <ul class="mt-5 rounded-xl bg-[#F3E3DD] text-[#8A3519] py-4 pr-5 pl-9 text-sm font-medium list-disc space-y-1">
+    {% for consequence in consequences %}<li>{{ consequence }}</li>{% endfor %}
+  </ul>
+  {% endif %}
+  <p class="mt-5 text-muted">Dit kan niet ongedaan worden gemaakt.</p>
+  <form method="post" class="mt-6 flex flex-wrap gap-3">
+    {% csrf_token %}
+    <button type="submit" class="btn bg-brick-dark text-white hover:bg-[#7a2f19]">Ja, verwijderen</button>
+    <a href="{{ cancel_url }}" class="btn-outline">Annuleren</a>
+  </form>
+</div>
+{% endblock %}

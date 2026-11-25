@@ -8,7 +8,11 @@
       <a href="{% url 'index' %}" class="no-underline hover:text-linen {% if current == 'index' %}text-linen font-semibold{% else %}text-linen/80{% endif %}">Home</a>
       <a href="{% url 'hotel' %}" class="no-underline hover:text-linen {% if current == 'hotel' or current == 'stad' or current == 'hotel_detail' %}text-linen font-semibold{% else %}text-linen/80{% endif %}">Hotels</a>
       <a href="{% url 'contact' %}" class="no-underline hover:text-linen {% if current == 'contact' %}text-linen font-semibold{% else %}text-linen/80{% endif %}">Contact</a>
-      <a href="{% url 'admin:index' %}" class="inline-flex items-center min-h-[44px] px-5 rounded-full border-[1.5px] border-linen/35 text-linen font-semibold no-underline hover:bg-linen hover:text-ink transition-colors">Inloggen</a>
+      {% if user.is_authenticated and user.is_staff %}
+      <a href="{% url 'dashboard:home' %}" class="inline-flex items-center min-h-[44px] px-5 rounded-full font-semibold no-underline transition-colors {% if request.resolver_match.app_name == 'dashboard' %}bg-linen text-ink{% else %}border-[1.5px] border-linen/35 text-linen hover:bg-linen hover:text-ink{% endif %}">Dashboard</a>
+      {% else %}
+      <a href="{% url 'login' %}" class="inline-flex items-center min-h-[44px] px-5 rounded-full border-[1.5px] border-linen/35 text-linen font-semibold no-underline hover:bg-linen hover:text-ink transition-colors">Inloggen</a>
+      {% endif %}
     </div>
   </nav>
 </header>

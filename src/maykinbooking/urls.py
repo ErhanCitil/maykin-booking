@@ -37,6 +37,7 @@ urlpatterns = [
         auth_views.PasswordResetCompleteView.as_view(),
         name="password_reset_complete",
     ),
+    path("dashboard/", include("maykinbooking.dashboard.urls")),
     # Simply show the master template.
     path('', include('maykinbooking.base.urls')),
     path('', include('maykinbooking.api.urls')),

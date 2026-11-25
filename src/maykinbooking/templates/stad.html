@@ -36,8 +36,8 @@
         <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {% for hotel in object_list %}
           <a href="{% url 'hotel_detail' hotel.id %}" class="card overflow-hidden flex flex-col no-underline text-ink hover:border-ink transition-colors">
-            {% if hotel.image %}
-            <img src="{{ hotel.image.url }}" alt="{{ hotel.name }}" class="h-44 w-full object-cover">
+            {% if hotel.photo_url %}
+            <img src="{{ hotel.photo_url }}" alt="{{ hotel.name }}" class="h-44 w-full object-cover">
             {% else %}
             <div class="h-44 w-full bg-seam"></div>
             {% endif %}

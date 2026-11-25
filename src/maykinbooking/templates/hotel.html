@@ -17,10 +17,8 @@
 
       <section class="max-w-site mx-auto px-6 md:px-8 pt-6 grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px] items-start">
         <div>
-          {% if object.upload %}
-          <img src="{{ object.upload.url }}" alt="{{ object.name }}" class="w-full aspect-[16/9] object-cover rounded-[20px]">
-          {% elif object.image %}
-          <img src="{{ object.image.url }}" alt="{{ object.name }}" class="w-full aspect-[16/9] object-cover rounded-[20px]">
+          {% if object.photo_url %}
+          <img src="{{ object.photo_url }}" alt="{{ object.name }}" class="w-full aspect-[16/9] object-cover rounded-[20px]">
           {% endif %}
 
           <div class="mt-8">
@@ -56,8 +54,8 @@
         <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {% for room in rooms %}
           <article class="card overflow-hidden flex flex-col">
-            {% if room.image %}
-            <img src="{{ room.image.url }}" alt="{{ room.get_room_type_display }} kamer" class="h-48 w-full object-cover">
+            {% if room.photo_url %}
+            <img src="{{ room.photo_url }}" alt="{{ room.get_room_type_display }} kamer" class="h-48 w-full object-cover">
             {% endif %}
             <div class="p-6 flex flex-col flex-1">
               <div class="flex items-center justify-between gap-3">
@@ -76,16 +74,7 @@
       </section>
       {% endif %}
 
-      <section class="max-w-site mx-auto px-6 md:px-8 py-20">
-        <details class="card p-6 max-w-xl">
-          <summary class="cursor-pointer font-semibold">Foto toevoegen aan dit hotel</summary>
-          <form action="" enctype="multipart/form-data" method="post" class="form-stack mt-5">
-            {% csrf_token %}
-            {{ form.as_p }}
-            <button type="submit" class="btn-dark">Uploaden</button>
-          </form>
-        </details>
-      </section>
+      <div class="pb-20"></div>
     </main>
 
     {% include 'components/footer.html' %}

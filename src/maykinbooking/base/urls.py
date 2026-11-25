@@ -1,4 +1,6 @@
+from django.contrib.auth.views import LogoutView
 from django.urls import path
+from django.views.generic import RedirectView
 from .views import *
 from django.conf import settings
 from django.conf.urls.static import static
@@ -12,8 +14,10 @@ urlpatterns = [
     path('order/<int:pk>', Checkout.as_view(), name='order'),
     path('success/<int:pk>', Success.as_view(), name='success'),
     path('orderpdf/<int:pk>', OrderPDF.as_view(), name='orderpdf'),
-    path('hotel_edit/<int:pk>', HotelEdit.as_view(), name='hotel_edit'),
+    # Old edit pages, replaced by the staff dashboard.
+    path('hotel_edit/<int:pk>', RedirectView.as_view(pattern_name='dashboard:hotel_edit'), name='hotel_edit'),
     path('login/', Login.as_view(), name='login'),
-    path('hotels_edit/', HotelEditList.as_view(), name='hotels_edit'),
+    path('logout/', LogoutView.as_view(next_page='index'), name='logout'),
+    path('hotels_edit/', RedirectView.as_view(pattern_name='dashboard:home'), name='hotels_edit'),
     path('terms/<int:pk>', Terms.as_view(), name='terms'),
 ]+ static(settings.MEDIA_URL, document_root = settings.MEDIA_ROOT)

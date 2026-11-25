@@ -2,7 +2,7 @@ from datetime import date
 
 from django import forms
 from .models import ContactForm
-from maykinbooking.base.models import Order, Room, Hotel
+from maykinbooking.base.models import Order, Room
 
 class FormContact(forms.ModelForm):
     class Meta:
@@ -126,23 +126,3 @@ class ConfirmForm(forms.Form):
         widget=forms.CheckboxInput(attrs={'class': 'h-5 w-5 mt-0.5 shrink-0 accent-[#13243A]'}),
         error_messages={'required': 'Je moet akkoord gaan met de voorwaarden om te boeken.'},
     )
-
-
-class EditForm(forms.ModelForm):
-    class Meta:
-        model = Hotel
-        fields = ('name', 'description', 'image', 'price')
-        widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'description': forms.Textarea(attrs={'class': 'form-control'}),
-            'image': forms.FileInput(attrs={'class': 'form-control'}),
-            'price': forms.NumberInput(attrs={'class': 'form-control'}),
-        }
-
-class UploadForm(forms.ModelForm):
-    class Meta:
-        model = Hotel
-        fields = ('upload',)
-        widgets = {
-            'upload': forms.FileInput(attrs={'class': 'form-control'}),
-        }
