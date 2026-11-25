@@ -1,3 +1,4 @@
+{% load static %}
 <footer class="bg-ink text-linen/80 mt-auto">
   <div class="max-w-site mx-auto px-6 md:px-8 pt-16 pb-8">
     <div class="grid gap-10 md:grid-cols-3">
@@ -23,6 +24,7 @@
     </div>
     <div class="mt-12 pt-6 border-t border-linen/15 text-[13px] flex flex-wrap justify-between gap-2">
       <span>© {% now "Y" %} Maykin Booking</span>
+      <span>Hoteldata © <a href="https://www.openstreetmap.org/copyright" class="text-linen/90 underline-offset-4 hover:underline">OpenStreetMap-bijdragers</a> · <a href="{% static 'demo/CREDITS.txt' %}" class="text-linen/90 underline-offset-4 hover:underline">Fotoverantwoording</a></span>
       <span>Gebouwd met Django</span>
     </div>
   </div>

@@ -2,9 +2,8 @@
 Installation
 ============
 
-The project is developed in Python using the `Django framework`_. There are 3
-sections below, focussing on developers, running the project using Docker and
-hints for running the project in production.
+The project is developed in Python using the `Django framework`_. There are 2
+sections below, focussing on developers and running the project using Docker.
 
 .. _Django framework: https://www.djangoproject.com/
 
@@ -18,9 +17,9 @@ Prerequisites
 
 You need the following libraries and/or programs:
 
-* `Python`_ 3.6 or above
+* `Python`_ 3.10
 * Python `Virtualenv`_ and `Pip`_
-* `PostgreSQL`_ 10 or above
+* `PostgreSQL`_ 14 (optional for local development, see step 5 below)
 * `Node.js`_
 * `npm`_
 
@@ -36,7 +35,7 @@ Getting started
 ---------------
 
 Developers can follow the following steps to set up the project on their local
-development machine.
+development machine. Run all ``manage.py`` commands from the repository root.
 
 1. Navigate to the location where you want to place your project.
 
@@ -45,18 +44,21 @@ development machine.
    .. code-block:: bash
 
        $ git clone git@github.com:ErhanCitil/maykin-booking.git
-       $ cd maykinbooking
+       $ cd maykin-booking
 
-3. Install all required (backend) libraries.
-   **Tip:** You can use the ``bootstrap.py`` script to install the requiments
-   and set the proper settings in ``manage.py``. Or, perform the steps
-   manually:
+3. Install all required (backend) libraries. ``maykin-django-two-factor-auth``
+   only installs with a pip version below 24.1, so install that first:
 
    .. code-block:: bash
 
        $ virtualenv env
        $ source env/bin/activate
+       $ pip install "pip<24.1"
        $ pip install -r requirements/dev.txt
+
+   **Note:** ``python bootstrap.py dev`` automates these steps and also sets
+   ``DJANGO_SETTINGS_MODULE`` in ``env/bin/activate``. It upgrades pip to the
+   latest version first, though, so it runs into the pip limit above.
 
 4. Install all required (frontend) libraries and build static files.
 
@@ -65,29 +67,45 @@ development machine.
        $ npm install
        $ npm run build
 
-5. Collect statics and create the initial database tables:
+5. Create a ``.env`` file with your database settings, based on
+   ``dotenv.example``:
+
+   .. code-block:: bash
+
+       $ cp dotenv.example .env
+
+   Remove ``DB_PORT`` or give it a value: it is read as a number, so an empty
+   value fails.
+
+   **Tip:** to run the project without PostgreSQL, use SQLite by setting
+   these values in ``.env``. The database file is created in the repository
+   root. Do not base ``local.py`` on ``local_example.py`` in that case, as it
+   overrides the database settings.
+
+   .. code-block:: bash
+
+       DB_ENGINE=django.db.backends.sqlite3
+       DB_NAME=db.sqlite3
+
+6. Collect statics and create the initial database tables:
 
    .. code-block:: bash
 
        $ python src/manage.py collectstatic --link
        $ python src/manage.py migrate
 
-6. Create a superuser to access the management interface:
+7. Create a superuser to access the management interface:
 
    .. code-block:: bash
 
        $ python src/manage.py createsuperuser
 
-7. You can now run your installation and point your browser to the address
+8. You can now run your installation and point your browser to the address
    given by this command:
 
    .. code-block:: bash
 
        $ python src/manage.py runserver
-
-8. Create a .env file with database settings. See dotenv.example for an example.
-
-        $ cp dotenv.example .env
 
 
 **Note:** If you are making local, machine specific, changes, add them to
@@ -104,7 +122,7 @@ When updating an existing installation:
 
    .. code-block:: bash
 
-       $ cd maykinbooking
+       $ cd maykin-booking
        $ source env/bin/activate
 
 2. Update the code and libraries:
@@ -137,11 +155,14 @@ Configuration via environment variables
 ---------------------------------------
 
 A number of common settings/configurations can be modified by setting
-environment variables. You can persist these in your ``local.py`` settings
-file or as part of the ``(post)activate`` of your virtualenv.
+environment variables. You can persist these in the ``.env`` file in the
+repository root or as part of the ``(post)activate`` of your virtualenv.
 
 * ``SECRET_KEY``: the secret key to use. A default is set in ``dev.py``
 
+* ``DB_ENGINE``: database backend. Defaults to
+  ``django.db.backends.postgresql``; use ``django.db.backends.sqlite3`` for
+  SQLite.
 * ``DB_NAME``: name of the database for the project. Defaults to ``maykinbooking``.
 * ``DB_USER``: username to connect to the database with. Defaults to ``maykinbooking``.
 * ``DB_PASSWORD``: password to use to connect to the database. Defaults to ``maykinbooking``.
@@ -158,23 +179,21 @@ Docker
 The easiest way to get the project started is by using `Docker Compose`_.
 
 1. Clone or download the code from `Github`_ in a folder like
-   ``maykinbooking``:
+   ``maykin-booking``:
 
    .. code-block:: bash
 
        $ git clone git@github.com:ErhanCitil/maykin-booking.git
-       Cloning into 'maykinbooking'...
+       Cloning into 'maykin-booking'...
        ...
 
-       $ cd maykinbooking
+       $ cd maykin-booking
 
 2. Start the database and web services:
 
    .. code-block:: bash
 
-       $ docker-compose up -d
-       Starting maykinbooking_db_1 ... done
-       Starting maykinbooking_web_1 ... done
+       $ docker compose up -d
 
    It can take a while before everything is done. Even after starting the web
    container, the database might still be migrating. You can always check the
@@ -182,20 +201,16 @@ The easiest way to get the project started is by using `Docker Compose`_.
 
    .. code-block:: bash
 
-       $ docker logs -f maykinbooking_web_1
+       $ docker compose logs -f web
 
-3. Create an admin user and load initial data. If different container names
-   are shown above, use the container name ending with ``_web_1``:
+3. Create an admin user:
 
    .. code-block:: bash
 
-       $ docker exec -it maykinbooking_web_1 /app/src/manage.py createsuperuser
+       $ docker compose exec web python src/manage.py createsuperuser
        Username: admin
        ...
        Superuser created successfully.
-
-       $ docker exec -it maykinbooking_web_1 /app/src/manage.py loaddata admin_index groups
-       Installed 5 object(s) from 2 fixture(s)
 
 4. Point your browser to ``http://localhost:8000/`` to access the project's
    management interface with the credentials used in step 3.
@@ -212,11 +227,11 @@ The easiest way to get the project started is by using `Docker Compose`_.
        NAME      ACTIVE   DRIVER       STATE     URL
        default   *        virtualbox   Running   tcp://<ip>:<port>
 
-5. To shutdown the services, use ``docker-compose down`` and to clean up your
+5. To shutdown the services, use ``docker compose down`` and to clean up your
    system you can run ``docker system prune``.
 
 .. _Docker Compose: https://docs.docker.com/compose/install/
-.. _Github: hgit@github.com:ErhanCitil/maykin-booking
+.. _Github: https://github.com/ErhanCitil/maykin-booking
 
 
 More Docker
@@ -229,69 +244,19 @@ all settings.
 
 .. code-block:: bash
 
-    $ docker build -t maykinbooking
+    $ docker build -t maykinbooking .
     $ docker run \
         -p 8000:8000 \
-        -e DATABASE_USERNAME=... \
+        -e SECRET_KEY=... \
+        -e ALLOWED_HOSTS=... \
+        -e DATABASE_NAME=... \
+        -e DATABASE_USER=... \
         -e DATABASE_PASSWORD=... \
         -e DATABASE_HOST=... \
         --name maykinbooking \
         maykinbooking
 
-    $ docker exec -it maykinbooking /app/src/manage.py createsuperuser
-
-Building and publishing the image
----------------------------------
-
-Using ``bin/release-docker-image``, you can easily build and tag the image.
-
-The script is based on git branches and tags - if you're on the ``master``
-branch and the current ``HEAD`` is tagged, the tag will be used as
-``RELEASE_TAG`` and the image will be pushed. If you want to push the image
-without a git tag, you can use the ``RELEASE_TAG`` envvar.
-
-The image will only be pushed if the ``JOB_NAME`` envvar is set. The image
-will always be built, even if no envvar is set. The default release tag is
-``latest``.
-
-Example usage:
-
-.. code-block:: bash
-
-    JOB_NAME=publish RELEASE_TAG=dev ./bin/release-docker-image.sh
-
-
-Staging and production
-======================
-
-Ansible is used to deploy test, staging and production servers. It is assumed
-the target machine has a clean `Debian`_ installation.
-
-1. Make sure you have `Ansible`_ installed (globally or in the virtual
-   environment):
-
-   .. code-block:: bash
-
-       $ pip install ansible
-
-2. Navigate to the project directory, and install the Maykin deployment
-   submodule if you haven't already:
-
-   .. code-block:: bash
-
-       $ git submodule update --init
-
-3. Run the Ansible playbook to provision a clean Debian machine:
-
-   .. code-block:: bash
-
-       $ cd deployment
-       $ ansible-playbook <test/staging/production>.yml
-
-For more information, see the ``README`` file in the deployment directory.
-
-.. _Debian: https://www.debian.org/
-.. _Ansible: https://pypi.org/project/ansible/
+    $ docker exec -it maykinbooking python src/manage.py createsuperuser
 
 
 Settings
@@ -311,8 +276,38 @@ Commands can be executed using:
 
     $ python src/manage.py <command>
 
-There are no specific commands for the project. See
-`Django framework commands`_ for all default commands, or type
+``load_demo_data`` fills the database with demo data: 6 cities, 201 real
+hotels from OpenStreetMap and freely licensed photos.
+
+**Warning:** this command is destructive. It first deletes all cities, hotels,
+rooms, bookings and reviews; users are kept. It is meant for development and
+demo environments, not for production, and refuses to run when ``ENVIRONMENT``
+is ``production``. It asks for confirmation (type ``ja``) unless you pass
+``--noinput``:
+
+.. code-block:: bash
+
+    $ python src/manage.py load_demo_data
+    $ python src/manage.py load_demo_data --noinput
+
+See ``src/maykinbooking/base/demo_data/README.md`` for the source and license
+of the data.
+
+Other project commands:
+
+* ``createinitialsuperuser``: creates a superuser, or does nothing if that
+  username already exists. See ``--help`` for the password options.
+* ``dataframe``: downloads ``city.csv`` and ``hotel.csv`` from a Maykin Media
+  server and creates the cities and hotels, each with a single, double and
+  family room. Only works on a database without cities.
+* ``fileimport``: imports the cities and hotels from the CSV files in
+  ``Case Maykin Media - Django - CSV data/``, with one double room per hotel.
+  Only works on a database without cities.
+* ``email_csv``: meant to e-mail a CSV of all hotels to a hard-coded address;
+  the attached ``data.csv`` is currently empty.
+* ``clear_cache``: clears the default cache, or the one given with ``--alias``.
+
+See `Django framework commands`_ for all default commands, or type
 ``python src/manage.py --help``.
 
 .. _Django framework commands: https://docs.djangoproject.com/en/dev/ref/django-admin/#available-commands

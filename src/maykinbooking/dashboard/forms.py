@@ -90,15 +90,25 @@ class HotelForm(StyledFormMixin, PhotoFormMixin, forms.ModelForm):
 
     class Meta:
         model = Hotel
-        fields = ("name", "city", "description", "is_available", "upload", "terms")
+        fields = (
+            "name",
+            "address",
+            "city",
+            "description",
+            "is_available",
+            "upload",
+            "terms",
+        )
         labels = {
             "name": "Naam",
+            "address": "Adres",
             "city": "Stad",
             "description": "Beschrijving",
             "is_available": "Beschikbaar voor boekingen",
             "upload": "Foto",
         }
         help_texts = {
+            "address": "Straat en huisnummer, zonder de stad.",
             "is_available": "Staat dit uit, dan krijgt het hotel op de site het label “Vol”.",
             "upload": "Wordt getoond op de hotelpagina en in het stadsoverzicht.",
         }

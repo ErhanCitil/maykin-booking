@@ -154,6 +154,38 @@ class HotelCrudTests(DashboardTestCase):
         self.assertEqual(hotel.photo_url, hotel.upload.url)
         self.assertEqual(hotel.terms, "<p>Inchecken vanaf 15:00</p>")
 
+    def test_create_hotel_with_address(self):
+        response = self.client.post(
+            reverse("dashboard:hotel_create"),
+            {
+                "name": "Hotel V",
+                "address": "Weesperzijde 8",
+                "city": self.amsterdam.pk,
+                "is_available": "on",
+            },
+        )
+        hotel = Hotel.objects.get(name="Hotel V")
+        self.assertRedirects(response, reverse("dashboard:hotel_edit", args=[hotel.pk]))
+        self.assertEqual(hotel.address, "Weesperzijde 8")
+
+        response = self.client.get(reverse("hotel_detail", args=[hotel.pk]))
+        self.assertContains(response, ">Weesperzijde 8, Amsterdam</dd>")
+
+    def test_address_is_optional(self):
+        self.client.post(
+            reverse("dashboard:hotel_create"),
+            {"name": "Hotel zonder adres", "city": self.amsterdam.pk},
+        )
+        self.assertEqual(Hotel.objects.get(name="Hotel zonder adres").address, "")
+
+    def test_address_field_comes_right_after_the_name(self):
+        response = self.client.get(reverse("dashboard:hotel_create"))
+        form = response.context["form"]
+        self.assertEqual(list(form.fields)[:2], ["name", "address"])
+        self.assertEqual(form["address"].label, "Adres")
+        self.assertContains(response, 'for="id_address"')
+        self.assertContains(response, 'name="address"')
+
     def test_create_hotel_requires_city(self):
         response = self.client.post(
             reverse("dashboard:hotel_create"), {"name": "Zonder stad"}
@@ -185,6 +217,35 @@ class HotelCrudTests(DashboardTestCase):
         self.assertFalse(self.hotel.is_available)
         # The hotel id stays the same when the city changes.
         self.assertEqual(self.hotel.hotel_id, "AMS01")
+
+    def test_edit_hotel_address(self):
+        url = reverse("dashboard:hotel_edit", args=[self.hotel.pk])
+        data = {
+            "name": self.hotel.name,
+            "city": self.amsterdam.pk,
+            "is_available": "on",
+        }
+
+        self.client.post(url, {**data, "address": "Schiphol Boulevard 701"})
+        self.hotel.refresh_from_db()
+        self.assertEqual(self.hotel.address, "Schiphol Boulevard 701")
+        response = self.client.get(url)
+        self.assertContains(response, 'value="Schiphol Boulevard 701"')
+
+        # Clearing the address is allowed too.
+        self.client.post(url, {**data, "address": ""})
+        self.hotel.refresh_from_db()
+        self.assertEqual(self.hotel.address, "")
+
+    def test_address_longer_than_200_characters_is_rejected(self):
+        response = self.client.post(
+            reverse("dashboard:hotel_edit", args=[self.hotel.pk]),
+            {"name": self.hotel.name, "city": self.amsterdam.pk, "address": "x" * 201},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("address", response.context["form"].errors)
+        self.hotel.refresh_from_db()
+        self.assertEqual(self.hotel.address, "")
 
     def test_remove_uploaded_photo(self):
         self.hotel.upload = make_photo()
