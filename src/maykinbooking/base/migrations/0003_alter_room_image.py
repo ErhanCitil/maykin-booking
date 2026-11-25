@@ -6,15 +6,22 @@ import pathlib
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('base', '0002_alter_hotel_highlight'),
+        ("base", "0002_alter_hotel_highlight"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='room',
-            name='image',
-            field=models.ImageField(storage=django.core.files.storage.FileSystemStorage(base_url='/static/', location=pathlib.PurePosixPath('/home/erhan/Bureaublad/maykin-booking/static')), upload_to='room_img/'),
+            model_name="room",
+            name="image",
+            field=models.ImageField(
+                storage=django.core.files.storage.FileSystemStorage(
+                    base_url="/static/",
+                    location=pathlib.PurePosixPath(
+                        "/home/erhan/Bureaublad/maykin-booking/static"
+                    ),
+                ),
+                upload_to="room_img/",
+            ),
         ),
     ]

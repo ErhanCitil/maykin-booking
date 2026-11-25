@@ -5,7 +5,6 @@ from django.contrib import admin
 from django.contrib.auth import views as auth_views
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.urls import include, path
-from django.views.generic.base import TemplateView
 
 from maykinbooking.accounts.views.password_reset import PasswordResetView
 
@@ -39,9 +38,9 @@ urlpatterns = [
     ),
     path("dashboard/", include("maykinbooking.dashboard.urls")),
     # Simply show the master template.
-    path('', include('maykinbooking.base.urls')),
-    path('', include('maykinbooking.api.urls')),
-    path('', include('maykinbooking.form.urls')),
+    path("", include("maykinbooking.base.urls")),
+    path("", include("maykinbooking.api.urls")),
+    path("", include("maykinbooking.form.urls")),
 ]
 
 # NOTE: The staticfiles_urlpatterns also discovers static files (ie. no need to run collectstatic). Both the static

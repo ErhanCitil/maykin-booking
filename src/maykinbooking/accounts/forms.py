@@ -1,6 +1,5 @@
 from django.contrib.auth.forms import UserChangeForm as _UserChangeForm
 
-from .models import User
 from .utils import validate_max_permissions, validate_max_user_permissions
 
 

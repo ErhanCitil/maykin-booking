@@ -1,22 +1,28 @@
-from django.shortcuts import render
-from rest_framework import viewsets, generics
-from rest_framework import permissions
-from .serializers import * 
+from rest_framework import generics, permissions, viewsets
+
+from maykinbooking.base.models import City, Hotel, Review
+
+from .serializers import CitySerializer, HotelSerializer, ReviewSerializer
+
 # Create your views here.
+
 
 class CityViewSet(viewsets.ModelViewSet):
     queryset = City.objects.all()
     serializer_class = CitySerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
+
 class HotelViewSet(viewsets.ModelViewSet):
     queryset = Hotel.objects.all()
     serializer_class = HotelSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
+
 class ReviewViewSet(viewsets.ModelViewSet):
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
+
 
 class HotelList(generics.ListAPIView):
     queryset = Hotel.objects.all()
