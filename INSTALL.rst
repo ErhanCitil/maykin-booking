@@ -111,6 +111,16 @@ development machine. Run all ``manage.py`` commands from the repository root.
    cancellations appear in the ``runserver`` output instead (console e-mail
    backend). The CI settings keep mails in memory.
 
+   Online payment works without a Mollie account: the development settings
+   turn on the fake payment provider (``PAYMENT_FAKE_PROVIDER``). A guest who
+   pays online goes to a page of the site itself with the buttons "betaald",
+   "mislukt" and "geannuleerd". With a Mollie test key in ``MOLLIE_API_KEY``,
+   Mollie's test mode is used instead.
+
+   Until the ``INVOICE_SELLER_*`` variables are set, every invoice gets the
+   watermark "Testfactuur – niet geldig". So does an invoice for a hotel in a
+   country without a VAT rate: only the Netherlands has one by default.
+
 
 **Note:** If you are making local, machine specific, changes, add them to
 ``src/maykinbooking/conf/local.py``. You can base this file on the
@@ -145,8 +155,8 @@ When updating an existing installation:
        $ python src/manage.py collectstatic --link
        $ python src/manage.py migrate
 
-   Upgrading an existing database to phase 1 (migrations 0009 to 0013)? Check
-   ``docs/releases/phase-1.rst`` first.
+   Upgrading an existing database to phase 1 or phase 2? Check
+   ``docs/releases/phase-1.rst`` and ``docs/releases/phase-2.rst`` first.
 
 
 Testsuite
@@ -212,11 +222,41 @@ Bookings and mail:
   ``X-Forwarded-For``. Set it to the real number of proxies: a number that is
   too high lets clients choose their own address.
 
-HTTPS, only with the settings that build on ``production.py``:
+Invoices:
+
+* ``INVOICE_SELLER_NAME``, ``INVOICE_SELLER_ADDRESS``, ``INVOICE_SELLER_KVK``
+  and ``INVOICE_SELLER_VAT_ID``: the seller on the invoices. Empty by default.
+  While one of them is empty, every invoice gets the watermark "Testfactuur –
+  niet geldig". In the address, ``\n`` starts a new line.
+* ``PRIVATE_MEDIA_ROOT``: where the invoice PDFs are stored (in
+  ``invoices/``). Defaults to ``private_media/`` in the repository root. The
+  site never serves these files directly, only through views that check
+  access. Keep it outside ``MEDIA_ROOT`` and ``STATIC_ROOT``, and back it up.
+
+The VAT rates per country are managed in the Django admin (superuser only).
+Migration ``billing/0002`` adds the Netherlands: 9% up to 2025, 21% from
+1 January 2026. The rate follows from the country of the hotel and the check-in
+date. VAT is calculated back from the price, which includes VAT.
+
+Online payment:
+
+* ``MOLLIE_API_KEY``: a Mollie test key. The settings refuse any key that does
+  not start with ``test_``: live payments are not supported.
+* ``PAYMENT_FAKE_PROVIDER``: the fake provider for development and CI. Off by
+  default; the development settings turn it on. Mollie is used if both are
+  set. Without either, online payment is not offered and guests pay at the
+  hotel.
+* ``PAYMENT_HOLD_MINUTES`` (default ``15``): how long a booking that waits for
+  online payment holds its room. While the payment is still open at the
+  provider, the booking expires only 15 minutes after the hold has ended.
+
+HTTPS and checks, only with the settings that build on ``production.py``:
 
 * ``SECURE_SSL_REDIRECT``: redirect http to https. Defaults to on; the docker
   settings turn it off.
 * ``SECURE_HSTS_SECONDS``: HSTS duration. Defaults to ``31536000`` (one year).
+* The site does not start with ``DEBUG``, with ``PAYMENT_FAKE_PROVIDER`` or
+  with a ``live_`` Mollie key.
 
 Docker
 ======
@@ -299,10 +339,16 @@ all settings.
         -e DATABASE_USER=... \
         -e DATABASE_PASSWORD=... \
         -e DATABASE_HOST=... \
+        -v maykinbooking-private-media:/app/private_media \
         --name maykinbooking \
         maykinbooking
 
     $ docker exec -it maykinbooking python src/manage.py createsuperuser
+
+The invoice PDFs are stored in ``/app/private_media`` (a volume of the image):
+put it on persistent storage that is backed up. The docker settings build on
+``production.py``, so the fake payment provider is not allowed there. Without
+``MOLLIE_API_KEY``, guests can only pay at the hotel.
 
 
 Settings
@@ -311,6 +357,19 @@ Settings
 All settings for the project can be found in
 ``src/maykinbooking/conf``.
 The file ``local.py`` overwrites settings from the base configuration.
+
+
+Staff accounts
+==============
+
+The dashboard has two roles, as groups: "Receptie" (bookings) and "Beheer"
+(everything). Give staff members their group in the Django admin. The
+superuser can do everything; a staff member without a role only sees the
+dashboard home page.
+
+A user who ever issued an invoice or a credit note (for example by cancelling a
+booking) cannot be deleted, because ``Invoice.created_by`` protects them.
+Deactivate the user instead (``is_active=False``, "Actief" in the admin).
 
 
 Commands
@@ -323,13 +382,17 @@ Commands can be executed using:
     $ python src/manage.py <command>
 
 ``load_demo_data`` fills the database with demo data: 6 cities, 201 real
-hotels from OpenStreetMap and freely licensed photos.
+hotels from OpenStreetMap and freely licensed photos. Every hotel gets the
+country of its city. Only the Netherlands has a VAT rate, so bookings in the
+other cities get test invoices until a rate is added in the admin.
 
 **Warning:** this command is destructive. It first deletes all cities, hotels,
-rooms, bookings and reviews; users are kept. It is meant for development and
-demo environments, not for production, and refuses to run when ``ENVIRONMENT``
-is ``production``. It asks for confirmation (type ``ja``) unless you pass
-``--noinput``:
+rooms, bookings and reviews, and their invoices, payments, refunds and discount
+code uses; users are kept. It only runs with ``DEBUG`` on or when
+``ENVIRONMENT`` is ``development``, ``ci`` or ``jenkins``. It never runs with
+``ENVIRONMENT=production`` or when the database has real invoices (without the
+test watermark). It asks for
+confirmation (type ``ja``) unless you pass ``--noinput``:
 
 .. code-block:: bash
 
@@ -341,10 +404,17 @@ of the data.
 
 Other project commands:
 
-* ``expire_pending_orders``: sets bookings that wait for payment and whose
-  hold has passed to "expired", so their rooms are free again. Meant to run
-  from cron (every minute, for example) from phase 2 on; in phase 1 every
-  booking is confirmed at once, so there is nothing to expire yet.
+* ``sync_payments``: asks the payment provider for the status of open
+  payments that are older than 2 minutes and applies it: confirms the booking
+  and issues the invoice, lets it expire, or refunds a payment that came too
+  late, twice or for another amount. It also sends refunds that failed again,
+  up to 5 attempts; staff can also retry from the booking page in the
+  dashboard. Run it every minute from cron.
+* ``expire_pending_orders``: sets bookings that wait for online payment and
+  whose hold has passed to "expired": their room and discount code are free
+  again. It asks the provider about their payments first, so a booking that
+  was paid meanwhile is confirmed instead. Run it every minute from cron, next
+  to ``sync_payments``.
 * ``createinitialsuperuser``: creates a superuser, or does nothing if that
   username already exists. See ``--help`` for the password options.
 * ``dataframe``: downloads ``city.csv`` and ``hotel.csv`` from a Maykin Media

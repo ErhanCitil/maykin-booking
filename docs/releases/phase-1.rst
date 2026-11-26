@@ -160,8 +160,9 @@ These points are still open and must be done before the site goes live:
 * Tailwind is loaded from ``cdn.tailwindcss.com``
   (``templates/components/head.html``). Build it locally, and add a Content
   Security Policy; there is none yet.
-* The staff dashboard (``/dashboard/``) has no two-factor authentication. Only
-  the Django admin has it.
+* Two-factor authentication for the staff dashboard (``/dashboard/``):
+  decided not to (decision of the client, phase 2). Only the Django admin has
+  it.
 * Dependency upgrades: Django 3.2 is end of life.
 * Hotel terms: staff can enter HTML, which the terms page shows unescaped.
   Sanitize it with an allowlist (for example nh3); this needs a new
