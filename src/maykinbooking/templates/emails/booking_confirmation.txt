@@ -1,0 +1,40 @@
+{% load i18n l10n %}{% autoescape off %}{% blocktrans with name=order.first_name %}Beste {{ name }},{% endblocktrans %}
+
+{% blocktrans with hotel=order.hotel.name %}Je boeking staat vast. Bedankt voor je boeking bij {{ hotel }}.{% endblocktrans %}
+
+
+{% blocktrans with number=order.pk|unlocalize %}Boeking #{{ number }}{% endblocktrans %}
+----------------------------------------
+{% trans "Hotel" %}: {{ order.hotel.name }}
+{% trans "Adres" %}: {% if order.hotel.address %}{{ order.hotel.address }}, {% endif %}{{ order.hotel.city.name }}
+{% trans "Kamer" %}: {{ order.room.get_room_type_display }}
+{% trans "Inchecken" %}: {{ order.start_date|date:"l j F Y" }}
+{% trans "Uitchecken" %}: {{ order.end_date|date:"l j F Y" }}
+{% trans "Verblijf" %}: {% blocktrans count counter=night_count %}{{ counter }} nacht{% plural %}{{ counter }} nachten{% endblocktrans %}
+
+
+{% trans "Prijs per nacht" %}
+----------------------------------------
+{% for night in nights %}- {{ night.date|date:"l j F" }}: € {{ night.price|floatformat:2 }}
+{% endfor %}
+{% trans "Totaal" %}: € {{ order.total_price|floatformat:2 }}
+{% if order.payment_status == "at_hotel" %}{% trans "Je betaalt in het hotel bij aankomst." %}
+{% endif %}
+
+{% trans "Bekijk je boeking:" %}
+{{ my_booking_url }}
+
+{% if can_cancel %}{% blocktrans with day=last_free_cancellation_day|date:"l j F" %}Kosteloos annuleren kan tot en met {{ day }}.{% endblocktrans %} {% trans "Dat regel je zelf via Mijn boeking." %}{% else %}{% trans "Kosteloos annuleren kan voor deze boeking niet meer." %} {% trans "Wil je toch annuleren? Mail ons:" %} {{ contact_email }}{% endif %}
+
+{% trans "De bevestiging zit ook als PDF in de bijlage." %}
+
+{% blocktrans with city=order.hotel.city.name %}We wensen je een fijn verblijf in {{ city }}.{% endblocktrans %}
+
+{% trans "Met vriendelijke groet," %}
+Maykin Booking
+
+
+--
+{% trans "Vragen over je boeking? Mail ons:" %} {{ contact_email }}
+{% trans "Je ontvangt deze e-mail omdat er met dit e-mailadres een boeking is gemaakt bij Maykin Booking." %}
+{% endautoescape %}

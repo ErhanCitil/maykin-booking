@@ -6,7 +6,7 @@ from django.urls import reverse_lazy
 
 import sentry_sdk
 
-from .utils import config, get_sentry_integrations
+from .utils import config, get_sentry_integrations, get_sentry_options
 
 # Build paths inside the project, so further paths can be defined relative to
 # the code root.
@@ -109,6 +109,8 @@ INSTALLED_APPS = [
     # 'django.contrib.sitemaps',
     # External applications.
     "axes",
+    # Loads django-countries' translations, so country names follow the language.
+    "django_countries",
     "hijack",
     "hijack.contrib.admin",
     # Project applications.
@@ -118,8 +120,8 @@ INSTALLED_APPS = [
     "maykinbooking.base",
     "maykinbooking.form",
     "maykinbooking.dashboard",
+    "maykinbooking.bookings",
     "import_export",
-    "django_extensions",
     "django_jenkins",
     "ckeditor",
     "rest_framework",
@@ -217,7 +219,7 @@ EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
 EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=False)
 EMAIL_TIMEOUT = 10
 
-DEFAULT_FROM_EMAIL = "maykinbooking@example.com"
+DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", "maykinbooking@example.com")
 
 #
 # LOGGING
@@ -351,6 +353,23 @@ FIXTURE_DIRS = (DJANGO_PROJECT_DIR / "fixtures",)
 # Custom settings
 #
 PROJECT_NAME = "maykinbooking"
+
+# Absolute URL of the site, without a trailing slash. Links in mails are built with
+# it, never with the Host header of the request.
+SITE_URL = config("SITE_URL", "http://localhost:8000")
+# Where guests can ask questions about their booking (mails, booking page, PDF).
+BOOKING_CONTACT_EMAIL = config("BOOKING_CONTACT_EMAIL", "info@maykinbooking.nl")
+# Rate limits (maykinbooking.bookings.throttle), counted in the default cache:
+# bookings per IP address per hour and per e-mail address per day, and PDF
+# downloads of "Mijn boeking" per IP address per minute.
+BOOKING_LIMIT_PER_IP_PER_HOUR = config("BOOKING_LIMIT_PER_IP_PER_HOUR", 5)
+BOOKING_LIMIT_PER_EMAIL_PER_DAY = config("BOOKING_LIMIT_PER_EMAIL_PER_DAY", 3)
+BOOKING_PDF_LIMIT_PER_IP_PER_MINUTE = config("BOOKING_PDF_LIMIT_PER_IP_PER_MINUTE", 20)
+# The number of reverse proxies in front of the site that each add the address
+# of their client to X-Forwarded-For. 0: the client is REMOTE_ADDR. Set it to the
+# real number: too high and guests can pick their own address for the limits.
+BOOKING_TRUSTED_PROXY_COUNT = config("BOOKING_TRUSTED_PROXY_COUNT", 0)
+
 ENVIRONMENT = config("ENVIRONMENT", "")
 SHOW_ALERT = True
 ENABLE_ADMIN_NAV_SIDEBAR = config("ENABLE_ADMIN_NAV_SIDEBAR", default=False)
@@ -460,7 +479,9 @@ if SENTRY_DSN:
     }
 
     sentry_sdk.init(
-        **SENTRY_CONFIG, integrations=get_sentry_integrations(), send_default_pii=True
+        **SENTRY_CONFIG,
+        integrations=get_sentry_integrations(),
+        **get_sentry_options(),
     )
 
 # Elastic APM

@@ -1,0 +1,30 @@
+{% extends "emails/_layout.html" %}
+{% load i18n l10n %}
+
+{% block title %}{% blocktrans with number=order.pk|unlocalize %}Je boeking #{{ number }} is geannuleerd{% endblocktrans %}{% endblock %}
+
+{% block preheader %}{% blocktrans with hotel=order.hotel.name start=order.start_date|date:"j F Y" %}Je verblijf bij {{ hotel }} vanaf {{ start }} is geannuleerd.{% endblocktrans %}{% endblock %}
+
+{% block content %}
+<h1 class="mb-text mb-serif mb-h1" style="margin:0 0 16px; color:#13243A; font-family:Georgia, 'Times New Roman', serif; font-size:30px; line-height:36px; font-weight:bold; letter-spacing:-0.02em;">{% trans "Je boeking is geannuleerd" %}</h1>
+<p style="margin:0 0 8px;">{% blocktrans with name=order.first_name %}Beste {{ name }},{% endblocktrans %}</p>
+<p style="margin:0 0 24px;">{% blocktrans with number=order.pk|unlocalize hotel=order.hotel.name %}Je boeking #{{ number }} bij {{ hotel }} is geannuleerd. Hieronder zie je om welke boeking het gaat.{% endblocktrans %}</p>
+
+{% include "emails/_booking_summary.html" with cancelled=True %}
+
+{% if order.payment_status == "at_hotel" or order.payment_status == "open" %}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; margin-top:20px;">
+  <tr>
+    <td class="mb-note mb-text" bgcolor="#EEF5F3" style="padding:14px 18px; background-color:#EEF5F3; border-left:4px solid #2E6B62; color:#13243A; font-family:Helvetica, Arial, sans-serif; font-size:15px; line-height:22px;">
+      <strong>{% trans "Je hoeft niets te betalen." %}</strong>
+      {% trans "Er wordt niets in rekening gebracht." %}
+    </td>
+  </tr>
+</table>
+{% endif %}
+
+{% include "emails/_button.html" with url=my_booking_url label=_("Bekijk je boeking") dark=True %}
+
+<p style="margin:24px 0 0;">{% trans "Heb je deze annulering niet zelf aangevraagd? Mail ons dan zo snel mogelijk:" %} <a href="mailto:{{ contact_email }}" class="mb-link" style="color:#B4492A; text-decoration:underline;">{{ contact_email }}</a></p>
+<p style="margin:8px 0 0;">{% trans "We hopen je een andere keer te mogen ontvangen." %}</p>
+{% endblock %}

@@ -78,7 +78,8 @@ CACHES = {
 ELASTIC_APM["DEBUG"] = True
 
 # Django debug toolbar
-INSTALLED_APPS += ["debug_toolbar", "ddt_api_calls"]
+# django-extensions is a development tool (requirements/dev.txt only).
+INSTALLED_APPS += ["django_extensions", "debug_toolbar", "ddt_api_calls"]
 MIDDLEWARE += [
     "debug_toolbar.middleware.DebugToolbarMiddleware",
 ]

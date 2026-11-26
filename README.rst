@@ -57,13 +57,20 @@ For visitors
 
 * Pick a city on the homepage (``/``) or the city overview (``/hotels/``) and
   browse its hotels at ``/stad/<name>``, with search by name and 12 hotels per
-  page.
+  page. With check-in and check-out dates ("Inchecken", "Uitchecken"), only
+  hotels with a free room for the whole stay are listed.
 * Hotel page (``/hotel/<pk>``) with photo, address, highlights, rooms and
   prices per night.
 * Three-step checkout (``/order/<pk>``, a django-formtools wizard):
   "Je verblijf" (dates and room), "Je gegevens" (guest details) and
-  "Controleren" (review and accept the terms).
-* Confirmation page with a PDF to download, generated with WeasyPrint.
+  "Controleren" (review and accept the terms). Only rooms that are free for
+  the whole stay can be chosen.
+* Availability per night: every room type has a number of rooms (5 by
+  default), minus the bookings and the rooms that staff have blocked.
+* "Mijn boeking" (``/boeking/<token>/``): after booking, the guest gets a
+  confirmation mail with the booking as PDF (WeasyPrint) and a link to this
+  page, with the details, the PDF and free cancellation up to and including
+  two days before arrival (the deadline is 00:00 on the day before arrival).
 * No online payment: guests pay at the hotel.
 
 Staff dashboard
@@ -74,9 +81,18 @@ Staff dashboard
 * All hotels at a glance, with search by name and a filter per city.
 * Add, edit and delete hotels: name, city, address, description, photo, terms
   and availability. An unavailable hotel is labelled "Vol" on the site.
-* Manage the rooms of each hotel: type, price per night, description, photo
-  and availability.
+* Manage the rooms of each hotel: type, price per night, number of rooms,
+  description, photo and availability. Block rooms for a period, for example
+  for maintenance.
+* Hotels and rooms with bookings cannot be deleted.
 * Add cities.
+* Bookings (``/dashboard/boekingen/``): search by booking number, name or
+  e-mail address, filter by city, hotel, status and arrival date, quick
+  filters for today's arrivals and departures and for failed mails, and a CSV
+  export of the filtered list.
+* Booking page with the nights, a log of every status change and the mails
+  sent. Staff can cancel a booking with a reason until the stay is over, and
+  send the last mail again (once per 2 minutes at most).
 
 Demo data
 ---------

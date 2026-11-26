@@ -30,9 +30,8 @@ CACHES = {
 }
 SESSION_ENGINE = "django.contrib.sessions.backends.db"
 
-# django-extensions is a development tool (requirements/dev.txt), it is not part of
-# requirements/ci.txt and the tests don't use it.
-INSTALLED_APPS = [app for app in INSTALLED_APPS if app != "django_extensions"]
+# Mails stay in memory (django.core.mail.outbox), nothing is sent.
+EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
 
 # THOU SHALT NOT USE NAIVE DATETIMES
 warnings.filterwarnings(

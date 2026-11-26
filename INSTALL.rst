@@ -107,6 +107,10 @@ development machine. Run all ``manage.py`` commands from the repository root.
 
        $ python src/manage.py runserver
 
+   The development settings do not send mails: booking confirmations and
+   cancellations appear in the ``runserver`` output instead (console e-mail
+   backend). The CI settings keep mails in memory.
+
 
 **Note:** If you are making local, machine specific, changes, add them to
 ``src/maykinbooking/conf/local.py``. You can base this file on the
@@ -141,6 +145,9 @@ When updating an existing installation:
        $ python src/manage.py collectstatic --link
        $ python src/manage.py migrate
 
+   Upgrading an existing database to phase 1 (migrations 0009 to 0013)? Check
+   ``docs/releases/phase-1.rst`` first.
+
 
 Testsuite
 ---------
@@ -171,7 +178,45 @@ repository root or as part of the ``(post)activate`` of your virtualenv.
 
 * ``SENTRY_DSN``: the DSN of the project in Sentry. If set, enabled Sentry SDK as
   logger and will send errors/logging to Sentry. If unset, Sentry SDK will be
-  disabled.
+  disabled. IP addresses, cookies and user data are not sent
+  (``send_default_pii=False``), and booking tokens are removed from the URLs
+  in the events.
+
+Bookings and mail:
+
+* ``SITE_URL``: absolute URL of the site, without a trailing slash. The links
+  in the booking mails are built with it. Defaults to
+  ``http://localhost:8000``, but is required with the settings that build on
+  ``production.py`` (production, staging, test and docker). There it must
+  start with ``https://``, unless ``SITE_URL_REQUIRE_HTTPS`` is ``no`` (the
+  docker settings do that, because they run on http locally).
+* ``SITE_URL_REQUIRE_HTTPS``: defaults to ``yes`` with the settings that build
+  on ``production.py``. Set it to ``no`` only for a setup that really runs on
+  http.
+* ``DEFAULT_FROM_EMAIL``: sender of the mails. Defaults to
+  ``maykinbooking@example.com``.
+* ``BOOKING_CONTACT_EMAIL``: reply-to address of the booking mails, also shown
+  on "Mijn boeking" and in the PDF. Defaults to ``info@maykinbooking.nl``.
+* ``EMAIL_HOST``, ``EMAIL_PORT``, ``EMAIL_HOST_USER``, ``EMAIL_HOST_PASSWORD``,
+  ``EMAIL_USE_TLS``: SMTP server for the settings that send mail. Defaults to
+  ``localhost``, ``25``, no login and no TLS.
+* ``BOOKING_LIMIT_PER_IP_PER_HOUR`` (default ``5``),
+  ``BOOKING_LIMIT_PER_EMAIL_PER_DAY`` (default ``3``) and
+  ``BOOKING_PDF_LIMIT_PER_IP_PER_MINUTE`` (default ``20``): rate limits for
+  bookings and PDF downloads of "Mijn boeking". They are counted in the
+  default cache, per IPv4 address or per IPv6 /64 network, and per e-mail
+  address (lowercase, without a ``+suffix``).
+* ``BOOKING_TRUSTED_PROXY_COUNT`` (default ``0``): the number of reverse
+  proxies in front of the site. With ``0`` the client address is
+  ``REMOTE_ADDR``. With ``N`` it is the N-th address from the right in
+  ``X-Forwarded-For``. Set it to the real number of proxies: a number that is
+  too high lets clients choose their own address.
+
+HTTPS, only with the settings that build on ``production.py``:
+
+* ``SECURE_SSL_REDIRECT``: redirect http to https. Defaults to on; the docker
+  settings turn it off.
+* ``SECURE_HSTS_SECONDS``: HSTS duration. Defaults to ``31536000`` (one year).
 
 Docker
 ======
@@ -249,6 +294,7 @@ all settings.
         -p 8000:8000 \
         -e SECRET_KEY=... \
         -e ALLOWED_HOSTS=... \
+        -e SITE_URL=... \
         -e DATABASE_NAME=... \
         -e DATABASE_USER=... \
         -e DATABASE_PASSWORD=... \
@@ -295,6 +341,10 @@ of the data.
 
 Other project commands:
 
+* ``expire_pending_orders``: sets bookings that wait for payment and whose
+  hold has passed to "expired", so their rooms are free again. Meant to run
+  from cron (every minute, for example) from phase 2 on; in phase 1 every
+  booking is confirmed at once, so there is nothing to expire yet.
 * ``createinitialsuperuser``: creates a superuser, or does nothing if that
   username already exists. See ``--help`` for the password options.
 * ``dataframe``: downloads ``city.csv`` and ``hotel.csv`` from a Maykin Media

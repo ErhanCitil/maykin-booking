@@ -1,8 +1,14 @@
+from datetime import timedelta
 from decimal import Decimal
+from urllib.parse import urlencode
 
 from django.contrib.auth import get_user_model
+from django.db import connection
 from django.test import TestCase
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
+from django.utils import timezone
+from django.utils.html import escape
 
 from django_webtest import WebTest
 
@@ -11,6 +17,7 @@ from .factories import (
     HighlightFactory,
     HotelFactory,
     OrderFactory,
+    RoomBlockFactory,
     RoomFactory,
 )
 
@@ -214,3 +221,230 @@ class TestSearchFunctionality(TestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, self.hotel.name)
+
+
+class PeriodTestMixin:
+    def setUp(self):
+        super().setUp()
+        self.start = timezone.localdate() + timedelta(days=14)
+        self.end = self.start + timedelta(days=2)
+        self.period = {"van": self.start.isoformat(), "tot": self.end.isoformat()}
+
+    def make_hotel(self, city, name, *, full=False, **kwargs):
+        """A bookable hotel with one room; ``full``: booked for the period."""
+        kwargs.setdefault("is_available", True)
+        hotel = HotelFactory(city=city, name=name, **kwargs)
+        room = RoomFactory(hotel=hotel, is_available=True, inventory=1)
+        if full:
+            OrderFactory(
+                hotel=hotel, room=room, start_date=self.start, end_date=self.end
+            )
+        return hotel
+
+
+class StadAvailabilityFilterTests(PeriodTestMixin, TestCase):
+    """US1.3 and testpunt 13: only hotels with a free room for the period."""
+
+    def setUp(self):
+        super().setUp()
+        self.city = CityFactory(name="Amsterdam")
+        self.free = self.make_hotel(self.city, "Free Hotel")
+        self.full = self.make_hotel(self.city, "Full Hotel", full=True)
+        self.closed = self.make_hotel(self.city, "Closed Hotel", is_available=False)
+        self.url = reverse("stad", args=[self.city.name])
+
+    def get(self, **params):
+        return self.client.get(self.url, params)
+
+    def test_filter_form_is_shown(self):
+        response = self.get()
+        self.assertContains(response, 'name="van"')
+        self.assertContains(response, 'name="tot"')
+        self.assertContains(response, 'type="date"')
+        self.assertContains(response, "Toon beschikbaar")
+
+    def test_without_period_all_hotels_are_listed(self):
+        response = self.get()
+        self.assertEqual(
+            list(response.context["object_list"]), [self.closed, self.free, self.full]
+        )
+
+    def test_period_lists_only_hotels_with_a_free_room(self):
+        response = self.get(**self.period)
+        self.assertEqual(list(response.context["object_list"]), [self.free])
+        self.assertContains(response, "1 hotel ")
+        self.assertNotContains(response, "Full Hotel")
+        # The form keeps the dates.
+        self.assertContains(response, f'value="{self.start.isoformat()}"')
+
+    def test_blocked_hotel_is_not_listed(self):
+        RoomBlockFactory(
+            room=self.free.room.get(), start_date=self.start, end_date=self.end
+        )
+        response = self.get(**self.period)
+        self.assertEqual(list(response.context["object_list"]), [])
+        self.assertContains(response, "Geen hotels met een vrije kamer")
+
+    def test_period_and_search_together(self):
+        self.make_hotel(self.city, "Another Free Hotel")
+        response = self.get(q="another", **self.period)
+        self.assertEqual(
+            [hotel.name for hotel in response.context["object_list"]],
+            ["Another Free Hotel"],
+        )
+
+    def test_hotel_and_book_links_carry_the_period(self):
+        response = self.get(**self.period)
+        query = escape(urlencode(self.period))
+        hotel_url = reverse("hotel_detail", args=[self.free.pk])
+        order_url = reverse("order", args=[self.free.pk])
+        self.assertContains(response, f'href="{hotel_url}?{query}"')
+        self.assertContains(response, f'href="{order_url}?{query}"')
+
+    def test_without_period_links_have_no_dates(self):
+        response = self.get()
+        self.assertContains(
+            response, f'href="{reverse("hotel_detail", args=[self.free.pk])}"'
+        )
+        self.assertNotContains(response, reverse("order", args=[self.free.pk]))
+
+    def test_invalid_period_shows_an_error_and_does_not_filter(self):
+        today = timezone.localdate()
+        cases = {
+            "past": {
+                "van": (today - timedelta(days=1)).isoformat(),
+                "tot": (today + timedelta(days=1)).isoformat(),
+            },
+            "end before start": {"van": self.end.isoformat(), "tot": self.start},
+            "same day": {"van": self.start.isoformat(), "tot": self.start},
+            "too long": {
+                "van": self.start.isoformat(),
+                "tot": (self.start + timedelta(days=31)).isoformat(),
+            },
+            "only arrival": {"van": self.start.isoformat(), "tot": ""},
+            "unreadable": {"van": "morgen", "tot": "overmorgen"},
+        }
+        for name, params in cases.items():
+            with self.subTest(name):
+                response = self.get(**params)
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, 'role="alert"')
+                self.assertContains(response, "Deze periode klopt niet")
+                self.assertEqual(len(response.context["object_list"]), 3)
+                self.assertNotContains(response, reverse("order", args=[self.free.pk]))
+
+    def test_error_messages_are_specific(self):
+        response = self.get(van=self.end.isoformat(), tot=self.start.isoformat())
+        self.assertContains(response, "Uitchecken moet na de incheckdatum zijn.")
+        response = self.get(van=self.start.isoformat())
+        self.assertContains(
+            response, "Vul zowel een incheck- als een uitcheckdatum in."
+        )
+
+    def test_empty_dates_are_no_filter(self):
+        response = self.get(q="", van="", tot="")
+        self.assertNotContains(response, 'role="alert"')
+        self.assertEqual(len(response.context["object_list"]), 3)
+
+
+class StadPaginationTests(PeriodTestMixin, TestCase):
+    def setUp(self):
+        super().setUp()
+        self.city = CityFactory(name="Utrecht")
+        for number in range(13):
+            self.make_hotel(self.city, f"Hotel {number:02d}")
+        self.make_hotel(self.city, "Hotel Vol", full=True)
+        self.make_hotel(self.city, "Other")
+        self.url = reverse("stad", args=[self.city.name])
+
+    def test_search_and_period_are_kept_when_paginating(self):
+        params = {"q": "hotel", **self.period}
+        response = self.client.get(self.url, params)
+        self.assertEqual(response.context["paginator"].count, 13)
+        self.assertContains(response, "13 hotels")
+        next_link = escape(f"?page=2&{urlencode(params)}")
+        self.assertContains(response, f'href="{next_link}"')
+
+        response = self.client.get(self.url, {"page": 2, **params})
+        self.assertEqual(
+            [hotel.name for hotel in response.context["object_list"]], ["Hotel 12"]
+        )
+        previous_link = escape(f"?page=1&{urlencode(params)}")
+        self.assertContains(response, f'href="{previous_link}"')
+
+    def test_invalid_values_are_not_kept_when_paginating(self):
+        response = self.client.get(self.url, {"van": "morgen", "tot": ""})
+        self.assertContains(response, 'href="?page=2"')
+
+
+class StadQueryCountTests(PeriodTestMixin, TestCase):
+    """The availability filter costs the same number of queries for any city."""
+
+    def count_queries(self, city_name, number_of_hotels):
+        city = CityFactory(name=city_name)
+        for number in range(number_of_hotels):
+            self.make_hotel(city, f"Hotel {number}", full=number % 2 == 0)
+        url = reverse("stad", args=[city.name])
+        self.client.get(url, self.period)  # warm up (session, content types)
+        with CaptureQueriesContext(connection) as queries:
+            response = self.client.get(url, self.period)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["object_list"]), number_of_hotels // 2)
+        return len(queries)
+
+    def test_same_number_of_queries_for_2_and_10_hotels(self):
+        self.assertEqual(
+            self.count_queries("Delft", 2), self.count_queries("Gouda", 10)
+        )
+
+
+class HotelDetailPeriodTests(PeriodTestMixin, TestCase):
+    def setUp(self):
+        super().setUp()
+        self.hotel = HotelFactory(is_available=True)
+        self.single = RoomFactory(
+            hotel=self.hotel, room_type="Single", price=80, inventory=1
+        )
+        self.double = RoomFactory(
+            hotel=self.hotel, room_type="Double", price=100, inventory=1
+        )
+        self.url = reverse("hotel_detail", args=[self.hotel.pk])
+        self.order_url = reverse("order", args=[self.hotel.pk])
+
+    def book(self, room):
+        OrderFactory(
+            hotel=self.hotel, room=room, start_date=self.start, end_date=self.end
+        )
+
+    def test_book_links_carry_the_period(self):
+        response = self.client.get(self.url, self.period)
+        query = escape(urlencode(self.period))
+        # "Boek nu" and one "Boek" link per room.
+        self.assertContains(response, f'href="{self.order_url}?{query}"', count=3)
+        self.assertContains(
+            response,
+            f'href="{reverse("stad", args=[self.hotel.city.name])}?{query}"',
+        )
+
+    def test_without_period_book_links_have_no_dates(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, f'href="{self.order_url}"', count=3)
+
+    def test_invalid_period_is_ignored(self):
+        response = self.client.get(self.url, {"van": "morgen", "tot": "x"})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, f'href="{self.order_url}"', count=3)
+
+    def test_room_that_is_not_free_has_no_book_link(self):
+        self.book(self.single)
+        response = self.client.get(self.url, self.period)
+        self.assertContains(response, "Niet vrij in deze periode", count=1)
+        self.assertContains(response, f'href="{self.order_url}?', count=2)
+        self.assertNotContains(response, "Geen kamers vrij in deze periode")
+
+    def test_no_free_rooms_is_announced(self):
+        self.book(self.single)
+        self.book(self.double)
+        response = self.client.get(self.url, self.period)
+        self.assertContains(response, "Geen kamers vrij in deze periode")
+        self.assertContains(response, "Niet vrij in deze periode", count=2)

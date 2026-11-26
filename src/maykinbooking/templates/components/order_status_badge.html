@@ -1,0 +1,17 @@
+{% load i18n order_status %}{% comment %}
+  The status and the payment status of `order` as two badges, in one colour
+  scheme for the guest ("Mijn boeking") and the dashboard. A confirmed order
+  whose stay is over shows "Verblijf voorbij". With `large=True` the badges are
+  bigger and their labels are visible.
+{% endcomment %}{% with over=order|stay_over %}
+<span class="inline-flex flex-wrap items-center gap-1.5">
+  <span class="inline-flex items-center gap-1.5 rounded-full font-semibold whitespace-nowrap {% if large %}min-h-[36px] px-3.5 text-sm{% else %}px-2.5 py-1 text-xs{% endif %} {% if over %}bg-seam text-ink{% elif order.status == 'confirmed' %}bg-[#E3F0EC] text-[#1F5148]{% elif order.status == 'cancelled' %}bg-[#F3E3DD] text-[#8A3519]{% elif order.status == 'pending_payment' %}bg-[#F8EDD6] text-[#6E4A0E]{% else %}bg-[#ECE8E1] text-muted{% endif %}">
+    <span class="{% if large %}font-medium{% else %}sr-only{% endif %}">{% trans "Status" %}:</span>
+    {% if over %}{% trans "Verblijf voorbij" %}{% else %}{{ order.get_status_display }}{% endif %}
+  </span>
+  <span class="inline-flex items-center gap-1.5 rounded-full whitespace-nowrap bg-white border border-seam text-ink {% if large %}min-h-[36px] px-3.5 text-sm font-semibold{% else %}px-2.5 py-1 text-xs font-semibold{% endif %}">
+    <span class="{% if large %}font-medium text-muted{% else %}sr-only{% endif %}">{% trans "Betaling" %}:</span>
+    {{ order.get_payment_status_display }}
+  </span>
+</span>
+{% endwith %}

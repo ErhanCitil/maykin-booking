@@ -1,4 +1,5 @@
 {% extends 'dashboard/base.html' %}
+{% load i18n %}
 
 {% block title %}Hotels beheren{% endblock %}
 
@@ -24,6 +25,15 @@
     <dd class="font-display font-semibold text-4xl mt-1">{{ value }}</dd>
   </div>
   {% endfor %}
+  <div class="card p-5">
+    <dt class="text-[13px] text-muted">{% trans "Boekingen · aankomsten vandaag" %}</dt>
+    <dd class="font-display font-semibold text-4xl mt-1">
+      <a href="{% url 'dashboard:booking_list' %}?snel=aankomst_vandaag&amp;status=confirmed" class="no-underline text-ink hover:text-brick">{{ arrivals_today }}</a>
+    </dd>
+    <dd class="mt-1 text-[13px]">
+      <a href="{% url 'dashboard:booking_list' %}?status=confirmed" class="font-semibold text-brick no-underline hover:text-ink">{% blocktrans count counter=upcoming_arrivals %}{{ counter }} komende aankomst{% plural %}{{ counter }} komende aankomsten{% endblocktrans %} →</a>
+    </dd>
+  </div>
 </dl>
 
 <form method="get" role="search" class="mt-8 card p-4 flex flex-wrap items-end gap-3">

@@ -1,0 +1,28 @@
+{% extends 'dashboard/base.html' %}
+{% load i18n l10n %}
+
+{% block title %}{% blocktrans with number=order.pk|unlocalize %}Boeking #{{ number }} annuleren{% endblocktrans %}{% endblock %}
+
+{% block content %}
+<a href="{% url 'dashboard:booking_detail' order.pk %}" class="text-sm text-muted hover:text-ink no-underline">← {% trans "Terug naar de boeking" %}</a>
+
+<div class="card p-8 max-w-xl mt-6">
+  <p class="eyebrow mb-2">{% blocktrans with number=order.pk|unlocalize %}Boeking #{{ number }}{% endblocktrans %}</p>
+  <h1 class="font-display font-semibold text-3xl tracking-[-0.015em]">{% trans "Boeking annuleren?" %}</h1>
+  <dl class="mt-5 rounded-xl bg-linen px-5 py-4 text-sm space-y-1">
+    <div class="flex gap-2"><dt class="text-muted">{% trans "Gast" %}:</dt><dd class="font-semibold">{{ order.first_name }} {{ order.last_name }}</dd></div>
+    <div class="flex gap-2"><dt class="text-muted">{% trans "Hotel" %}:</dt><dd>{{ order.hotel.name }} · {{ order.room.get_room_type_display }}</dd></div>
+    <div class="flex gap-2"><dt class="text-muted">{% trans "Verblijf" %}:</dt><dd>{{ order.start_date|date:"j b Y" }} – {{ order.end_date|date:"j b Y" }}</dd></div>
+  </dl>
+  <p class="mt-5 text-muted">{% trans "Als medewerker kun je ook na de annuleringstermijn van de gast annuleren. De kamer komt weer vrij en de gast krijgt een annuleringsmail." %}</p>
+
+  <form method="post" class="mt-6">
+    {% csrf_token %}
+    {% include 'dashboard/_fields.html' %}
+    <div class="flex flex-wrap gap-3 pt-2">
+      <button type="submit" class="btn bg-brick-dark text-white hover:bg-[#7a2f19]">{% trans "Boeking annuleren" %}</button>
+      <a href="{% url 'dashboard:booking_detail' order.pk %}" class="btn-outline">{% trans "Niet annuleren" %}</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

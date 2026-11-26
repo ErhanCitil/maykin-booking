@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+{% load i18n l10n order_status %}
+<html lang="nl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <meta name="referrer" content="no-referrer" />
+    <title>{% blocktrans with number=order.pk|unlocalize %}Boeking #{{ number }}{% endblocktrans %} · Maykin Booking</title>
+    {% include 'components/head.html' %}
+  </head>
+  <body class="min-h-screen flex flex-col bg-linen text-ink font-sans antialiased">
+    {% include 'components/header.html' %}
+
+    <main class="flex-1 max-w-site w-full mx-auto px-6 md:px-8 py-14">
+      {% if messages %}
+      <div class="mb-8 space-y-2">
+        {% for message in messages %}
+        <div role="status" class="rounded-xl px-4 py-3 text-sm font-medium {% if message.tags == 'error' %}bg-[#F3E3DD] text-[#8A3519]{% else %}bg-[#E3F0EC] text-[#1F5148]{% endif %}">{{ message }}</div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <p class="eyebrow">{% trans "Mijn boeking" %}</p>
+      <h1 class="font-display font-semibold text-4xl md:text-5xl tracking-[-0.02em] mt-3">{% blocktrans with hotel=order.hotel.name %}Je verblijf in {{ hotel }}{% endblocktrans %}</h1>
+      <p class="mt-4 text-[17px] text-muted">{% blocktrans with number=order.pk|unlocalize %}Boekingsnummer #{{ number }}{% endblocktrans %}{% if order.created_at %} · {% blocktrans with date=order.created_at|date:"j F Y" %}geboekt op {{ date }}{% endblocktrans %}{% endif %}</p>
+
+      <div class="mt-5">{% include 'components/order_status_badge.html' with order=order large=True %}</div>
+
+      {% if order.status == 'cancelled' %}
+      <div role="status" class="mt-8 flex gap-3 rounded-2xl px-5 py-4 bg-[#F3E3DD] text-[#8A3519]">
+        <svg aria-hidden="true" viewBox="0 0 24 24" class="w-5 h-5 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m15 9-6 6M9 9l6 6"/></svg>
+        <p><span class="font-semibold">{% trans "Geannuleerd." %}</span> {% trans "Deze boeking is geannuleerd. Je hoeft niets meer te doen en je betaalt niets." %}</p>
+      </div>
+      {% endif %}
+
+      <div class="mt-10 grid gap-6 lg:grid-cols-2 items-start">
+        <div class="card overflow-hidden">
+          {% if order.hotel.photo_url %}
+          <img src="{{ order.hotel.photo_url }}" alt="" class="h-56 w-full object-cover">
+          {% endif %}
+          <div class="p-6">
+            <p class="eyebrow">{{ order.hotel.city.name }}</p>
+            <h2 class="font-display font-semibold text-2xl mt-2">{{ order.hotel.name }}</h2>
+            <p class="mt-2 text-sm text-muted">{% if order.hotel.address %}{{ order.hotel.address }}, {% endif %}{{ order.hotel.city.name }}</p>
+            <a href="{% url 'hotel_detail' order.hotel.pk %}" class="mt-4 inline-block text-sm font-semibold text-brick no-underline hover:text-ink">{% trans "Bekijk het hotel" %} →</a>
+          </div>
+        </div>
+
+        <div class="card p-7">
+          <h2 class="font-display font-semibold text-xl mb-4">{% trans "Overzicht" %}</h2>
+          <dl class="text-sm space-y-3">
+            <div class="flex justify-between gap-4"><dt class="text-muted">{% trans "Naam" %}</dt><dd class="text-right">{{ order.first_name }} {{ order.last_name }}</dd></div>
+            <div class="flex justify-between gap-4"><dt class="text-muted">{% trans "E-mailadres" %}</dt><dd class="text-right break-all">{{ order.email }}</dd></div>
+            <div class="flex justify-between gap-4"><dt class="text-muted">{% trans "Kamer" %}</dt><dd class="text-right">{{ order.room.get_room_type_display }}</dd></div>
+            <div class="flex justify-between gap-4"><dt class="text-muted">{% trans "Inchecken" %}</dt><dd class="text-right">{{ order.start_date|date:"l j F Y" }}</dd></div>
+            <div class="flex justify-between gap-4"><dt class="text-muted">{% trans "Uitchecken" %}</dt><dd class="text-right">{{ order.end_date|date:"l j F Y" }}</dd></div>
+          </dl>
+
+          <h3 class="mt-6 pt-5 border-t border-seam text-sm font-semibold">{% blocktrans count counter=night_count %}{{ counter }} nacht{% plural %}{{ counter }} nachten{% endblocktrans %}</h3>
+          <ul class="mt-3 text-sm space-y-2">
+            {% for night in nights %}
+            <li class="flex justify-between gap-4"><span class="text-muted">{{ night.date|date:"l j F" }}</span><span>€ {{ night.price|floatformat:2 }}</span></li>
+            {% endfor %}
+          </ul>
+          <dl class="mt-3 text-sm">
+            <div class="flex justify-between items-baseline gap-4 pt-3 border-t border-seam"><dt class="font-semibold">{% trans "Totaal" %}</dt><dd class="font-display font-semibold text-2xl">€ {{ order.total_price|floatformat:2 }}</dd></div>
+          </dl>
+          {% if order.payment_status == 'at_hotel' and order.status == 'confirmed' and not order|stay_over %}
+          <p class="mt-3 text-[13px] text-muted">{% trans "Je betaalt in het hotel bij aankomst." %}</p>
+          {% endif %}
+          <a href="{% url 'bookings:pdf' order.token %}" class="btn-dark w-full mt-6">
+            <svg aria-hidden="true" viewBox="0 0 24 24" class="w-[18px] h-[18px]" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19h14"/></svg>
+            {% trans "Download bevestiging (PDF)" %}
+          </a>
+        </div>
+      </div>
+
+      {% if order.status != 'cancelled' and not order|stay_over %}
+      <section class="mt-6 card p-7" aria-labelledby="cancel-title">
+        <h2 id="cancel-title" class="font-display font-semibold text-xl">{% trans "Annuleren" %}</h2>
+        {% if can_cancel %}
+        <p class="mt-2 text-[15px]">{% blocktrans with day=last_free_cancellation_day|date:"l j F" %}Kosteloos annuleren kan tot en met {{ day }}.{% endblocktrans %}</p>
+        <a href="{% url 'bookings:cancel' order.token %}" class="btn-outline mt-5">{% trans "Boeking annuleren" %}</a>
+        {% else %}
+        <p class="mt-2 text-[15px] font-semibold">{% trans "Kosteloos annuleren kan voor deze boeking niet meer." %}</p>
+        <p class="mt-1 text-[15px]">{% trans "Wil je toch annuleren? Mail ons:" %} <a href="mailto:{{ contact_email }}" class="text-brick font-semibold">{{ contact_email }}</a></p>
+        {% endif %}
+      </section>
+      {% endif %}
+
+      <p class="mt-8 text-[13px] text-muted max-w-2xl">{% if order|stay_over %}{% trans "Deel deze pagina niet: iedereen met deze link kan je boeking bekijken." %}{% else %}{% trans "Deel deze pagina niet: iedereen met deze link kan je boeking bekijken en annuleren." %}{% endif %}</p>
+    </main>
+
+    {% include 'components/footer.html' %}
+  </body>
+</html>

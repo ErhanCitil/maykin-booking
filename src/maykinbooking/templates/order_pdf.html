@@ -1,51 +1,178 @@
-<!DOCTYPE html>
-<html lang="nl">
+{% load i18n l10n %}{% get_current_language as LANGUAGE_CODE %}<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
-  <meta charset="UTF-8">
-  <title>Boekingsbevestiging #{{ order.pk }}</title>
+  {% comment %}
+    The booking as PDF (WeasyPrint, A4), rendered by bookings.pdf.render_order_pdf
+    with bookings.emails.booking_context. Used for the download on "Mijn boeking"
+    and as attachment of the confirmation mail.
+    Prices come from ``nights`` and ``order.total_price`` (the snapshot made at
+    booking time), never from the current room price.
+  {% endcomment %}
+  <meta charset="utf-8">
+  <title>{% if order.status == "cancelled" %}{% blocktrans with number=order.pk|unlocalize %}Geannuleerde boeking #{{ number }}{% endblocktrans %}{% else %}{% blocktrans with number=order.pk|unlocalize %}Boekingsbevestiging #{{ number }}{% endblocktrans %}{% endif %}</title>
+  <meta name="author" content="Maykin Booking">
   <style>
-    @page { size: A4; margin: 22mm 20mm; }
-    body { font-family: Helvetica, Arial, sans-serif; color: #13243A; font-size: 11pt; line-height: 1.5; }
-    .brand { font-family: Georgia, serif; font-size: 20pt; font-weight: bold; letter-spacing: -0.02em; }
-    .brand small { display: block; font-family: Helvetica, Arial, sans-serif; font-size: 7pt; letter-spacing: 0.28em; text-transform: uppercase; color: #4F5A6B; font-weight: normal; }
-    h1 { font-family: Georgia, serif; font-size: 22pt; margin: 18mm 0 2mm; }
+    @page {
+      size: A4;
+      margin: 18mm 20mm 22mm;
+      @bottom-left {
+        content: "Maykin Booking · {% trans 'Boeking' %} #{{ order.pk|unlocalize }}";
+        font-family: Helvetica, Arial, sans-serif; font-size: 8pt; color: #4F5A6B;
+      }
+      @bottom-right {
+        content: counter(page) " / " counter(pages);
+        font-family: Helvetica, Arial, sans-serif; font-size: 8pt; color: #4F5A6B;
+      }
+    }
+    html { color: #13243A; font-family: Helvetica, Arial, sans-serif; font-size: 10.5pt; line-height: 1.5; }
+    body { margin: 0; }
+    p { margin: 0; }
+    a { color: #B4492A; text-decoration: none; }
     .muted { color: #4F5A6B; }
-    h2 { font-size: 9pt; letter-spacing: 0.14em; text-transform: uppercase; color: #B4492A; margin: 9mm 0 2mm; }
-    table { width: 100%; border-collapse: collapse; }
-    td { padding: 2mm 0; border-bottom: 0.5pt solid #E4DCCD; vertical-align: top; }
-    td:last-child { text-align: right; }
-    .total td { border-bottom: none; padding-top: 4mm; font-size: 14pt; font-weight: bold; }
-    .note { margin-top: 10mm; padding: 4mm 5mm; background: #F6F1E8; border-radius: 3mm; }
+    .serif { font-family: Georgia, "Times New Roman", serif; }
+
+    /* Masthead: logo left, booking number right. */
+    .masthead { width: 100%; border-collapse: collapse; border-bottom: 0.75pt solid #E4DCCD; }
+    .masthead td { padding: 0 0 4mm; vertical-align: middle; }
+    .logo svg { width: 11mm; height: 11mm; vertical-align: middle; }
+    .wordmark { display: inline-block; vertical-align: middle; margin-left: 3mm; line-height: 1; }
+    .wordmark b { display: block; font-family: Georgia, "Times New Roman", serif; font-size: 19pt; letter-spacing: -0.02em; }
+    .wordmark small { display: block; margin-top: 1.2mm; font-size: 6.5pt; font-weight: bold; letter-spacing: 0.28em; text-transform: uppercase; color: #4F5A6B; }
+    .doc-number { text-align: right; }
+    .doc-number .label { display: block; font-size: 7.5pt; font-weight: bold; letter-spacing: 0.16em; text-transform: uppercase; color: #4F5A6B; }
+    .doc-number .value { display: block; font-family: Georgia, "Times New Roman", serif; font-size: 18pt; font-weight: bold; }
+
+    /* Cancelled: a banner at the top and a stamp behind the content. */
+    .cancelled { margin-top: 6mm; padding: 3.5mm 5mm; border: 1pt solid #B4492A; border-left-width: 5pt; border-radius: 1.5mm; background: #FBEDE8; }
+    .cancelled strong { display: block; color: #B4492A; font-size: 17pt; letter-spacing: 0.22em; line-height: 1.2; }
+    .cancelled span { display: block; margin-top: 1mm; }
+    .stamp { position: fixed; top: 118mm; left: 0; right: 0; z-index: -1; text-align: center; transform: rotate(-22deg); }
+    .stamp span { display: inline-block; padding: 1.5mm 7mm; border: 3pt solid rgba(180, 73, 42, 0.16); border-radius: 3mm; color: rgba(180, 73, 42, 0.16); font-size: 44pt; font-weight: bold; letter-spacing: 0.12em; }
+
+    h1 { margin: 8mm 0 1.5mm; font-family: Georgia, "Times New Roman", serif; font-size: 24pt; line-height: 1.15; letter-spacing: -0.01em; }
+    h2 { margin: 7mm 0 1.5mm; color: #B4492A; font-size: 8pt; font-weight: bold; letter-spacing: 0.16em; text-transform: uppercase; }
+    .lead { font-size: 10pt; }
+
+    /* Hotel and guest side by side. */
+    .columns { width: 100%; border-collapse: collapse; }
+    .columns td { width: 50%; padding: 0 6mm 0 0; vertical-align: top; }
+    .columns .name { font-weight: bold; font-size: 11.5pt; }
+
+    /* The stay as one strip: check-in, check-out, room and nights side by side. */
+    .stay { width: 100%; margin-top: 7mm; border-collapse: collapse; border-top: 0.75pt solid #E4DCCD; border-bottom: 0.75pt solid #E4DCCD; }
+    .stay td { padding: 3mm 4mm 3mm 0; vertical-align: top; }
+    .stay td + td { padding-left: 4mm; border-left: 0.5pt solid #E4DCCD; }
+    .stay .label { display: block; margin-bottom: 0.8mm; color: #4F5A6B; font-size: 7.5pt; font-weight: bold; letter-spacing: 0.14em; text-transform: uppercase; }
+    .stay .value { display: block; font-weight: bold; }
+    .stay .sub { display: block; color: #4F5A6B; font-size: 9.5pt; }
+
+    table.lines { width: 100%; border-collapse: collapse; }
+    .lines th { padding: 0 0 2mm; border-bottom: 1pt solid #13243A; color: #4F5A6B; font-size: 8pt; font-weight: bold; letter-spacing: 0.08em; text-align: left; text-transform: uppercase; }
+    .lines td { padding: 1.8mm 0; border-bottom: 0.5pt solid #E4DCCD; vertical-align: top; }
+    .lines tr { page-break-inside: avoid; }
+    .lines .amount { text-align: right; white-space: nowrap; }
+    .lines .total td { padding-top: 3mm; border-bottom: none; font-size: 13pt; font-weight: bold; }
+    .pay-note { margin-top: 2mm; font-size: 9.5pt; }
+
+    .note { margin-top: 7mm; padding: 4mm 5mm; border-radius: 2mm; background: #F6F1E8; page-break-inside: avoid; }
+    .note p + p { margin-top: 2mm; }
+    .note .url { word-break: break-all; }
+    .contact { margin-top: 5mm; font-size: 9.5pt; }
   </style>
 </head>
 <body>
-  <div class="brand">maykin<small>booking</small></div>
+  {% if order.status == "cancelled" %}<div class="stamp" aria-hidden="true"><span>{% trans "GEANNULEERD" %}</span></div>{% endif %}
 
-  <h1>Boekingsbevestiging</h1>
-  <p class="muted">Boekingsnummer #{{ order.pk }} · geboekt op {{ order.created_at|date:"j F Y" }}</p>
-
-  <h2>Hotel</h2>
-  <table>
-    <tr><td>Hotel</td><td>{{ order.hotel.name }}</td></tr>
-    <tr><td>Stad</td><td>{{ order.hotel.city.name }}</td></tr>
-    <tr><td>Kamer</td><td>{{ order.room.get_room_type_display }}</td></tr>
-    <tr><td>Inchecken</td><td>{{ order.start_date|date:"l j F Y" }}</td></tr>
-    <tr><td>Uitchecken</td><td>{{ order.end_date|date:"l j F Y" }}</td></tr>
+  <table class="masthead">
+    <tr>
+      <td class="logo">
+        <svg viewBox="0 0 64 64" width="42" height="42" aria-hidden="true">
+          <rect width="64" height="64" rx="16" fill="#13243A"/>
+          <path d="M16 52V30h6v-9.5c0-1.2.6-2.3 1.6-3L32 11l8.4 6.5c1 .7 1.6 1.8 1.6 3V30h6v22z" fill="#F6F1E8"/>
+          <path d="M28 52v-9a4 4 0 0 1 8 0v9z" fill="#13243A"/>
+          <circle cx="32" cy="24" r="3" fill="#B4492A"/>
+        </svg><span class="wordmark"><b>maykin</b><small>booking</small></span>
+      </td>
+      <td class="doc-number">
+        <span class="label">{% trans "Boekingsnummer" %}</span>
+        <span class="value">#{{ order.pk|unlocalize }}</span>
+      </td>
+    </tr>
   </table>
 
-  <h2>Gast</h2>
-  <table>
-    <tr><td>Naam</td><td>{{ order.first_name }} {{ order.last_name }}</td></tr>
-    <tr><td>E-mailadres</td><td>{{ order.email }}</td></tr>
-    <tr><td>Adres</td><td>{{ order.address }}, {{ order.zipcode }}, {{ order.country.name }}</td></tr>
+  {% if order.status == "cancelled" %}
+  <div class="cancelled">
+    <strong>{% trans "GEANNULEERD" %}</strong>
+    <span>{% trans "Deze boeking is geannuleerd en niet meer geldig." %}{% if order.payment_status == "at_hotel" or order.payment_status == "open" %} {% trans "Je hoeft niets te betalen." %}{% endif %}</span>
+  </div>
+  <h1>{% trans "Geannuleerde boeking" %}</h1>
+  {% else %}
+  <h1>{% trans "Boekingsbevestiging" %}</h1>
+  {% endif %}
+  <p class="lead muted">
+    {% if order.created_at %}{% blocktrans with date=order.created_at|date:"j F Y" %}Geboekt op {{ date }}{% endblocktrans %} · {% endif %}{% trans "Status" %}: {{ order.get_status_display }} · {{ order.get_payment_status_display }}
+  </p>
+
+  <table class="columns">
+    <tr>
+      <td>
+        <h2>{% trans "Hotel" %}</h2>
+        <p class="name serif">{{ order.hotel.name }}</p>
+        {% if order.hotel.address %}<p>{{ order.hotel.address }}</p>{% endif %}
+        <p>{{ order.hotel.city.name }}</p>
+      </td>
+      <td>
+        <h2>{% trans "Gast" %}</h2>
+        <p class="name">{{ order.first_name }} {{ order.last_name }}</p>
+        <p>{{ order.email }}</p>
+        <p>{{ order.address }}</p>
+        <p>{{ order.zipcode }}{% if order.country %}, {{ order.country.name }}{% endif %}</p>
+      </td>
+    </tr>
   </table>
 
-  <h2>Prijs</h2>
-  <table>
-    <tr><td>Prijs per nacht</td><td>€ {{ order.room.price|floatformat:2 }}</td></tr>
-    <tr class="total"><td>Totaal</td><td>€ {{ order.total_price|floatformat:2 }}</td></tr>
+  <table class="stay">
+    <tr>
+      <td style="width: 31%;"><span class="label">{% trans "Inchecken" %}</span><span class="value">{{ order.start_date|date:"j F Y" }}</span><span class="sub">{{ order.start_date|date:"l" }}</span></td>
+      <td style="width: 31%;"><span class="label">{% trans "Uitchecken" %}</span><span class="value">{{ order.end_date|date:"j F Y" }}</span><span class="sub">{{ order.end_date|date:"l" }}</span></td>
+      <td style="width: 19%;"><span class="label">{% trans "Kamer" %}</span><span class="value">{{ order.room.get_room_type_display }}</span></td>
+      <td style="width: 19%;"><span class="label">{% trans "Verblijf" %}</span><span class="value">{% blocktrans count counter=night_count %}{{ counter }} nacht{% plural %}{{ counter }} nachten{% endblocktrans %}</span></td>
+    </tr>
   </table>
 
-  <p class="note">Je betaalt het totaalbedrag in het hotel bij aankomst. Vragen? Mail naar info@maykinbooking.nl of bel 020 753 0523.</p>
+  <h2>{% trans "Prijs" %}</h2>
+  <table class="lines">
+    <thead>
+      <tr><th>{% trans "Nacht van" %}</th><th>{% trans "Kamer" %}</th><th class="amount">{% trans "Prijs" %}</th></tr>
+    </thead>
+    <tbody>
+      {% for night in nights %}
+      <tr><td>{{ night.date|date:"l j F Y" }}</td><td>{{ order.room.get_room_type_display }}</td><td class="amount">€ {{ night.price|floatformat:2 }}</td></tr>
+      {% endfor %}
+      <tr class="total">
+        <td colspan="2">{% blocktrans count counter=night_count %}Totaal ({{ counter }} nacht){% plural %}Totaal ({{ counter }} nachten){% endblocktrans %}</td>
+        <td class="amount">€ {{ order.total_price|floatformat:2 }}</td>
+      </tr>
+    </tbody>
+  </table>
+  {% if order.status != "cancelled" and order.payment_status == "at_hotel" %}
+  <p class="pay-note muted">{% trans "Je betaalt het totaalbedrag in het hotel bij aankomst." %}</p>
+  {% endif %}
+
+  <div class="note">
+    {% if order.status != "cancelled" %}
+    {% if can_cancel %}
+    <p><strong>{% blocktrans with day=last_free_cancellation_day|date:"l j F" %}Kosteloos annuleren kan tot en met {{ day }}.{% endblocktrans %}</strong></p>
+    {% else %}
+    <p><strong>{% trans "Kosteloos annuleren kan voor deze boeking niet meer." %}</strong></p>
+    {% endif %}
+    <p>{% trans "Bekijk of annuleer je boeking online:" %}</p>
+    {% else %}
+    <p>{% trans "Bekijk je boeking online:" %}</p>
+    {% endif %}
+    <p class="url"><a href="{{ my_booking_url }}">{{ my_booking_url }}</a></p>
+  </div>
+
+  <p class="contact muted">{% trans "Vragen over je boeking? Mail ons:" %} <a href="mailto:{{ contact_email }}">{{ contact_email }}</a></p>
 </body>
 </html>

@@ -1,0 +1,115 @@
+{% extends 'dashboard/base.html' %}
+{% load i18n l10n form_a11y %}
+
+{% block title %}{% trans "Boekingen" %}{% endblock %}
+
+{% block content %}
+<div class="flex flex-wrap items-end justify-between gap-4">
+  <div>
+    <p class="eyebrow mb-2">{% trans "Beheer" %}</p>
+    <h1 class="font-display font-semibold text-4xl md:text-5xl tracking-[-0.02em]">{% trans "Boekingen" %}</h1>
+  </div>
+  <a href="{% url 'dashboard:booking_export' %}{% if querystring %}?{{ querystring }}{% endif %}" class="btn-outline">
+    <svg aria-hidden="true" viewBox="0 0 24 24" class="w-[18px] h-[18px]" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>
+    {% trans "Exporteer als CSV" %}
+  </a>
+</div>
+
+<nav aria-label="{% trans 'Snelfilters' %}" class="mt-8 flex flex-wrap items-center gap-2">
+  {% for quick in quick_filters %}
+  <a href="?{{ quick.query }}" {% if quick.active %}aria-current="true"{% endif %} class="inline-flex items-center gap-2 min-h-[40px] px-4 rounded-full text-sm font-semibold no-underline border-[1.5px] transition-colors {% if quick.active %}bg-ink border-ink text-linen hover:bg-[#0c1828]{% else %}bg-white border-seam text-ink hover:border-ink{% endif %}">
+    {{ quick.label }}{% if quick.active %}<span aria-hidden="true">×</span>{% endif %}
+  </a>
+  {% endfor %}
+  {% if is_filtered %}
+  <a href="{% url 'dashboard:booking_list' %}" class="ml-auto text-sm font-semibold text-muted no-underline hover:text-ink">{% trans "Alle filters wissen" %}</a>
+  {% endif %}
+</nav>
+
+<form method="get" role="search" class="mt-4 card p-4 flex flex-wrap items-end gap-3">
+  {% if form.snel.value %}{{ form.snel }}{% endif %}
+  {% if form.mail.value %}{{ form.mail }}{% endif %}
+  {% for field in form.visible_fields %}
+  <div class="{% if field.name == 'q' %}flex-[2_1_170px]{% else %}flex-[1_1_145px]{% endif %} min-w-0 flex flex-col gap-1.5">
+    <label for="{{ field.id_for_label }}" class="text-[13px] font-semibold">{{ field.label }}</label>
+    {% accessible_widget field %}
+    {% if field.errors %}<div id="{{ field.auto_id }}_errors">{% for error in field.errors %}<p class="text-sm font-medium text-brick-dark">{{ error }}</p>{% endfor %}</div>{% endif %}
+  </div>
+  {% endfor %}
+  <button type="submit" class="btn-dark">{% trans "Filteren" %}</button>
+</form>
+
+<p class="mt-6 mb-3 text-sm text-muted">
+  {% blocktrans count counter=paginator.count %}{{ counter }} boeking{% plural %}{{ counter }} boekingen{% endblocktrans %}{% if shows_default_period %} · {% trans "aankomsten vanaf vandaag. Zoek of kies een aankomstdatum om eerdere boekingen te zien." %}{% endif %}
+</p>
+
+{% if orders %}
+<div class="card overflow-x-auto">
+  <table class="w-full text-sm text-left">
+    <thead class="text-[12px] uppercase tracking-[0.1em] text-muted border-b border-seam">
+      <tr>
+        <th scope="col" class="px-5 py-3 font-semibold">{% trans "Nr." %}</th>
+        <th scope="col" class="px-5 py-3 font-semibold">{% trans "Gast" %}</th>
+        <th scope="col" class="px-5 py-3 font-semibold">{% trans "Hotel" %}</th>
+        <th scope="col" class="px-5 py-3 font-semibold">{% trans "Kamer" %}</th>
+        <th scope="col" class="px-5 py-3 font-semibold">{% trans "In / uit" %}</th>
+        <th scope="col" class="px-5 py-3 font-semibold">{% trans "Nachten" %}</th>
+        <th scope="col" class="px-5 py-3 font-semibold">{% trans "Totaal" %}</th>
+        <th scope="col" class="px-5 py-3 font-semibold">{% trans "Status / betaling" %}</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-seam">
+      {% for order in orders %}
+      <tr class="hover:bg-linen/60">
+        <td class="px-5 py-3.5 whitespace-nowrap">
+          <a href="{% url 'dashboard:booking_detail' order.pk %}" class="font-semibold text-ink no-underline hover:text-brick">#{{ order.pk|unlocalize }}</a>
+        </td>
+        <td class="px-5 py-3.5">
+          <span class="font-semibold">{{ order.first_name }} {{ order.last_name }}</span>
+          <span class="block text-[12px] text-muted break-all">{{ order.email }}</span>
+        </td>
+        <td class="px-5 py-3.5">
+          {{ order.hotel.name }}
+          <span class="block text-[12px] text-muted">{{ order.hotel.city.name }}</span>
+        </td>
+        <td class="px-5 py-3.5">{{ order.room.get_room_type_display }}</td>
+        <td class="px-5 py-3.5 whitespace-nowrap">
+          {{ order.start_date|date:"j b Y" }}
+          <span class="block text-[12px] text-muted">{% trans "tot" %} {{ order.end_date|date:"j b Y" }}</span>
+        </td>
+        <td class="px-5 py-3.5">{{ order.night_count }}</td>
+        <td class="px-5 py-3.5 whitespace-nowrap">€ {{ order.total_price|floatformat:2 }}</td>
+        <td class="px-5 py-3.5">
+          <div class="flex flex-col items-start gap-1.5">
+            {% include 'components/order_status_badge.html' with order=order %}
+            {% if order.last_mail_status == mail_failed %}
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#F3E3DD] text-[#8A3519] text-xs font-semibold whitespace-nowrap"><span class="w-1.5 h-1.5 rounded-full bg-brick"></span>{% trans "mail mislukt" %}</span>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="card p-8">
+  <p class="font-display font-semibold text-xl">{% trans "Geen boekingen gevonden" %}</p>
+  <p class="mt-2 text-muted">{% trans "Pas de filters aan of zoek op naam, e-mailadres of boekingsnummer." %}</p>
+</div>
+{% endif %}
+
+{% if is_paginated %}
+<nav aria-label="{% trans 'Paginering' %}" class="mt-8 flex flex-wrap items-center justify-between gap-4">
+  <span class="text-sm text-muted">{% blocktrans with number=page_obj.number total=paginator.num_pages %}Pagina {{ number }} van {{ total }}{% endblocktrans %}</span>
+  <div class="flex gap-2">
+    {% if page_obj.has_previous %}
+    <a href="?{% if querystring %}{{ querystring }}&amp;{% endif %}page={{ page_obj.previous_page_number }}" class="btn-outline min-h-[44px] px-5 text-sm">← {% trans "Vorige" %}</a>
+    {% endif %}
+    {% if page_obj.has_next %}
+    <a href="?{% if querystring %}{{ querystring }}&amp;{% endif %}page={{ page_obj.next_page_number }}" class="btn-dark min-h-[44px] px-5 text-sm">{% trans "Volgende" %} →</a>
+    {% endif %}
+  </div>
+</nav>
+{% endif %}
+{% endblock %}

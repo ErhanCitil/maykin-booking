@@ -1,0 +1,36 @@
+{% load i18n l10n %}{% comment %}
+  The booking details block of a mail: hotel, address, room, dates and number of
+  nights. With show_prices=True also the price of every night (the snapshot in
+  ``nights``, never the current room price) and the total.
+  With cancelled=True the heading says the booking is cancelled.
+{% endcomment %}<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="mb-panel" bgcolor="#F6F1E8" style="width:100%; background-color:#F6F1E8; border-radius:12px;">
+  <tr>
+    <td class="mb-panel-pad" style="padding:24px;">
+      <p class="mb-accent" style="margin:0 0 6px; color:#B4492A; font-family:Helvetica, Arial, sans-serif; font-size:12px; line-height:16px; font-weight:bold; letter-spacing:0.16em; text-transform:uppercase;">{% blocktrans with number=order.pk|unlocalize %}Boeking #{{ number }}{% endblocktrans %}{% if cancelled %} &middot; {% trans "Geannuleerd" %}{% endif %}</p>
+      <p class="mb-text mb-serif" style="margin:0; color:#13243A; font-family:Georgia, 'Times New Roman', serif; font-size:21px; line-height:28px; font-weight:bold;">{{ order.hotel.name }}</p>
+      <p class="mb-muted" style="margin:2px 0 0; color:#4F5A6B; font-family:Helvetica, Arial, sans-serif; font-size:14px; line-height:20px;">{% if order.hotel.address %}{{ order.hotel.address }}, {% endif %}{{ order.hotel.city.name }}</p>
+
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; margin-top:16px; border-collapse:collapse;">
+        {% include "emails/_row.html" with label=_("Kamer") value=order.room.get_room_type_display %}
+        {% include "emails/_row.html" with label=_("Inchecken") value=order.start_date|date:"l j F Y" %}
+        {% include "emails/_row.html" with label=_("Uitchecken") value=order.end_date|date:"l j F Y" %}
+        {% blocktrans count counter=night_count asvar stay %}{{ counter }} nacht{% plural %}{{ counter }} nachten{% endblocktrans %}
+        {% include "emails/_row.html" with label=_("Verblijf") value=stay %}
+      </table>
+
+      {% if show_prices %}
+      <p class="mb-accent" style="margin:24px 0 0; color:#B4492A; font-family:Helvetica, Arial, sans-serif; font-size:12px; line-height:16px; font-weight:bold; letter-spacing:0.16em; text-transform:uppercase;">{% trans "Prijs per nacht" %}</p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; margin-top:8px; border-collapse:collapse;">
+        {% for night in nights %}
+        {% include "emails/_row.html" with label=night.date|date:"l j F" value=night.price money=True %}
+        {% endfor %}
+        {% blocktrans count counter=night_count asvar total_label %}Totaal ({{ counter }} nacht){% plural %}Totaal ({{ counter }} nachten){% endblocktrans %}
+        {% include "emails/_row.html" with label=total_label value=order.total_price money=True strong=True %}
+      </table>
+      {% if order.payment_status == "at_hotel" %}
+      <p class="mb-muted" style="margin:12px 0 0; color:#4F5A6B; font-family:Helvetica, Arial, sans-serif; font-size:14px; line-height:20px;">{% trans "Je betaalt in het hotel bij aankomst." %}</p>
+      {% endif %}
+      {% endif %}
+    </td>
+  </tr>
+</table>
