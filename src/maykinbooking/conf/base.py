@@ -122,7 +122,6 @@ INSTALLED_APPS = [
     "maykinbooking.dashboard",
     "maykinbooking.bookings",
     "import_export",
-    "django_extensions",
     "django_jenkins",
     "ckeditor",
     "rest_framework",
