@@ -10,7 +10,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from maykinbooking.accounts.tests.factories import StaffUserFactory
+from maykinbooking.accounts.tests.factories import ManagerUserFactory
 from maykinbooking.base.tests.factories import CityFactory, OrderFactory
 
 
@@ -52,7 +52,7 @@ class AccessibleWidgetTagTests(TestCase):
 class DashboardFormTests(TestCase):
     @classmethod
     def setUpTestData(cls):
-        cls.staff = StaffUserFactory()
+        cls.staff = ManagerUserFactory()
 
     def setUp(self):
         self.client.force_login(self.staff)

@@ -77,6 +77,17 @@ if SITE_URL_REQUIRE_HTTPS and not SITE_URL.startswith("https://"):
         "Set SITE_URL_REQUIRE_HTTPS=no only for a local http setup."
     )
 
+# DEBUG shows settings and tracebacks to anyone, and serves MEDIA_ROOT.
+if DEBUG:
+    raise ImproperlyConfigured("DEBUG is not allowed in production.")
+
+# The fake payment provider lets anyone mark a booking as paid.
+if PAYMENT_FAKE_PROVIDER:
+    raise ImproperlyConfigured("PAYMENT_FAKE_PROVIDER is not allowed in production.")
+# Live payments are out of scope (base.py only accepts test_ keys; explicit here).
+if MOLLIE_API_KEY.startswith("live_"):
+    raise ImproperlyConfigured("Live Mollie keys are not allowed.")
+
 ##############################
 #                            #
 # 3RD PARTY LIBRARY SETTINGS #

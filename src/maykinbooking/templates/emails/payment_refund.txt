@@ -1,0 +1,29 @@
+{% load i18n l10n %}{% autoescape off %}{% blocktrans with name=order.first_name %}Beste {{ name }},{% endblocktrans %}
+
+{% if refund.reason == "late_payment" %}{% blocktrans with number=order.pk|unlocalize hotel=order.hotel.name %}Je betaling kwam binnen nadat de reservering was verlopen; we storten het bedrag terug. Boeking #{{ number }} bij {{ hotel }} is daardoor niet doorgegaan.{% endblocktrans %}
+{% elif refund.reason == "duplicate" %}{% blocktrans with number=order.pk|unlocalize %}Je hebt boeking #{{ number }} twee keer betaald. De tweede betaling storten we terug; je boeking blijft gewoon staan.{% endblocktrans %}
+{% elif refund.reason == "mismatch" %}{% blocktrans with number=order.pk|unlocalize %}We hebben een betaling ontvangen voor boeking #{{ number }}, maar dat is niet het bedrag van je boeking. De boeking is daarom niet gemaakt; we storten het ontvangen bedrag terug.{% endblocktrans %}
+{% else %}{% blocktrans with number=order.pk|unlocalize hotel=order.hotel.name %}Je boeking #{{ number }} bij {{ hotel }} is geannuleerd. We storten het betaalde bedrag terug.{% endblocktrans %}
+{% endif %}
+
+{% trans "Terugbetaling" %}
+----------------------------------------
+{% trans "Boeking" %}: #{{ order.pk|unlocalize }}
+{% trans "Hotel" %}: {{ order.hotel.name }}
+{% trans "Bedrag" %}: € {{ refund.amount|floatformat:2 }}
+{% if refund.refunded_at %}{% trans "Teruggestort op" %}: {{ refund.refunded_at|date:"j F Y" }}
+{% endif %}
+
+{% trans "Het bedrag staat binnen 1 tot 3 werkdagen op je rekening." %} {% trans "Het gaat terug naar de rekening waarmee je hebt betaald." %}
+
+{% trans "Bekijk je boeking:" %}
+{{ my_booking_url }}
+
+{% trans "Met vriendelijke groet," %}
+Maykin Booking
+
+
+--
+{% trans "Vragen over je boeking? Mail ons:" %} {{ contact_email }}
+{% trans "Je ontvangt deze e-mail omdat er met dit e-mailadres een boeking is gemaakt bij Maykin Booking." %}
+{% endautoescape %}

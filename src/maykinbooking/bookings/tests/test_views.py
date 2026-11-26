@@ -3,7 +3,7 @@
 and cancelling, all reached with the token in the URL.
 """
 import uuid
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone as dt_timezone
 from decimal import Decimal
 from unittest import mock
 
@@ -23,8 +23,27 @@ from maykinbooking.base.models import (
     StatusField,
 )
 from maykinbooking.base.tests.factories import HotelFactory, OrderFactory, RoomFactory
+from maykinbooking.billing.models import (
+    InvoiceKind,
+    PaymentState,
+    PricingSettings,
+    RefundReason,
+    RefundState,
+)
+from maykinbooking.billing.services.payments import start_online_payment, sync_payment
+from maykinbooking.billing.tests.factories import (
+    DiscountCodeFactory,
+    PaymentFactory,
+    RefundFactory,
+)
+from maykinbooking.billing.tests.utils import (
+    TempMediaMixin,
+    book,
+    commit_hooks,
+    pay_at_provider,
+)
 
-from ..services.booking import CancellationNotAllowed
+from ..services.booking import CancellationNotAllowed, PaymentMethod
 
 # Arrival on Wednesday 10 March 2027: free cancellation until Tuesday 9 March
 # 00:00 in Amsterdam (08-03 23:00 UTC), so the last free day is Monday 8 March.
@@ -38,7 +57,7 @@ CANNOT_CANCEL = "Kosteloos annuleren kan voor deze boeking niet meer."
 
 
 @override_settings(BOOKING_CONTACT_EMAIL="hulp@example.com")
-class MyBookingTestCase(TestCase):
+class MyBookingTestCase(TempMediaMixin, TestCase):
     def setUp(self):
         # The rate limits count in the cache, which all tests share.
         cache.clear()
@@ -348,3 +367,201 @@ class BookingCancelTests(MyBookingTestCase):
         self.order.refresh_from_db()
         self.assertEqual(other.status, OrderStatus.CANCELLED)
         self.assertEqual(self.order.status, OrderStatus.CONFIRMED)
+
+
+@freeze_time(BEFORE_DEADLINE)
+@override_settings(
+    MOLLIE_API_KEY="",
+    PAYMENT_FAKE_PROVIDER=True,
+    SITE_URL="https://booking.example.com",
+)
+class MyBookingMoneyTests(MyBookingTestCase):
+    """Phase 2: what was paid, what goes back, the discounts and the invoices."""
+
+    def book(self, **kwargs):
+        with commit_hooks():
+            return book(self.room, ARRIVAL, date(2027, 3, 12), **kwargs)
+
+    def book_and_pay(self):
+        order = self.book(payment_method=PaymentMethod.ONLINE)
+        payment = start_online_payment(order.pk)
+        pay_at_provider(payment)
+        with commit_hooks():
+            sync_payment(payment.pk)
+        order.refresh_from_db()
+        return order
+
+    def test_paying_at_the_hotel(self):
+        order = self.book()
+        invoice = order.invoices.get()
+        response = self.client.get(self.url("detail", order))
+        self.assertContains(response, "Je betaalt in het hotel bij aankomst.")
+        self.assertNotContains(response, "Betaald via iDEAL")
+        self.assertNotContains(response, "teruggestort")
+        self.assertContains(response, f"Download factuur {invoice.number} (PDF)")
+        self.assertContains(
+            response,
+            f'href="{reverse("bookings:invoice", args=[order.token, invoice.pk])}"',
+        )
+        self.assertNotContains(response, "creditnota")
+
+    def test_paid_online(self):
+        order = self.book_and_pay()
+        self.assertEqual(order.payment_status, PaymentStatus.PAID)
+        response = self.client.get(self.url("detail", order))
+        self.assertContains(response, "Betaald via iDEAL op 8 maart 2027")
+        self.assertNotContains(response, "Je betaalt in het hotel")
+        self.assertContains(response, "Download factuur")
+        # Cancelling for free gives the money back.
+        self.assertContains(response, "Je krijgt dan € 200,00 teruggestort.")
+
+    def test_order_from_before_invoicing_has_no_invoice_link(self):
+        response = self.client.get(self.url("detail"))
+        self.assertNotContains(response, "Download factuur")
+        self.assertContains(response, "Download bevestiging (PDF)")
+
+    def refund(self, **kwargs):
+        """A refund of € 200,00 of a cancelled booking that was paid online."""
+        return RefundFactory(
+            payment__order__hotel=self.order.hotel,
+            payment__order__room=self.room,
+            payment__order__start_date=ARRIVAL,
+            payment__order__end_date=date(2027, 3, 12),
+            payment__paid_at=datetime(2027, 3, 1, 9, tzinfo=dt_timezone.utc),
+            **kwargs,
+        )
+
+    def test_refund_on_its_way(self):
+        refund = self.refund(status=RefundState.PENDING)
+        order = refund.payment.order
+        response = self.client.get(self.url("detail", order))
+        self.assertContains(response, "Betaald via iDEAL op 1 maart 2027")
+        self.assertContains(response, "€ 200,00 wordt teruggestort.")
+        self.assertContains(response, "Dat duurt meestal 1 tot 3 werkdagen.")
+        self.assertContains(response, "het betaalde bedrag wordt teruggestort")
+        self.assertNotContains(response, "je betaalt niets")
+
+    def test_failed_refund_is_still_on_its_way_for_the_guest(self):
+        refund = self.refund(status=RefundState.ERROR, attempts=2)
+        response = self.client.get(self.url("detail", refund.payment.order))
+        self.assertContains(response, "€ 200,00 wordt teruggestort.")
+
+    def test_refunded(self):
+        refund = self.refund(
+            status=RefundState.REFUNDED,
+            refunded_at=datetime(2027, 3, 2, 12, tzinfo=dt_timezone.utc),
+            payment__order__payment_status=PaymentStatus.REFUNDED,
+        )
+        response = self.client.get(self.url("detail", refund.payment.order))
+        self.assertContains(response, "Teruggestort op 2 maart 2027: € 200,00")
+        self.assertNotContains(response, "wordt teruggestort.")
+
+    def test_duplicate_payment_going_back(self):
+        refund = self.refund(
+            reason=RefundReason.DUPLICATE,
+            status=RefundState.PENDING,
+            payment__order__status=OrderStatus.CONFIRMED,
+        )
+        response = self.client.get(self.url("detail", refund.payment.order))
+        self.assertContains(response, "Je had twee keer betaald.")
+
+    def test_price_breakdown_with_surcharges_and_discounts(self):
+        PricingSettings.load()
+        PricingSettings.objects.filter(pk=1).update(weekend_percent=Decimal("20"))
+        DiscountCodeFactory(code="WELKOM", value=Decimal("10"))
+        # Thursday 11 to Sunday 14 March: two weekend nights.
+        with commit_hooks():
+            order = book(
+                self.room,
+                date(2027, 3, 11),
+                date(2027, 3, 14),
+                discount_code="WELKOM",
+            )
+        self.assertEqual(order.total_price, Decimal("306.00"))
+
+        response = self.client.get(self.url("detail", order))
+        self.assertContains(response, "weekend +20%", count=2)
+        self.assertContains(response, "€ 120,00", count=2)
+        self.assertContains(response, "Subtotaal")
+        self.assertContains(response, "€ 340,00")
+        self.assertContains(response, "Kortingscode WELKOM")
+        self.assertContains(response, "− € 34,00")
+        self.assertContains(response, "€ 306,00")
+
+    def test_waiting_for_payment_links_back_to_the_payment_page(self):
+        payment = PaymentFactory(
+            order__hotel=self.order.hotel,
+            order__room=self.room,
+            order__start_date=ARRIVAL,
+            order__end_date=date(2027, 3, 12),
+            order__hold_expires_at=datetime(2027, 3, 8, 23, 14, tzinfo=dt_timezone.utc),
+            checkout_url="https://www.mollie.com/checkout/select-method/abc",
+        )
+        response = self.client.get(self.url("detail", payment.order))
+        self.assertContains(response, "We wachten op je betaling.")
+        self.assertContains(response, "De kamer is tot 00:14 uur voor je gereserveerd.")
+        self.assertContains(
+            response,
+            'href="https://www.mollie.com/checkout/select-method/abc" rel="noreferrer"',
+        )
+
+    def test_payment_page_on_another_host_is_never_linked(self):
+        """Security: only the hosts the payment service allows."""
+        payment = PaymentFactory(checkout_url="https://evil.example/pay")
+        response = self.client.get(self.url("detail", payment.order))
+        self.assertContains(response, "We wachten op je betaling.")
+        self.assertNotContains(response, "evil.example")
+        self.assertNotContains(response, "Ga verder met betalen")
+
+    def test_finished_payment_is_not_offered_again(self):
+        payment = PaymentFactory(
+            status=PaymentState.CANCELED,
+            checkout_url="https://www.mollie.com/checkout/select-method/abc",
+        )
+        response = self.client.get(self.url("detail", payment.order))
+        self.assertNotContains(response, "Ga verder met betalen")
+
+    def test_expired_booking(self):
+        self.order.status = OrderStatus.EXPIRED
+        self.order.payment_status = PaymentStatus.OPEN
+        self.order.save()
+        response = self.client.get(self.url("detail"))
+        self.assertContains(response, "Niet doorgegaan.")
+        self.assertContains(
+            response, f'href="{reverse("order", args=[self.order.hotel.pk])}"'
+        )
+        self.assertNotContains(response, 'id="cancel-title"')
+
+    def test_cancel_page_of_a_paid_booking_mentions_the_refund(self):
+        order = self.book_and_pay()
+        response = self.client.get(self.url("cancel", order))
+        self.assertContains(response, "Weet je zeker dat je wilt annuleren?")
+        self.assertContains(response, "Je krijgt € 200,00 teruggestort.")
+
+    def test_cancel_page_when_paying_at_the_hotel_is_unchanged(self):
+        response = self.client.get(self.url("cancel"))
+        self.assertContains(response, "Weet je zeker dat je wilt annuleren?")
+        self.assertNotContains(response, "teruggestort")
+
+    def test_cancelling_a_paid_booking_refunds_it(self):
+        order = self.book_and_pay()
+        mail.outbox = []
+        with commit_hooks():
+            response = self.client.post(self.url("cancel", order))
+
+        response = self.client.get(response["Location"])
+        self.assertContains(
+            response,
+            "Je boeking is geannuleerd. Je krijgt € 200,00 teruggestort en een "
+            "bevestiging per e-mail.",
+        )
+        order.refresh_from_db()
+        self.assertEqual(order.status, OrderStatus.CANCELLED)
+        # The fake provider refunds at once.
+        self.assertEqual(order.payment_status, PaymentStatus.REFUNDED)
+        self.assertContains(response, "Teruggestort op 8 maart 2027: € 200,00")
+        credit_note = order.invoices.get(kind=InvoiceKind.CREDIT_NOTE)
+        self.assertContains(response, f"Download creditnota {credit_note.number} (PDF)")
+        self.assertContains(
+            response, reverse("bookings:invoice", args=[order.token, credit_note.pk])
+        )

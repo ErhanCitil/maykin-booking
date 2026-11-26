@@ -30,6 +30,6 @@
   </tr>
 </table>
 
-<p style="margin:24px 0 0;">{% trans "De bevestiging zit ook als PDF in de bijlage." %}</p>
+<p style="margin:24px 0 0;">{% trans "De bevestiging zit ook als PDF in de bijlage." %}{% if invoice %} {% blocktrans with number=invoice.number %}De factuur zit als PDF in de bijlage (factuurnummer {{ number }}).{% endblocktrans %}{% endif %}</p>
 <p style="margin:8px 0 0;">{% blocktrans with city=order.hotel.city.name %}We wensen je een fijn verblijf in {{ city }}.{% endblocktrans %}</p>
 {% endblock %}

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-{% load static i18n %}
+{% load static i18n l10n form_a11y %}
 <html lang="nl">
   <head>
     <meta charset="UTF-8" />
@@ -13,6 +13,14 @@
     <main class="flex-1 max-w-site w-full mx-auto px-6 md:px-8 py-12">
       <a href="{% url 'hotel_detail' hotel.pk %}{% if period_querystring %}?{{ period_querystring }}{% endif %}" class="text-sm text-muted hover:text-ink no-underline">← Terug naar {{ hotel.name }}</a>
       <h1 class="mt-5 font-display font-semibold text-4xl md:text-5xl tracking-[-0.02em]">Boek je verblijf</h1>
+
+      {% if messages %}
+      <div class="mt-6 space-y-2">
+        {% for message in messages %}
+        <div role="{% if message.level >= 40 %}alert{% else %}status{% endif %}" class="rounded-xl px-4 py-3 text-sm font-medium {% if message.level >= 30 %}bg-[#F3E3DD] text-[#8A3519]{% else %}bg-[#E3F0EC] text-[#1F5148]{% endif %}">{{ message }}</div>
+        {% endfor %}
+      </div>
+      {% endif %}
 
       {% if bookable %}
       <ol aria-label="Stappen" class="mt-8 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
@@ -56,7 +64,7 @@
           {% if wizard.steps.current == 'stay' %}
           <h2 class="font-display font-semibold text-2xl">Wanneer kom je?</h2>
           <div class="mt-5 grid gap-4 sm:grid-cols-2">
-            {% for field in form %}{% if field.name != 'room' %}
+            {% for field in form %}{% if field.name == 'start_date' or field.name == 'end_date' %}
             <div class="flex flex-col gap-1.5">
               <label for="{{ field.id_for_label }}" class="text-[13px] font-semibold">{{ field.label }}</label>
               {{ field }}
@@ -90,12 +98,27 @@
             {% for error in form.room.errors %}<p class="mt-2 text-sm font-medium text-brick-dark">{{ error }}</p>{% endfor %}
           </fieldset>
 
+          {% with field=form.discount_code %}
+          <details class="group mt-8 rounded-2xl border border-seam p-5" {% if field.value or field.errors %}open{% endif %}>
+            <summary class="flex items-center justify-between gap-3 cursor-pointer list-none [&::-webkit-details-marker]:hidden font-semibold">
+              {% trans "Heb je een kortingscode?" %}
+              <svg aria-hidden="true" viewBox="0 0 24 24" class="w-5 h-5 shrink-0 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </summary>
+            <div class="mt-4 flex flex-col gap-1.5 sm:max-w-xs">
+              <label for="{{ field.id_for_label }}" class="text-[13px] font-semibold">{{ field.label }}</label>
+              {% accessible_widget field %}
+              {% if field.errors %}<div id="{{ field.auto_id }}_errors">{% for error in field.errors %}<p class="text-sm font-medium text-brick-dark">{{ error }}</p>{% endfor %}</div>{% endif %}
+              <p class="text-[13px] text-muted">{% trans "Je ziet de korting in het overzicht, voordat je boekt." %}</p>
+            </div>
+          </details>
+          {% endwith %}
+
           {% elif wizard.steps.current == 'guest' %}
           <h2 class="font-display font-semibold text-2xl">Wie verblijft er?</h2>
           <p class="mt-1 text-sm text-muted">We sturen de bevestiging naar dit e-mailadres.</p>
           <div class="mt-6 grid gap-x-4 sm:grid-cols-2">
             {% for field in form %}
-            <div class="mb-5 flex flex-col gap-1.5 {% if field.name == 'email' or field.name == 'address' %}sm:col-span-2{% endif %}">
+            <div class="mb-5 flex flex-col gap-1.5 {% if field.name == 'email' or field.name == 'address' or field.name == 'country' %}sm:col-span-2{% endif %}">
               <label for="{{ field.id_for_label }}" class="text-[13px] font-semibold">{{ field.label }}</label>
               {{ field }}
               {% for error in field.errors %}<p class="text-sm font-medium text-brick-dark">{{ error }}</p>{% endfor %}
@@ -127,14 +150,69 @@
             <dl class="mt-3 grid gap-2 text-sm sm:grid-cols-2">
               <div><dt class="text-muted">Naam</dt><dd>{{ guest.first_name }} {{ guest.last_name }}</dd></div>
               <div><dt class="text-muted">E-mailadres</dt><dd>{{ guest.email }}</dd></div>
-              <div class="sm:col-span-2"><dt class="text-muted">Adres</dt><dd>{{ guest.address }}, {{ guest.zipcode }} · {{ guest.country_name }}</dd></div>
+              <div class="sm:col-span-2"><dt class="text-muted">Adres</dt><dd>{{ guest.address }}, {{ guest.zipcode }} {{ guest.city }} · {{ guest.country_name }}</dd></div>
             </dl>
           </section>
 
+          {% if stay %}
+          <section class="mt-4 rounded-2xl border border-seam p-5" aria-labelledby="review-price">
+            <h3 id="review-price" class="font-semibold">{% trans "Prijsopbouw" %}</h3>
+            <table class="mt-3 w-full text-sm">
+              <caption class="sr-only">{% trans "Prijs per nacht" %}</caption>
+              <thead class="sr-only">
+                <tr><th scope="col">{% trans "Nacht" %}</th><th scope="col">{% trans "Toeslag" %}</th><th scope="col">{% trans "Prijs" %}</th></tr>
+              </thead>
+              <tbody>
+                {% for night in stay.night_lines %}
+                <tr class="align-top">
+                  <th scope="row" class="py-1 pr-3 text-left font-normal">{{ night.date|date:"l j F" }}</th>
+                  <td class="py-1 pr-3 text-muted">{% if night.surcharges %}{{ night.surcharges|join:", " }} <span class="whitespace-nowrap">({% blocktrans with price=night.base_price|floatformat:2 %}basis € {{ price }}{% endblocktrans %})</span>{% endif %}</td>
+                  <td class="py-1 text-right whitespace-nowrap">€ {{ night.price|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            <dl class="mt-3 pt-3 border-t border-seam text-sm space-y-2">
+              {% if stay.discount_lines %}
+              <div class="flex justify-between gap-4"><dt class="text-muted">{% trans "Subtotaal" %}</dt><dd>€ {{ stay.subtotal|floatformat:2 }}</dd></div>
+              {% for line in stay.discount_lines %}
+              <div class="flex justify-between gap-4 text-moss"><dt>{{ line.label }}</dt><dd class="whitespace-nowrap">− € {{ line.amount|floatformat:2 }}</dd></div>
+              {% endfor %}
+              {% endif %}
+              <div class="flex justify-between items-baseline gap-4 pt-2 border-t border-seam"><dt class="font-semibold">{% trans "Totaal" %}</dt><dd class="font-display font-semibold text-2xl">€ {{ stay.total|floatformat:2 }}</dd></div>
+            </dl>
+          </section>
+          {# The total the guest sees; create_booking compares it, never uses it as the price. #}
+          <input type="hidden" name="{{ form.expected_total.html_name }}" value="{{ stay.total|unlocalize }}">
+          {% endif %}
+
+          {% if online_payment %}
+          <fieldset class="mt-6"{% if form.payment_method.errors %} aria-describedby="{{ form.payment_method.auto_id }}_errors"{% endif %}>
+            <legend class="font-semibold">{{ form.payment_method.label }}</legend>
+            <div class="mt-3 flex flex-col gap-3">
+              {% for radio in form.payment_method %}
+              <label for="{{ radio.id_for_label }}" class="flex items-start gap-4 p-4 rounded-2xl border-[1.5px] border-seam bg-white cursor-pointer hover:border-ink has-[:checked]:border-ink has-[:checked]:bg-linen">
+                {{ radio.tag }}
+                <span class="flex-1 min-w-0">
+                  <span class="block font-semibold">{{ radio.choice_label }}</span>
+                  <span class="mt-0.5 block text-[13px] leading-snug text-muted">
+                    {% if radio.data.value == 'online' %}{% blocktrans with minutes=hold_minutes %}Je gaat naar de beveiligde betaalpagina van je bank. We houden de kamer {{ minutes }} minuten voor je vast; na de betaling staat je boeking vast.{% endblocktrans %}{% else %}{% trans "Je hoeft nu niets te betalen; het totaalbedrag reken je af bij aankomst." %}{% endif %}
+                  </span>
+                </span>
+              </label>
+              {% endfor %}
+            </div>
+            {% if form.payment_method.errors %}<div id="{{ form.payment_method.auto_id }}_errors">{% for error in form.payment_method.errors %}<p class="mt-2 text-sm font-medium text-brick-dark">{{ error }}</p>{% endfor %}</div>{% endif %}
+          </fieldset>
+          {% else %}
           <div class="mt-4 flex gap-3 rounded-2xl bg-linen p-5 text-sm">
             <svg aria-hidden="true" viewBox="0 0 24 24" class="w-5 h-5 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/></svg>
-            <p><span class="font-semibold">Je betaalt in het hotel.</span> Je hoeft nu niets te betalen; het totaalbedrag reken je af bij aankomst.</p>
+            <div>
+              <p><span class="font-semibold">Je betaalt in het hotel.</span> Je hoeft nu niets te betalen; het totaalbedrag reken je af bij aankomst.</p>
+              {% for error in form.payment_method.errors %}<p class="mt-1 font-medium text-brick-dark">{{ error }}</p>{% endfor %}
+            </div>
           </div>
+          {% endif %}
 
           {% with field=form.terms %}
           <div class="mt-6 flex items-start gap-3">
@@ -174,11 +252,28 @@
               <div class="flex justify-between gap-4"><dt class="text-muted">Uitchecken</dt><dd>{{ stay.end_date|date:"D j M Y" }}</dd></div>
               <div class="flex justify-between gap-4"><dt class="text-muted">Kamer</dt><dd>{{ stay.room.get_room_type_display }}</dd></div>
             </dl>
-            <dl class="mt-5 pt-5 border-t border-seam text-sm space-y-2.5">
-              <div class="flex justify-between gap-4"><dt class="text-muted">€ {{ stay.price_per_night|floatformat:"-2" }} × {{ stay.nights }} nacht{{ stay.nights|pluralize:"en" }}</dt><dd>€ {{ stay.total|floatformat:2 }}</dd></div>
-              <div class="flex justify-between items-baseline gap-4 pt-2.5 border-t border-seam"><dt class="font-semibold">Totaal</dt><dd class="font-display font-semibold text-3xl">€ {{ stay.total|floatformat:2 }}</dd></div>
-            </dl>
-            <p class="mt-3 text-[13px] text-muted">Te betalen in het hotel bij aankomst.</p>
+            <div class="mt-5 pt-5 border-t border-seam text-sm space-y-2.5">
+              <details class="group"{% if stay.nights_open %} open{% endif %}>
+                <summary class="flex justify-between gap-4 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                  <span class="inline-flex items-center gap-1.5 text-muted">
+                    {% if stay.uniform_price is not None %}€ {{ stay.uniform_price|floatformat:"-2" }} × {{ stay.nights }} nacht{{ stay.nights|pluralize:"en" }}{% else %}{% blocktrans count counter=stay.nights %}{{ counter }} nacht{% plural %}{{ counter }} nachten{% endblocktrans %}{% endif %}
+                    <svg aria-hidden="true" viewBox="0 0 24 24" class="w-4 h-4 shrink-0 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                    <span class="sr-only">{% trans "Prijs per nacht" %}</span>
+                  </span>
+                  <span>€ {{ stay.subtotal|floatformat:2 }}</span>
+                </summary>
+                <ul class="mt-2.5 space-y-1.5 text-[13px]">
+                  {% for night in stay.night_lines %}
+                  <li class="flex justify-between gap-4"><span class="text-muted">{{ night.date|date:"D j M" }}{% for label in night.surcharges %} · {{ label }}{% endfor %}</span><span class="whitespace-nowrap">€ {{ night.price|floatformat:2 }}</span></li>
+                  {% endfor %}
+                </ul>
+              </details>
+              {% for line in stay.discount_lines %}
+              <div class="flex justify-between gap-4 text-moss"><span>{{ line.label }}</span><span class="whitespace-nowrap">− € {{ line.amount|floatformat:2 }}</span></div>
+              {% endfor %}
+              <div class="flex justify-between items-baseline gap-4 pt-2.5 border-t border-seam"><span class="font-semibold">Totaal</span><span class="font-display font-semibold text-3xl">€ {{ stay.total|floatformat:2 }}</span></div>
+            </div>
+            <p class="mt-3 text-[13px] text-muted">{% if online_payment %}{% trans "Betaal in het hotel bij aankomst, of nu online met iDEAL." %}{% else %}Te betalen in het hotel bij aankomst.{% endif %}</p>
             {% else %}
             <p class="mt-5 pt-5 border-t border-seam text-sm text-muted">Kies je data en kamer, dan zie je hier de totaalprijs.</p>
             {% endif %}

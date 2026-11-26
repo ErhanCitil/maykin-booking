@@ -1,6 +1,8 @@
 import os
 from pathlib import Path
 
+from django.core.exceptions import ImproperlyConfigured
+
 # Django-hijack (and Django-hijack-admin)
 from django.urls import reverse_lazy
 
@@ -121,6 +123,7 @@ INSTALLED_APPS = [
     "maykinbooking.form",
     "maykinbooking.dashboard",
     "maykinbooking.bookings",
+    "maykinbooking.billing",
     "import_export",
     "django_jenkins",
     "ckeditor",
@@ -204,6 +207,11 @@ STATICFILES_FINDERS = [
 MEDIA_ROOT = BASE_DIR / "media"
 
 MEDIA_URL = "/media/"
+
+# Files with personal data that are never served as files, only through views
+# that check access: the invoice PDFs (billing.storage). Keep it outside
+# MEDIA_ROOT and STATIC_ROOT, and back it up: invoices must be kept for 7 years.
+PRIVATE_MEDIA_ROOT = Path(config("PRIVATE_MEDIA_ROOT", str(BASE_DIR / "private_media")))
 
 FILE_UPLOAD_PERMISSIONS = 0o644
 
@@ -369,6 +377,28 @@ BOOKING_PDF_LIMIT_PER_IP_PER_MINUTE = config("BOOKING_PDF_LIMIT_PER_IP_PER_MINUT
 # of their client to X-Forwarded-For. 0: the client is REMOTE_ADDR. Set it to the
 # real number: too high and guests can pick their own address for the limits.
 BOOKING_TRUSTED_PROXY_COUNT = config("BOOKING_TRUSTED_PROXY_COUNT", 0)
+
+# The seller on the invoices. While one of these is empty, every invoice gets
+# the watermark "Testfactuur – niet geldig". In the address, "\n" starts a new
+# line.
+INVOICE_SELLER_NAME = config("INVOICE_SELLER_NAME", "")
+INVOICE_SELLER_ADDRESS = config("INVOICE_SELLER_ADDRESS", "")
+INVOICE_SELLER_KVK = config("INVOICE_SELLER_KVK", "")
+INVOICE_SELLER_VAT_ID = config("INVOICE_SELLER_VAT_ID", "")
+
+# Online payment (iDEAL) with Mollie in test mode: only keys that start with
+# "test_". Without a key, PAYMENT_FAKE_PROVIDER turns on a fake provider for
+# development (never in production); without either, guests pay at the hotel.
+MOLLIE_API_KEY = config("MOLLIE_API_KEY", "")
+if MOLLIE_API_KEY and not MOLLIE_API_KEY.startswith("test_"):
+    # The key itself is never in the message.
+    raise ImproperlyConfigured(
+        "MOLLIE_API_KEY must be a Mollie test key (test_...); live payments are "
+        "not supported."
+    )
+PAYMENT_FAKE_PROVIDER = config("PAYMENT_FAKE_PROVIDER", default=False)
+# How long an order that waits for online payment holds its room.
+PAYMENT_HOLD_MINUTES = config("PAYMENT_HOLD_MINUTES", 15)
 
 ENVIRONMENT = config("ENVIRONMENT", "")
 SHOW_ALERT = True

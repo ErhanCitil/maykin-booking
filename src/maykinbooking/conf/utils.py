@@ -28,15 +28,16 @@ def config(option: str, default=undefined, *args, **kwargs):
     return _config(option, default=default, *args, **kwargs)
 
 
-# The token of "Mijn boeking" in a URL works as a password: keep it out of Sentry.
+# The token of "Mijn boeking" and the reference of a payment (its return URL)
+# work as passwords in a URL: keep them out of Sentry.
 BOOKING_TOKEN_IN_URL = re.compile(
-    r"/boeking/[0-9a-fA-F]{8}-?(?:[0-9a-fA-F]{4}-?){3}[0-9a-fA-F]{12}"
+    r"/(boeking|betalen)/[0-9a-fA-F]{8}-?(?:[0-9a-fA-F]{4}-?){3}[0-9a-fA-F]{12}"
 )
 
 
 def _scrub_booking_tokens(value):
     if isinstance(value, str):
-        return BOOKING_TOKEN_IN_URL.sub("/boeking/<token>", value)
+        return BOOKING_TOKEN_IN_URL.sub(r"/\1/<token>", value)
     if isinstance(value, dict):
         return {key: _scrub_booking_tokens(item) for key, item in value.items()}
     if isinstance(value, (list, tuple)):
@@ -47,8 +48,8 @@ def _scrub_booking_tokens(value):
 def scrub_booking_tokens(event, hint):
     """
     Sentry ``before_send``: replace ``/boeking/<uuid>`` by ``/boeking/<token>``
-    everywhere in the event (request URL, headers such as the referrer,
-    breadcrumbs, messages).
+    and ``/betalen/<uuid>`` by ``/betalen/<token>`` everywhere in the event
+    (request URL, headers such as the referrer, breadcrumbs, messages).
     """
     return _scrub_booking_tokens(event)
 

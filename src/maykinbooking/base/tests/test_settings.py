@@ -89,3 +89,86 @@ class SiteUrlHttpsCheckTests(SimpleTestCase):
             self.load("maykinbooking.conf.docker", SITE_URL="http://localhost:8000"),
             "http://localhost:8000",
         )
+
+
+class PaymentSettingsTests(SimpleTestCase):
+    """
+    Online payment settings: the fake provider never in production, and only
+    Mollie test keys anywhere (live payments are out of scope).
+    """
+
+    PRODUCTION = {"SITE_URL": "https://booking.example.com"}
+
+    load = SiteUrlHttpsCheckTests.load
+    assertLoads = SiteUrlHttpsCheckTests.assertLoads
+
+    def test_fake_provider_is_refused_in_production(self):
+        for settings_module in (
+            "maykinbooking.conf.production",
+            "maykinbooking.conf.staging",
+        ):
+            with self.subTest(settings_module):
+                result = self.load(
+                    settings_module, PAYMENT_FAKE_PROVIDER="yes", **self.PRODUCTION
+                )
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("PAYMENT_FAKE_PROVIDER is not allowed", result.stderr)
+
+    def test_only_mollie_test_keys(self):
+        key = "live_not-a-real-key-0123456789"
+        for settings_module in (
+            "maykinbooking.conf.production",
+            "maykinbooking.conf.ci",
+        ):
+            with self.subTest(settings_module):
+                result = self.load(
+                    settings_module, MOLLIE_API_KEY=key, **self.PRODUCTION
+                )
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("MOLLIE_API_KEY must be a Mollie test key", result.stderr)
+                self.assertNotIn(key, result.stderr)
+
+    def test_debug_is_refused_in_production(self):
+        for settings_module in (
+            "maykinbooking.conf.production",
+            "maykinbooking.conf.docker",
+        ):
+            with self.subTest(settings_module):
+                result = self.load(settings_module, DEBUG="yes", **self.PRODUCTION)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("DEBUG is not allowed in production", result.stderr)
+
+    def test_private_media_root(self):
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-c",
+                "import django; from django.conf import settings; django.setup(); "
+                "print(settings.PRIVATE_MEDIA_ROOT); print(settings.MEDIA_ROOT)",
+            ],
+            cwd=SRC_DIR,
+            env={
+                "PATH": os.environ.get("PATH", ""),
+                "DJANGO_SETTINGS_MODULE": "maykinbooking.conf.production",
+                "SECRET_KEY": "dummy",
+                "PRIVATE_MEDIA_ROOT": "/srv/invoices",
+                **self.PRODUCTION,
+            },
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        private, media = result.stdout.splitlines()
+        self.assertEqual(private, "/srv/invoices")
+        self.assertNotEqual(private, media)
+
+    def test_production_with_a_test_key(self):
+        self.assertLoads(
+            self.load(
+                "maykinbooking.conf.production",
+                MOLLIE_API_KEY="test_not-a-real-key",
+                **self.PRODUCTION,
+            ),
+            "https://booking.example.com",
+        )

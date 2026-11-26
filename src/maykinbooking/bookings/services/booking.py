@@ -8,15 +8,22 @@ lock it (``select_for_update``) in a transaction; :func:`transition` and
 
 Mails are sent with ``transaction.on_commit``: never for a booking that is rolled
 back, and a failing mail never undoes a booking.
+
+Prices come from ``billing.services.pricing`` (price rules, discount codes) and
+invoices from ``billing.services.invoicing``. The payments service imports this
+module, so it is only imported inside the functions that need it.
+
+Locks are always taken in this order: Room → Order → Payment/Refund →
+DiscountCode → InvoiceSequence.
 """
 from dataclasses import dataclass
 from datetime import datetime, time, timedelta
 from decimal import Decimal
-from functools import partial
-from typing import Any, List, Optional, Tuple
+from typing import Any, List, Optional
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.db import transaction
+from django.db import IntegrityError, models, transaction
 from django.db.models import Q
 from django.utils import timezone
 from django.utils.translation import gettext, gettext_lazy as _
@@ -33,10 +40,34 @@ from maykinbooking.base.models import (
     RoomBlock,
     StatusField,
 )
+from maykinbooking.billing.models import DiscountCode, InvoiceKind, RefundReason
+from maykinbooking.billing.providers import online_payment_available
+from maykinbooking.billing.services.invoicing import issue_credit_note, issue_invoice
+from maykinbooking.billing.services.pricing import (
+    ZERO,
+    NightPrice,
+    PricingRules,
+    check_discount_code,
+    discount_amount,
+    length_discount,
+    night_price,
+    redeem_discount_code,
+    release_discount_code,
+)
+from maykinbooking.utils.transactions import on_commit_safely
 
+from ..exceptions import BookingError
 from .availability import free_counts, overbooked_nights, validate_stay_period
 
-GUEST_FIELDS = ("first_name", "last_name", "email", "address", "zipcode", "country")
+GUEST_FIELDS = (
+    "first_name",
+    "last_name",
+    "email",
+    "address",
+    "zipcode",
+    "city",
+    "country",
+)
 
 ALLOWED_TRANSITIONS = {
     OrderStatus.PENDING_PAYMENT: {OrderStatus.CONFIRMED, OrderStatus.EXPIRED},
@@ -44,8 +75,11 @@ ALLOWED_TRANSITIONS = {
 }
 
 
-class BookingError(Exception):
-    """Base class of the errors of the booking service."""
+class PaymentMethod(models.TextChoices):
+    """How the guest pays: in the hotel (the default) or online beforehand."""
+
+    AT_HOTEL = "at_hotel", _("Betalen in het hotel")
+    ONLINE = "online", _("Online betalen met iDEAL")
 
 
 class RoomUnavailable(BookingError):
@@ -61,6 +95,27 @@ class CancellationNotAllowed(BookingError):
     The order can no longer be cancelled: the stay is over, or (for the guest)
     the free cancellation deadline has passed or the order is not confirmed.
     """
+
+
+class OnlinePaymentUnavailable(BookingError):
+    """
+    Online payment is not possible for this booking: no payment provider is
+    set up, or there is nothing to pay (the total is 0). Nothing was booked.
+    """
+
+
+class PriceChanged(BookingError):
+    """
+    The price of the stay is no longer what the guest saw (``expected_total``):
+    the price rules or the discount code changed meanwhile. ``quote`` is the
+    new price; nothing was booked.
+    """
+
+    def __init__(self, quote):
+        super().__init__(
+            _("De prijs van dit verblijf is gewijzigd. Bekijk de nieuwe prijs.")
+        )
+        self.quote = quote
 
 
 @dataclass(frozen=True)
@@ -95,23 +150,72 @@ class Actor:
 
 @dataclass(frozen=True)
 class Quote:
-    nights: List[Tuple[Any, Decimal]]  # [(date, price), ...]
+    """
+    The price of a stay. ``total`` = ``subtotal`` - ``length_discount`` -
+    ``code_discount``, never below 0. ``discount`` is the ``DiscountCode`` or
+    ``None``; ``length_discount_percent`` is 0 when there is no discount for a
+    long stay.
+    """
+
+    nights: List[NightPrice]
+    subtotal: Decimal
+    length_discount_percent: Decimal
+    length_discount: Decimal
+    discount: Optional[DiscountCode]
+    code_discount: Decimal
     total: Decimal
 
+    @property
+    def discount_code(self):
+        """The code as on an order (``""`` without a code)."""
+        return self.discount.code if self.discount else ""
 
-def quote(room, start, end):
-    """
-    The price of every night of ``[start, end)`` and the total.
 
-    Phase 1: every night costs ``room.price``. Price rules (season, discounts)
-    belong here, so the checkout summary and the booking always agree.
+@dataclass(frozen=True)
+class BookingResult:
     """
+    The order of :func:`book_room`, and whether this call made it (``False``:
+    an earlier request with the same token did; nothing was booked again).
+    """
+
+    order: Order
+    created: bool
+
+
+def quote(room, start, end, *, discount_code="", rules=None, today=None):
+    """
+    The price of every night of ``[start, end)``, the discounts and the total.
+    The checkout summary and the booking both use this, so they always agree.
+
+    In this order: the nights (weekend and season surcharges), their subtotal,
+    the discount for a long stay over the subtotal, and the discount code over
+    what is left (a fixed amount takes at most all of it).
+
+    ``rules``: ``PricingRules`` (default: the current rules). Raises
+    ``InvalidDiscountCode`` for a ``discount_code`` that cannot be used.
+    """
+    if rules is None:
+        rules = PricingRules.load(start, end)
     nights = [
-        (start + timedelta(days=offset), room.price)
+        night_price(room.price, start + timedelta(days=offset), rules)
         for offset in range((end - start).days)
     ]
+    subtotal = sum((night.price for night in nights), ZERO)
+    length_percent, length_amount = length_discount(subtotal, len(nights), rules)
+    discount = None
+    code_amount = ZERO
+    if discount_code:
+        discount = check_discount_code(discount_code, today=today)
+        code_amount = discount_amount(discount, subtotal - length_amount)
+    total = max(subtotal - length_amount - code_amount, ZERO)
     return Quote(
-        nights=nights, total=sum((price for day, price in nights), Decimal("0.00"))
+        nights=nights,
+        subtotal=subtotal,
+        length_discount_percent=length_percent,
+        length_discount=length_amount,
+        discount=discount,
+        code_discount=code_amount,
+        total=total,
     )
 
 
@@ -128,18 +232,43 @@ def _log_change(order, field, old_value, new_value, *, actor, reason=""):
     )
 
 
-def _send_email_on_commit(order, kind, *, actor):
+def send_email_on_commit(order, kind, *, actor, **options):
+    """
+    Send the mail ``kind`` about ``order`` after the commit (never raises).
+    ``options`` go to ``send_booking_email`` (e.g. ``refund_id``).
+    """
     # Imported here because the emails module imports this one.
     from ..emails import send_booking_email
 
-    transaction.on_commit(
-        partial(send_booking_email, order.pk, kind, triggered_by=actor.user)
+    on_commit_safely(
+        send_booking_email, order.pk, kind, triggered_by=actor.user, **options
     )
 
 
-def create_booking(*, room_id, start, end, guest, language, actor, token=None):
+def create_booking(**booking):
     """
-    Book one room of type ``room_id`` for ``[start, end)``.
+    :func:`book_room`, returning only the order (made now or before, with the
+    same token). For callers that do not need to know which.
+    """
+    return book_room(**booking).order
+
+
+def book_room(
+    *,
+    room_id,
+    start,
+    end,
+    guest,
+    language,
+    actor,
+    token=None,
+    payment_method=PaymentMethod.AT_HOTEL,
+    discount_code="",
+    expected_total=None,
+):
+    """
+    Book one room of type ``room_id`` for ``[start, end)``. Returns a
+    :class:`BookingResult`.
 
     ``guest`` holds the guest fields of the order (``GUEST_FIELDS``; other keys
     are ignored). The room is locked first, then everything is checked again, so
@@ -147,15 +276,70 @@ def create_booking(*, room_id, start, end, guest, language, actor, token=None):
 
     ``token`` is an optional idempotency key (a UUID) that becomes
     ``Order.token``. If an order with that token already exists, that order is
-    returned: nothing is booked or mailed again. This catches a booking that is
-    sent twice (double click, a replayed request). Two requests for different
-    rooms with the same token can still meet at the unique constraint:
-    ``IntegrityError``.
+    returned with ``created=False``: nothing is booked or mailed again. This
+    catches a booking that is sent twice (double click, a replayed request): a
+    second request for the same room waits for the lock of the first and then
+    finds its order; one for another room meets the first at the unique token,
+    and finds the order after that.
 
-    Raises ``ValidationError`` (invalid period) or ``RoomUnavailable``. Returns
-    the confirmed order (payment at the hotel); the confirmation mail is sent
-    after the commit.
+    The price is :func:`quote` with the current price rules and
+    ``discount_code``; the nights and discounts are stored on the order as a
+    snapshot. ``expected_total``: the total the guest saw; if the price is
+    different now, ``PriceChanged`` is raised and nothing is booked.
+
+    ``payment_method``:
+
+    * ``PaymentMethod.AT_HOTEL``: the order is confirmed, gets its invoice, and
+      the confirmation mail is sent after the commit.
+    * ``PaymentMethod.ONLINE``: the order waits for payment and holds the room
+      for ``PAYMENT_HOLD_MINUTES``; no mail, no invoice. Start the payment with
+      ``billing.services.payments.start_online_payment``. Only when online
+      payment is available and the total is above 0, otherwise
+      ``OnlinePaymentUnavailable``.
+
+    Raises ``ValidationError`` (invalid period), ``RoomUnavailable``,
+    ``InvalidDiscountCode`` (also when the last use of the code was taken
+    meanwhile), ``PriceChanged`` or ``OnlinePaymentUnavailable``; nothing is
+    booked then. ``ValueError`` for an unknown ``payment_method``.
     """
+    if payment_method not in PaymentMethod.values:
+        raise ValueError(f"Unknown payment method {payment_method!r}.")
+    try:
+        return _book_room(
+            room_id=room_id,
+            start=start,
+            end=end,
+            guest=guest,
+            language=language,
+            actor=actor,
+            token=token,
+            online=payment_method == PaymentMethod.ONLINE,
+            discount_code=discount_code,
+            expected_total=expected_total,
+        )
+    except IntegrityError:
+        # Another request with this token (for another room) won the race.
+        existing = (
+            Order.objects.filter(token=token).first() if token is not None else None
+        )
+        if existing is None:
+            raise
+        return BookingResult(existing, created=False)
+
+
+def _book_room(
+    *,
+    room_id,
+    start,
+    end,
+    guest,
+    language,
+    actor,
+    token,
+    online,
+    discount_code,
+    expected_total,
+):
     with transaction.atomic():
         try:
             room = (
@@ -171,7 +355,7 @@ def create_booking(*, room_id, start, end, guest, language, actor, token=None):
         if token is not None:
             existing = Order.objects.filter(token=token).first()
             if existing is not None:
-                return existing
+                return BookingResult(existing, created=False)
 
         validate_stay_period(start, end)
         if not (room.is_available and room.hotel.is_available):
@@ -179,29 +363,59 @@ def create_booking(*, room_id, start, end, guest, language, actor, token=None):
         if free_counts([room], start, end)[room.pk] < 1:
             raise RoomUnavailable(_("Deze kamer is niet meer vrij in deze periode."))
 
-        offer = quote(room, start, end)
+        today = timezone.localdate()
+        offer = quote(room, start, end, discount_code=discount_code, today=today)
+        if expected_total is not None and offer.total != Decimal(expected_total):
+            raise PriceChanged(offer)
+        if online and not online_payment_available():
+            raise OnlinePaymentUnavailable(_("Online betalen is nu niet mogelijk."))
+        if online and offer.total <= 0:
+            raise OnlinePaymentUnavailable(
+                _("Er valt niets online te betalen: het totaal is € 0,00.")
+            )
+
+        hold = timedelta(minutes=settings.PAYMENT_HOLD_MINUTES)
         order = Order.objects.create(
             room=room,
             hotel=room.hotel,
             start_date=start,
             end_date=end,
-            status=OrderStatus.CONFIRMED,
-            payment_status=PaymentStatus.AT_HOTEL,
+            status=OrderStatus.PENDING_PAYMENT if online else OrderStatus.CONFIRMED,
+            payment_status=PaymentStatus.OPEN if online else PaymentStatus.AT_HOTEL,
+            hold_expires_at=timezone.now() + hold if online else None,
             total_price=offer.total,
+            length_discount_percent=offer.length_discount_percent,
+            length_discount=offer.length_discount,
+            discount_code=offer.discount_code,
+            code_discount=offer.code_discount,
             language=language,
             **({"token": token} if token is not None else {}),
             **{field: guest[field] for field in GUEST_FIELDS if field in guest},
         )
         OrderNight.objects.bulk_create(
-            OrderNight(order=order, date=day, price=price)
-            for day, price in offer.nights
+            OrderNight(
+                order=order,
+                date=night.date,
+                base_price=night.base_price,
+                weekend_percent=night.weekend_percent,
+                season_percent=night.season_percent,
+                season_name=night.season_name,
+                price=night.price,
+            )
+            for night in offer.nights
         )
+        if offer.discount is not None:
+            redeem_discount_code(
+                offer.discount.code, order, offer.code_discount, today=today
+            )
         _log_change(order, StatusField.STATUS, "", order.status, actor=actor)
         _log_change(
             order, StatusField.PAYMENT_STATUS, "", order.payment_status, actor=actor
         )
-        _send_email_on_commit(order, EmailKind.BOOKING_CONFIRMATION, actor=actor)
-    return order
+        if not online:
+            issue_invoice(order, actor=actor.user)
+            send_email_on_commit(order, EmailKind.BOOKING_CONFIRMATION, actor=actor)
+    return BookingResult(order, created=True)
 
 
 def transition(order, new_status, *, actor, reason=""):
@@ -225,6 +439,22 @@ def transition(order, new_status, *, actor, reason=""):
         order, StatusField.STATUS, old_status, new_status, actor=actor, reason=reason
     )
     return True
+
+
+def expire_order(order, *, actor, reason):
+    """
+    Let an order that waits for payment expire: its room and its discount code
+    are free again, and a payment status that is still open becomes "unpaid"
+    (nothing came in, and nothing can be paid anymore). The caller must have
+    locked the order. Returns ``False`` if it had expired already; raises
+    ``InvalidTransition`` for other statuses.
+    """
+    changed = transition(order, OrderStatus.EXPIRED, actor=actor, reason=reason)
+    if changed:
+        release_discount_code(order)
+        if order.payment_status == PaymentStatus.OPEN:
+            set_payment_status(order, PaymentStatus.UNPAID, actor=actor, reason=reason)
+    return changed
 
 
 def set_payment_status(order, new, *, actor, reason=""):
@@ -300,6 +530,12 @@ def cancel_booking(order_id, *, actor, reason="", enforce_deadline=True):
     """
     Cancel an order and send the cancellation mail after the commit.
 
+    An order with an invoice gets a credit note in the same transaction. A paid
+    order gets a refund of the full amount, which is sent to the payment
+    provider after the commit (after the cancellation mail); if that fails the
+    order stays cancelled and paid, and the refund is tried again later
+    (``billing.services.payments``).
+
     Returns ``(order, changed)``; ``changed`` is ``False`` if the order was
     already cancelled (no log, no mail). Raises ``Order.DoesNotExist``,
     ``CancellationNotAllowed`` (the stay is over, for guests and staff alike; or
@@ -309,6 +545,9 @@ def cancel_booking(order_id, *, actor, reason="", enforce_deadline=True):
     Guests: ``Actor.guest()`` with ``enforce_deadline=True``. Staff:
     ``Actor.staff(user)`` with a reason and ``enforce_deadline=False``.
     """
+    # Imported here: the payments service imports this module.
+    from maykinbooking.billing.services.payments import execute_refund, request_refund
+
     reason = reason.strip()
     with transaction.atomic():
         order = Order.objects.select_for_update().get(pk=order_id)
@@ -325,7 +564,18 @@ def cancel_booking(order_id, *, actor, reason="", enforce_deadline=True):
         if actor.type == ActorType.STAFF and not reason:
             raise ValueError("Staff must give a reason to cancel a booking.")
         transition(order, OrderStatus.CANCELLED, actor=actor, reason=reason)
-        _send_email_on_commit(order, EmailKind.BOOKING_CANCELLATION, actor=actor)
+        # Lock order: the payment (refund) before the invoice numbering.
+        refund = None
+        if order.payment_status == PaymentStatus.PAID:
+            refund = request_refund(
+                order, reason=RefundReason.CANCELLATION, actor=actor
+            )
+        invoice = order.invoices.filter(kind=InvoiceKind.INVOICE).first()
+        if invoice is not None:
+            issue_credit_note(invoice, actor=actor.user)
+        send_email_on_commit(order, EmailKind.BOOKING_CANCELLATION, actor=actor)
+        if refund is not None:
+            on_commit_safely(execute_refund, refund.pk)
     return order, True
 
 
@@ -368,23 +618,33 @@ def create_room_block(room_id, *, start, end, quantity, reason, user):
 def expire_stale_pending(*, now=None):
     """
     Expire the orders that wait for payment and whose hold has passed (or that
-    have no hold). Returns the number of expired orders.
+    have no hold); their rooms and discount codes are free again. Returns the
+    number of expired orders.
+
+    Their open payments are synced with the provider first: an order that was
+    paid meanwhile is confirmed instead. An order whose payment is still open
+    at the provider is left alone for ``PAYMENT_GRACE`` after its hold, so a
+    guest who is still paying can finish. When the provider cannot be reached,
+    the order is left for the next round, up to 24 hours after its hold.
     """
+    # Imported here: the payments service imports this module.
+    from maykinbooking.billing.services.payments import sync_pending_order_payments
+
     now = now or timezone.now()
     stale = Order.objects.filter(
         Q(hold_expires_at__isnull=True) | Q(hold_expires_at__lte=now),
         status=OrderStatus.PENDING_PAYMENT,
     )
+    skip = sync_pending_order_payments(stale.values_list("pk", flat=True), now=now)
     expired = 0
-    for order_id in list(stale.values_list("pk", flat=True)):
+    for order_id in list(stale.exclude(pk__in=skip).values_list("pk", flat=True)):
         with transaction.atomic():
             # Checked again after the lock: the order may be paid meanwhile.
             order = stale.select_for_update().filter(pk=order_id).first()
             if order is None:
                 continue
-            if transition(
+            if expire_order(
                 order,
-                OrderStatus.EXPIRED,
                 actor=Actor.system(),
                 reason=gettext("Betaaltermijn verlopen"),
             ):

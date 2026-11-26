@@ -48,6 +48,16 @@ $PGSQL_STAGING_CMD < $PWD/live2staging_postimport.sql
 echo "Copying media files from production to staging..."
 rsync -au $PGSQL_PROD_HOST:$PROD_MEDIA_PATH/ $STAGING_MEDIA_PATH/
 
+# The invoice PDFs (PRIVATE_MEDIA_ROOT) are not in the media files. Only copied
+# when both paths are set in live2staging_settings.sh; without them staging
+# renders an invoice again from its database snapshot when it is asked for.
+if [ -n "$PROD_PRIVATE_MEDIA_PATH" ] && [ -n "$STAGING_PRIVATE_MEDIA_PATH" ]; then
+    echo "Copying invoice PDFs from production to staging..."
+    rsync -au $PGSQL_PROD_HOST:$PROD_PRIVATE_MEDIA_PATH/ $STAGING_PRIVATE_MEDIA_PATH/
+else
+    echo "Not copying invoice PDFs (PROD_PRIVATE_MEDIA_PATH/STAGING_PRIVATE_MEDIA_PATH not set)."
+fi
+
 sudo chmod -R g+rw $STAGING_PROJECT_PATH
 
 cd $STAGING_PROJECT_PATH

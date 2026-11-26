@@ -8,18 +8,9 @@ from django.template.loader import render_to_string
 
 import weasyprint
 
+from maykinbooking.utils.pdf import data_url_fetcher
 
-def data_url_fetcher(url, timeout=10, ssl_context=None):
-    """
-    WeasyPrint URL fetcher that only allows inline ``data:`` URLs.
-
-    The PDF contains text from guests and staff (names, hotel descriptions); it
-    must never make WeasyPrint read local files or call other servers. A refused
-    resource is left out of the PDF and logged by WeasyPrint as a warning.
-    """
-    if not url.startswith("data:"):
-        raise ValueError(f"Only data: URLs are allowed in the booking PDF: {url!r}")
-    return weasyprint.default_url_fetcher(url, timeout=timeout, ssl_context=ssl_context)
+__all__ = ["data_url_fetcher", "render_order_pdf"]
 
 
 def render_order_pdf(order):

@@ -129,9 +129,10 @@ class TestOrderConstraints(TestCase):
 
     def test_one_night_per_date(self):
         order = self.create_order()
-        OrderNight.objects.create(order=order, date=date(2027, 1, 10), price=1)
+        night = {"date": date(2027, 1, 10), "base_price": 1, "price": 1}
+        OrderNight.objects.create(order=order, **night)
         with self.assertRaises(IntegrityError), transaction.atomic():
-            OrderNight.objects.create(order=order, date=date(2027, 1, 10), price=1)
+            OrderNight.objects.create(order=order, **night)
 
 
 class TestRoomBlock(TestCase):

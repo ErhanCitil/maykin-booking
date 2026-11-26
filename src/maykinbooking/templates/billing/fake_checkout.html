@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+{% load i18n %}
+<html lang="nl">
+  <head>
+    {% comment %}
+      The payment page of the fake payment provider (development and CI only;
+      billing.views.FakeCheckoutView). Stands in for the iDEAL page of Mollie,
+      so it has no menu of the site: the guest is "at the bank" here.
+    {% endcomment %}
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <meta name="referrer" content="no-referrer" />
+    <title>{% trans "Testbetaling" %} · Maykin Booking</title>
+    {% include 'components/head.html' %}
+  </head>
+  <body class="min-h-screen flex flex-col bg-linen text-ink font-sans antialiased">
+    <header class="bg-ink">
+      <div class="max-w-site mx-auto px-6 md:px-8 py-5 flex flex-wrap items-center justify-between gap-4">
+        {% include 'components/logo.html' with variant='light' %}
+        <span class="inline-flex items-center gap-2 rounded-full border-[1.5px] border-linen/35 px-4 min-h-[36px] text-sm font-semibold text-linen">
+          <svg aria-hidden="true" viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+          {% trans "Nep-betaalprovider" %}
+        </span>
+      </div>
+    </header>
+
+    <div role="note" class="bg-lantern text-ink">
+      <p class="max-w-site mx-auto px-6 md:px-8 py-3 text-[15px] font-semibold">{% trans "Testbetaling, er wordt geen echt geld afgeschreven." %} <span class="font-normal">{% trans "Deze pagina bestaat alleen in ontwikkeling en tests, in plaats van de iDEAL-pagina van de bank." %}</span></p>
+    </div>
+
+    <main class="flex-1 w-full max-w-xl mx-auto px-6 py-14">
+      <p class="eyebrow">{% trans "Testbetaling" %}</p>
+      <h1 class="font-display font-semibold text-4xl tracking-[-0.02em] mt-3">{% trans "Betaal je boeking" %}</h1>
+
+      <div class="mt-8 card p-7">
+        <dl class="text-sm space-y-2.5">
+          <div class="flex justify-between gap-4"><dt class="text-muted">{% trans "Omschrijving" %}</dt><dd class="text-right">{{ payment.description }}</dd></div>
+          <div class="flex justify-between gap-4"><dt class="text-muted">{% trans "Betaling" %}</dt><dd class="text-right font-mono text-[13px] break-all">{{ payment.id }}</dd></div>
+          <div class="flex justify-between gap-4"><dt class="text-muted">{% trans "Status" %}</dt><dd class="text-right">{% if payment.status == "open" %}{% trans "Open" %}{% elif payment.status == "paid" %}{% trans "Betaald" %}{% elif payment.status == "failed" %}{% trans "Mislukt" %}{% elif payment.status == "canceled" %}{% trans "Geannuleerd" %}{% else %}{{ payment.status }}{% endif %}</dd></div>
+          <div class="flex justify-between items-baseline gap-4 pt-2.5 border-t border-seam"><dt class="font-semibold">{% trans "Te betalen" %}</dt><dd class="font-display font-semibold text-3xl">€ {{ payment.amount|floatformat:2 }}</dd></div>
+        </dl>
+
+        {% if payment.status == "open" %}
+        <form method="post" class="mt-7">
+          {% csrf_token %}
+          <p class="text-sm text-muted">{% trans "Kies wat de bank doet met deze betaling:" %}</p>
+          <div class="mt-3 flex flex-col gap-3">
+            <button type="submit" name="action" value="paid" class="btn-primary w-full">{% trans "Betaald" %}</button>
+            <div class="grid gap-3 sm:grid-cols-2">
+              <button type="submit" name="action" value="failed" class="btn-outline">{% trans "Mislukt" %}</button>
+              <button type="submit" name="action" value="canceled" class="btn-outline">{% trans "Geannuleerd" %}</button>
+            </div>
+          </div>
+        </form>
+        {% else %}
+        <p class="mt-6 text-sm text-muted">{% trans "Deze betaling is afgerond." %}</p>
+        <a href="{{ payment.redirect_url }}" class="btn-dark w-full mt-4">{% trans "Terug naar de site" %}</a>
+        {% endif %}
+      </div>
+    </main>
+  </body>
+</html>

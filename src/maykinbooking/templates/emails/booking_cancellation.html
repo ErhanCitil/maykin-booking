@@ -12,15 +12,25 @@
 
 {% include "emails/_booking_summary.html" with cancelled=True %}
 
-{% if order.payment_status == "at_hotel" or order.payment_status == "open" %}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; margin-top:20px;">
   <tr>
     <td class="mb-note mb-text" bgcolor="#EEF5F3" style="padding:14px 18px; background-color:#EEF5F3; border-left:4px solid #2E6B62; color:#13243A; font-family:Helvetica, Arial, sans-serif; font-size:15px; line-height:22px;">
+      {% if refund or payment.status == "paid" %}
+      {% if refund.status == "refunded" %}
+      <strong>{% if refund.refunded_at %}{% blocktrans with amount=refund.amount|floatformat:2 date=refund.refunded_at|date:"j F Y" %}€ {{ amount }} is op {{ date }} teruggestort op je rekening.{% endblocktrans %}{% else %}{% blocktrans with amount=refund.amount|floatformat:2 %}€ {{ amount }} is teruggestort op je rekening.{% endblocktrans %}{% endif %}</strong>
+      {% else %}
+      <strong>{% blocktrans with amount=refund.amount|default:payment.amount|floatformat:2 %}€ {{ amount }} wordt teruggestort op je rekening (1–3 werkdagen).{% endblocktrans %}</strong>
+      {% trans "Je krijgt een e-mail zodra we het bedrag hebben teruggestort." %}
+      {% endif %}
+      {% else %}
       <strong>{% trans "Je hoeft niets te betalen." %}</strong>
       {% trans "Er wordt niets in rekening gebracht." %}
+      {% endif %}
     </td>
   </tr>
 </table>
+{% if credit_note %}
+<p style="margin:16px 0 0;">{% blocktrans with number=credit_note.number %}De creditnota zit als PDF in de bijlage (creditnotanummer {{ number }}).{% endblocktrans %}</p>
 {% endif %}
 
 {% include "emails/_button.html" with url=my_booking_url label=_("Bekijk je boeking") dark=True %}

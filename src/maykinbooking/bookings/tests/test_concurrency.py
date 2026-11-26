@@ -14,6 +14,7 @@ from django.utils import timezone
 
 from maykinbooking.base.models import Order
 from maykinbooking.base.tests.factories import HotelFactory, RoomFactory
+from maykinbooking.billing.tests.utils import TempMediaMixin
 
 from ..services.booking import Actor, RoomUnavailable, create_booking
 
@@ -30,7 +31,7 @@ GUEST = {
 
 
 @skipUnless(connection.vendor == "postgresql", "needs SELECT ... FOR UPDATE")
-class LastRoomRaceTests(TransactionTestCase):
+class LastRoomRaceTests(TempMediaMixin, TransactionTestCase):
     def book_at_the_same_time(self, room, start, end):
         barrier = threading.Barrier(2, timeout=10)
         results = []

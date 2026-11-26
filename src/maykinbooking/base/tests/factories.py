@@ -69,10 +69,12 @@ def _nights(order):
 class OrderFactory(factory.django.DjangoModelFactory):
     """
     A confirmed order, like the booking service makes it: with ``total_price``
-    and one ``OrderNight`` per night at the room price.
+    and one ``OrderNight`` per night at the room price (no price rules, no
+    discounts).
 
     ``OrderFactory(nights=False)`` skips the nights. Note: ``create_booking``
-    checks availability, this factory does not.
+    checks availability, this factory does not, and it makes no invoice (like
+    an order from before invoicing); see ``billing.tests.utils``.
     """
 
     class Meta:
@@ -90,6 +92,7 @@ class OrderFactory(factory.django.DjangoModelFactory):
     email = factory.Sequence(lambda n: f"gast{n}@example.com")
     address = factory.fuzzy.FuzzyText(length=100)
     zipcode = factory.fuzzy.FuzzyText(length=6)
+    city = "Amsterdam"
     country = "NL"
     status = OrderStatus.CONFIRMED
     payment_status = PaymentStatus.AT_HOTEL
@@ -108,6 +111,7 @@ class OrderFactory(factory.django.DjangoModelFactory):
             OrderNight(
                 order=self,
                 date=self.start_date + datetime.timedelta(days=offset),
+                base_price=price,
                 price=price,
             )
             for offset in range(_nights(self))

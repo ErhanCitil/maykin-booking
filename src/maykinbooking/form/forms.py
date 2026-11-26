@@ -1,4 +1,6 @@
+import logging
 from datetime import timedelta
+from decimal import Decimal, InvalidOperation
 
 from django import forms
 from django.core.exceptions import ValidationError
@@ -7,14 +9,21 @@ from django.utils.translation import gettext_lazy as _
 
 from maykinbooking.base.models import Order, Room
 from maykinbooking.base.validators import no_control_characters
+from maykinbooking.billing.services.pricing import (
+    InvalidDiscountCode,
+    check_discount_code,
+)
 from maykinbooking.bookings.services.availability import (
     MAX_DAYS_AHEAD,
     MAX_NIGHTS,
     available_rooms,
     validate_stay_period,
 )
+from maykinbooking.bookings.services.booking import PaymentMethod
 
 from .models import ContactForm
+
+logger = logging.getLogger(__name__)
 
 # ``<input type="date">`` only accepts ISO dates; the Dutch input format
 # (``%d-%m-%Y``) would leave the field empty.
@@ -121,15 +130,32 @@ class RoomChoiceField(forms.ModelChoiceField):
         return f"{room.get_room_type_display()} · € {room.price} per nacht"
 
 
+# One message for every code that cannot be used (unknown, expired, used up,
+# ...), so guests cannot find out which codes exist.
+INVALID_DISCOUNT_CODE = _("Deze kortingscode is niet geldig.")
+DISCOUNT_CODE_THROTTLED = _(
+    "Je hebt te vaak een kortingscode geprobeerd. Probeer het over een uur "
+    "opnieuw, of ga verder zonder kortingscode."
+)
+
+
 class StayForm(forms.Form):
     """
-    Checkout step 1: dates and one of the hotel's rooms that is free for them.
+    Checkout step 1: dates, one of the hotel's rooms that is free for them, and
+    optionally a discount code.
 
     Once the period is known (posted data, or the initial dates from
     ``?van=&tot=``), only the rooms that are free for the whole stay
     (``available_rooms``) can be chosen. A room that is no longer free fails
     validation, so the revalidation of the wizard sends the guest back to this
-    step when the room fills up before the last step.
+    step when the room fills up before the last step. The same goes for a
+    discount code that can no longer be used.
+
+    ``count_discount_code``: called just before a posted code is looked up;
+    returns ``True`` when this client tried too many codes, and the code is
+    then refused without looking it up. The checkout only passes it for the
+    data the guest posts (not when the stored steps are validated again), so
+    every code that is really looked up counts, and nothing else does.
     """
 
     start_date = forms.DateField(label=_("Inchecken"), widget=date_input())
@@ -147,9 +173,25 @@ class StayForm(forms.Form):
         },
     )
 
-    def __init__(self, *args, hotel, **kwargs):
+    discount_code = forms.CharField(
+        label=_("Kortingscode"),
+        required=False,
+        max_length=40,
+        error_messages={"max_length": INVALID_DISCOUNT_CODE},
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control uppercase",
+                "autocomplete": "off",
+                "autocapitalize": "characters",
+                "spellcheck": "false",
+            }
+        ),
+    )
+
+    def __init__(self, *args, hotel, count_discount_code=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.hotel = hotel
+        self.count_discount_code = count_discount_code
         self.period = self._get_period()
 
         rooms = hotel.room.filter(is_available=True, inventory__gt=0).order_by("price")
@@ -211,19 +253,46 @@ class StayForm(forms.Form):
         # room field, so it is rejected there ("invalid_choice").
         return cleaned_data
 
+    def clean_discount_code(self):
+        """
+        The code as stored (``" zomer-26 "`` -> ``"ZOMER-26"``), or ``""``. Only
+        whether it can be used today; its amount follows from the quote.
+        """
+        code = self.cleaned_data["discount_code"]
+        if not code:
+            return ""
+        if self.count_discount_code is not None and self.count_discount_code():
+            raise ValidationError(DISCOUNT_CODE_THROTTLED, code="throttled")
+        try:
+            discount = check_discount_code(code)
+        except InvalidDiscountCode as error:
+            # The reason only: the code itself stays out of the log.
+            logger.info("discount code refused reason=%s", error.reason)
+            raise ValidationError(INVALID_DISCOUNT_CODE, code="invalid_discount_code")
+        return discount.code
+
 
 class GuestForm(forms.ModelForm):
     """Checkout step 2: the guest's details."""
 
     class Meta:
         model = Order
-        fields = ("first_name", "last_name", "email", "address", "zipcode", "country")
+        fields = (
+            "first_name",
+            "last_name",
+            "email",
+            "address",
+            "zipcode",
+            "city",
+            "country",
+        )
         labels = {
             "first_name": "Voornaam",
             "last_name": "Achternaam",
             "email": "E-mailadres",
             "address": "Adres",
             "zipcode": "Postcode",
+            "city": _("Woonplaats"),
             "country": "Land",
         }
         widgets = {
@@ -241,6 +310,9 @@ class GuestForm(forms.ModelForm):
             ),
             "zipcode": forms.TextInput(
                 attrs={"class": "form-control", "autocomplete": "postal-code"}
+            ),
+            "city": forms.TextInput(
+                attrs={"class": "form-control", "autocomplete": "address-level2"}
             ),
             "country": forms.Select(
                 attrs={"class": "form-control", "autocomplete": "country"}
@@ -267,8 +339,33 @@ class GuestForm(forms.ModelForm):
 
 
 class ConfirmForm(forms.Form):
-    """Checkout step 3: review the booking and accept the terms."""
+    """
+    Checkout step 3: review the booking, choose how to pay and accept the terms.
 
+    ``payment_method``: paying at the hotel (also when left empty), or online
+    when ``online_payment`` is offered (the view decides: a provider is set up
+    and there is something to pay).
+
+    ``expected_total``: the total on the page the guest confirmed (a hidden
+    field). It is never used as the price: ``create_booking`` computes the
+    price itself and only compares it, so a changed price is shown before
+    anything is booked. Without it nothing is compared.
+    """
+
+    payment_method = forms.ChoiceField(
+        label=_("Hoe wil je betalen?"),
+        required=False,
+        widget=forms.RadioSelect(
+            attrs={"class": "h-5 w-5 mt-0.5 shrink-0 accent-[#13243A]"}
+        ),
+        error_messages={
+            "invalid_choice": _(
+                "Online betalen is voor deze boeking niet mogelijk. Kies betalen "
+                "in het hotel."
+            )
+        },
+    )
+    expected_total = forms.CharField(required=False, widget=forms.HiddenInput)
     terms = forms.BooleanField(
         label="Ik ga akkoord met de voorwaarden van het hotel",
         widget=forms.CheckboxInput(
@@ -278,3 +375,37 @@ class ConfirmForm(forms.Form):
             "required": "Je moet akkoord gaan met de voorwaarden om te boeken."
         },
     )
+
+    def __init__(self, *args, online_payment=False, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.online_payment = online_payment
+        choices = [(PaymentMethod.AT_HOTEL.value, _("In het hotel betalen"))]
+        if online_payment:
+            choices.append((PaymentMethod.ONLINE.value, _("Nu online betalen (iDEAL)")))
+        field = self.fields["payment_method"]
+        field.choices = choices
+        field.initial = PaymentMethod.AT_HOTEL.value
+
+    def clean_payment_method(self):
+        return self.cleaned_data["payment_method"] or PaymentMethod.AT_HOTEL.value
+
+    def clean_expected_total(self):
+        """A ``Decimal``, or ``None`` when the page sent no total."""
+        value = self.cleaned_data["expected_total"]
+        if not value:
+            return None
+        try:
+            total = Decimal(value) if len(value) <= 20 else None
+        except InvalidOperation:
+            total = None
+        if total is None or not total.is_finite() or total < 0:
+            # A hidden field: shown with the errors of the whole form.
+            self.add_error(
+                None,
+                ValidationError(
+                    _("De prijs kon niet gecontroleerd worden. Bevestig opnieuw."),
+                    code="invalid_expected_total",
+                ),
+            )
+            return None
+        return total

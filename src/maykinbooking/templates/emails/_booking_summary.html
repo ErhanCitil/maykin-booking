@@ -1,7 +1,11 @@
 {% load i18n l10n %}{% comment %}
   The booking details block of a mail: hotel, address, room, dates and number of
-  nights. With show_prices=True also the price of every night (the snapshot in
-  ``nights``, never the current room price) and the total.
+  nights. With show_prices=True also how the price was made, from the snapshots
+  in the context (never the current room price or price rules):
+  * every night (``nights``) with its surcharges (weekend, season);
+  * the subtotal and the discounts (``subtotal``, ``discount_lines``), if any;
+  * the total (``order.total_price``);
+  * how it is paid: online (``payment``) or at the hotel.
   With cancelled=True the heading says the booking is cancelled.
 {% endcomment %}<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="mb-panel" bgcolor="#F6F1E8" style="width:100%; background-color:#F6F1E8; border-radius:12px;">
   <tr>
@@ -19,15 +23,23 @@
       </table>
 
       {% if show_prices %}
-      <p class="mb-accent" style="margin:24px 0 0; color:#B4492A; font-family:Helvetica, Arial, sans-serif; font-size:12px; line-height:16px; font-weight:bold; letter-spacing:0.16em; text-transform:uppercase;">{% trans "Prijs per nacht" %}</p>
+      <p class="mb-accent" style="margin:24px 0 0; color:#B4492A; font-family:Helvetica, Arial, sans-serif; font-size:12px; line-height:16px; font-weight:bold; letter-spacing:0.16em; text-transform:uppercase;">{% trans "Prijsopbouw" %}</p>
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; margin-top:8px; border-collapse:collapse;">
         {% for night in nights %}
-        {% include "emails/_row.html" with label=night.date|date:"l j F" value=night.price money=True %}
+        {% include "emails/_row.html" with label=night.date|date:"l j F" value=night.price money=True surcharges=night %}
         {% endfor %}
+        {% if discount_lines %}
+        {% include "emails/_row.html" with label=_("Subtotaal") value=subtotal money=True %}
+        {% for line in discount_lines %}
+        {% include "emails/_row.html" with label=line.label value=line.amount money=True minus=True %}
+        {% endfor %}
+        {% endif %}
         {% blocktrans count counter=night_count asvar total_label %}Totaal ({{ counter }} nacht){% plural %}Totaal ({{ counter }} nachten){% endblocktrans %}
         {% include "emails/_row.html" with label=total_label value=order.total_price money=True strong=True %}
       </table>
-      {% if order.payment_status == "at_hotel" %}
+      {% if payment.status == "paid" %}
+      <p class="mb-ok" style="margin:12px 0 0; color:#2E6B62; font-family:Helvetica, Arial, sans-serif; font-size:14px; line-height:20px; font-weight:bold;">{% if payment.paid_at %}{% blocktrans with date=payment.paid_at|date:"j F Y" %}Betaald via iDEAL op {{ date }}.{% endblocktrans %}{% else %}{% trans "Betaald via iDEAL." %}{% endif %}</p>
+      {% elif order.payment_status == "at_hotel" %}
       <p class="mb-muted" style="margin:12px 0 0; color:#4F5A6B; font-family:Helvetica, Arial, sans-serif; font-size:14px; line-height:20px;">{% trans "Je betaalt in het hotel bij aankomst." %}</p>
       {% endif %}
       {% endif %}

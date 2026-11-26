@@ -27,12 +27,15 @@ from maykinbooking.base.tests.factories import (
     RoomBlockFactory,
     RoomFactory,
 )
+from maykinbooking.billing.tests.utils import TempMediaMixin
 
 from ..services.booking import (
     Actor,
+    BookingResult,
     CancellationNotAllowed,
     InvalidTransition,
     RoomUnavailable,
+    book_room,
     cancel_booking,
     create_booking,
     create_room_block,
@@ -48,6 +51,7 @@ GUEST = {
     "email": "alex@example.com",
     "address": "Keizersgracht 117",
     "zipcode": "1015CJ",
+    "city": "Amsterdam",
     "country": "NL",
 }
 
@@ -58,7 +62,7 @@ def in_days(days):
     return timezone.localdate() + timedelta(days=days)
 
 
-class BookingTestCase(TestCase):
+class BookingTestCase(TempMediaMixin, TestCase):
     def setUp(self):
         self.hotel = HotelFactory(is_available=True)
         self.room = RoomFactory(
@@ -227,14 +231,61 @@ class IdempotentBookingTests(BookingTestCase):
         first = self.book_with_token()
         self.assertEqual(self.book_with_token().pk, first.pk)
 
+    def book_room_with_token(self, room=None):
+        return book_room(
+            room_id=(room or self.room).pk,
+            start=in_days(7),
+            end=in_days(10),
+            guest=GUEST,
+            language="nl",
+            actor=Actor.guest(),
+            token=self.token,
+        )
+
+    def test_book_room_says_whether_it_made_the_order(self):
+        """Review S3: the checkout learns from the service who booked."""
+        first = self.book_room_with_token()
+        second = self.book_room_with_token()
+        self.assertIsInstance(first, BookingResult)
+        self.assertTrue(first.created)
+        self.assertFalse(second.created)
+        self.assertEqual(second.order, first.order)
+
+    def test_lost_race_on_the_unique_token_gives_the_winning_order(self):
+        """
+        A request for another room with the same token got past the token check
+        while the first one was booking: it meets the first at the unique token
+        (IntegrityError) and gets that order, created=False.
+        """
+        other_room = RoomFactory(hotel=self.hotel, inventory=5, is_available=True)
+        winner = OrderFactory(hotel=self.hotel, room=self.room, token=self.token)
+        real_filter = Order.objects.filter
+
+        def token_not_seen_yet(*args, **kwargs):
+            if kwargs.get("token") == self.token and not hasattr(self, "seen"):
+                self.seen = True
+                return real_filter(pk__in=[])
+            return real_filter(*args, **kwargs)
+
+        with mock.patch.object(Order.objects, "filter", side_effect=token_not_seen_yet):
+            result = self.book_room_with_token(room=other_room)
+
+        self.assertEqual((result.order, result.created), (winner, False))
+        self.assertFalse(other_room.orders.exists())
+
 
 class QuoteTests(BookingTestCase):
     def test_price_per_night_and_total(self):
+        # Without price rules (all percentages 0) every night costs the room price.
         result = quote(self.room, in_days(1), in_days(4))
         self.assertEqual(
-            result.nights,
-            [(in_days(day), Decimal("100.00")) for day in (1, 2, 3)],
+            [(night.date, night.base_price, night.price) for night in result.nights],
+            [(in_days(day), Decimal("100.00"), Decimal("100.00")) for day in (1, 2, 3)],
         )
+        self.assertEqual(result.subtotal, Decimal("300.00"))
+        self.assertEqual(result.length_discount, Decimal("0.00"))
+        self.assertEqual(result.code_discount, Decimal("0.00"))
+        self.assertIsNone(result.discount)
         self.assertEqual(result.total, Decimal("300.00"))
 
 
@@ -574,10 +625,18 @@ class ExpireStalePendingTests(TestCase):
         for order in stale:
             order.refresh_from_db()
             self.assertEqual(order.status, OrderStatus.EXPIRED)
-            change = order.status_changes.get()
+            # Nothing came in and nothing can be paid anymore: not "open".
+            self.assertEqual(order.payment_status, PaymentStatus.UNPAID)
             self.assertEqual(
-                (change.old_value, change.new_value, change.actor_type),
-                ("pending_payment", "expired", "system"),
+                list(
+                    order.status_changes.values_list(
+                        "field", "old_value", "new_value", "actor_type"
+                    )
+                ),
+                [
+                    ("status", "pending_payment", "expired", "system"),
+                    ("payment_status", "open", "unpaid", "system"),
+                ],
             )
         for order in [active, confirmed]:
             order.refresh_from_db()

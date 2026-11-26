@@ -7,7 +7,9 @@ Edge cases of availability, booking and "Mijn boeking", through the pages:
 * checking in today, where "today" is the date in Amsterdam, not in UTC;
 * a room block and bookings on the same nights;
 * a booking that waits for payment (hold of 15 minutes);
-* a room type whose 5 rooms are all booked.
+* a room type whose 5 rooms are all booked;
+* money (phase 2): the last use of a discount code, a code that makes the stay
+  free, and an online booking that holds the last room.
 
 Time is frozen on Monday 1 March 2027, 10:00 in Amsterdam, unless a test says
 otherwise.
@@ -18,12 +20,12 @@ from decimal import Decimal
 from django.core import mail
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from freezegun import freeze_time
 
-from maykinbooking.accounts.tests.factories import StaffUserFactory
+from maykinbooking.accounts.tests.factories import ManagerUserFactory
 from maykinbooking.base.models import (
     City,
     Hotel,
@@ -34,6 +36,9 @@ from maykinbooking.base.models import (
     RoomBlock,
 )
 from maykinbooking.base.tests.factories import OrderFactory
+from maykinbooking.billing.models import DiscountKind, Payment
+from maykinbooking.billing.tests.factories import DiscountCodeFactory
+from maykinbooking.billing.tests.utils import TempMediaMixin, path_of
 
 from ..services.booking import Actor, RoomUnavailable, cancel_booking, create_booking
 
@@ -46,6 +51,7 @@ GUEST = {
     "email": "alex@example.com",
     "address": "Keizersgracht 117",
     "zipcode": "1015CJ",
+    "city": "Amsterdam",
     "country": "NL",
 }
 
@@ -60,7 +66,7 @@ def period(start, end):
 
 
 @freeze_time(NOW)
-class PageTestCase(TestCase):
+class PageTestCase(TempMediaMixin, TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.city = City.objects.create(city_id="DEL", name="Delft")
@@ -74,7 +80,7 @@ class PageTestCase(TestCase):
             description="Kamer",
             inventory=1,
         )
-        cls.staff = StaffUserFactory(username="medewerker")
+        cls.staff = ManagerUserFactory(username="medewerker")
         cls.city_url = reverse("stad", args=[cls.city.name])
         cls.order_url = reverse("order", args=[cls.hotel.pk])
         cls.hotel_url = reverse("hotel_detail", args=[cls.hotel.pk])
@@ -111,14 +117,19 @@ class PageTestCase(TestCase):
         payload.update({f"{step}-{key}": value for key, value in data.items()})
         return self.client.post(url or self.order_url, payload)
 
-    def checkout(self, start, end, room=None):
+    def checkout(self, start, end, room=None, *, stay=None, confirm=None):
         """Go through the three steps; returns the response of every step."""
         stay = self.post_step(
             "stay",
-            {"start_date": start, "end_date": end, "room": (room or self.room).pk},
+            {
+                "start_date": start,
+                "end_date": end,
+                "room": (room or self.room).pk,
+                **(stay or {}),
+            },
         )
         guest = self.post_step("guest", GUEST)
-        confirm = self.post_step("confirm", {"terms": "on"})
+        confirm = self.post_step("confirm", {"terms": "on", **(confirm or {})})
         return stay, guest, confirm
 
     def my_booking(self, order, name="detail"):
@@ -488,3 +499,81 @@ class FullRoomTypeTests(PageTestCase):
         response = self.client.get(self.hotel_url, period(day(10), day(11)))
         self.assertEqual(response.context["free_room_ids"], {single.pk})
         self.assertContains(response, "Niet vrij in deze periode", count=1)
+
+
+@override_settings(
+    MOLLIE_API_KEY="",
+    PAYMENT_FAKE_PROVIDER=True,
+    SITE_URL="https://booking.example.com",
+)
+class MoneyEdgeCasesTests(PageTestCase):
+    def test_last_use_of_a_code_goes_to_the_first_guest(self):
+        code = DiscountCodeFactory(code="EENMALIG", max_uses=1)
+        Room.objects.filter(pk=self.room.pk).update(inventory=2)
+
+        *_, confirm = self.checkout(
+            day(10), day(12), stay={"discount_code": "EENMALIG"}
+        )
+        self.assertEqual(confirm.status_code, 302)
+        code.refresh_from_db()
+        self.assertEqual(code.times_used, 1)
+
+        stay, *_ = self.checkout(day(10), day(12), stay={"discount_code": "EENMALIG"})
+        self.assert_on_stay_step(stay)
+        self.assertContains(stay, "Deze kortingscode is niet geldig.", count=1)
+        self.assertEqual(Order.objects.count(), 1)
+
+    def test_failed_online_payment_gives_the_code_back(self):
+        code = DiscountCodeFactory(code="EENMALIG", max_uses=1)
+        *_, confirm = self.checkout(
+            day(10),
+            day(12),
+            stay={"discount_code": "EENMALIG"},
+            confirm={"payment_method": "online"},
+        )
+        code.refresh_from_db()
+        self.assertEqual(code.times_used, 1)
+
+        response = self.client.post(path_of(confirm["Location"]), {"action": "failed"})
+        self.client.get(path_of(response["Location"]))
+
+        code.refresh_from_db()
+        self.assertEqual(code.times_used, 0)
+        self.assertEqual(Order.objects.get().status, OrderStatus.EXPIRED)
+        # Another try with the same code works.
+        *_, confirm = self.checkout(
+            day(10), day(12), stay={"discount_code": "EENMALIG"}
+        )
+        self.assertEqual(confirm.status_code, 302)
+        self.assertEqual(Order.objects.filter(status=OrderStatus.CONFIRMED).count(), 1)
+
+    def test_code_that_makes_the_stay_free_is_paid_at_the_hotel(self):
+        DiscountCodeFactory(code="GRATIS", kind=DiscountKind.PERCENT, value=100)
+        stay, guest, confirm = self.checkout(
+            day(10), day(12), stay={"discount_code": "GRATIS"}
+        )
+        self.assertContains(guest, "€ 0,00")
+        self.assertNotContains(guest, 'value="online"')
+        order = Order.objects.get()
+        self.assertEqual(order.total_price, Decimal("0.00"))
+        self.assertEqual(order.payment_status, PaymentStatus.AT_HOTEL)
+        self.assertFalse(Payment.objects.exists())
+
+    def test_online_booking_holds_the_last_room_until_its_hold_passes(self):
+        *_, confirm = self.checkout(
+            day(10), day(12), confirm={"payment_method": "online"}
+        )
+        self.assertEqual(confirm.status_code, 302)
+        order = Order.objects.get()
+        self.assertEqual(order.status, OrderStatus.PENDING_PAYMENT)
+
+        # Another guest (another session) finds the room taken.
+        self.client.logout()
+        self.client.cookies.clear()
+        self.assertEqual(self.listed(day(10), day(12)), [])
+        stay, *_ = self.checkout(day(10), day(12))
+        self.assertContains(stay, "Geen kamers vrij in deze periode.")
+
+        # After the hold (15 minutes) the room is free again.
+        with freeze_time("2027-03-01T09:16:00Z"):
+            self.assertEqual(self.listed(day(10), day(12)), [self.hotel.name])

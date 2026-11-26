@@ -68,7 +68,8 @@ deterministisch, dus dezelfde OSM-data geeft altijd hetzelfde bestand.
 - **Voorwaarden**: algemene voorwaarden van Maykin Booking ("Voor boekingen via
   Maykin Booking gelden de volgende voorwaarden."), dus geen regels van het hotel
   zelf. Ze gaan over in- en uitchecken, gratis annuleren tot 24 uur vooraf, betalen
-  in het hotel en toeristenbelasting die ter plekke wordt afgerekend.
+  (online bij het boeken of in het hotel bij aankomst) en toeristenbelasting die
+  ter plekke wordt afgerekend.
 - **Foto's**: de hotelfoto's rouleren per stad vanaf een ander startpunt. De
   kamerfoto's horen bij het kamertype. De eenvoudigste familiekamerfoto
   (`family-3.jpg`) wordt niet bij 4- en 5-sterrenhotels gebruikt.

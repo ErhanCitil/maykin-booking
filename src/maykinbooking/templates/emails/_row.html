@@ -1,9 +1,13 @@
 {% comment %}
   One label/value row of a details table in a mail.
   Use: {% include "emails/_row.html" with label=_("Kamer") value=order.room.get_room_type_display %}
-  Optional: money=True shows value as an amount ("€ 75,50"), strong=True for a
-  total row.
+  Optional:
+  * money=True shows value as an amount ("€ 75,50");
+  * minus=True with money=True shows a discount: "− € 20,00" (value is positive);
+  * strong=True for a total row;
+  * surcharges=night (an OrderNight) adds how its price was made under the
+    label ("basisprijs € 100,00, weekend +20%"), if it had a surcharge.
 {% endcomment %}<tr>
-  <td class="mb-line {% if strong %}mb-text{% else %}mb-muted{% endif %}" valign="top" style="padding:10px 12px 10px 0; border-top:1px solid #E4DCCD; color:{% if strong %}#13243A{% else %}#4F5A6B{% endif %}; font-family:Helvetica, Arial, sans-serif; font-size:15px; line-height:22px;{% if strong %} font-weight:bold;{% endif %}">{{ label }}</td>
-  <td class="mb-line mb-text" valign="top" align="right" style="padding:10px 0; border-top:1px solid #E4DCCD; color:#13243A; font-family:Helvetica, Arial, sans-serif; font-size:{% if strong %}18px{% else %}15px{% endif %}; line-height:22px; text-align:right;{% if money %} white-space:nowrap;{% endif %}{% if strong %} font-weight:bold;{% endif %}">{% if money %}€ {{ value|floatformat:2 }}{% else %}{{ value }}{% endif %}</td>
+  <td class="mb-line {% if strong %}mb-text{% else %}mb-muted{% endif %}" valign="top" style="padding:10px 12px 10px 0; border-top:1px solid #E4DCCD; color:{% if strong %}#13243A{% else %}#4F5A6B{% endif %}; font-family:Helvetica, Arial, sans-serif; font-size:15px; line-height:22px;{% if strong %} font-weight:bold;{% endif %}">{{ label }}{% if surcharges.weekend_percent or surcharges.season_percent %}<br><span class="mb-muted" style="color:#4F5A6B; font-size:13px; line-height:18px;">{% include "emails/_night_surcharges.html" with night=surcharges %}</span>{% endif %}</td>
+  <td class="mb-line mb-text" valign="top" align="right" style="padding:10px 0; border-top:1px solid #E4DCCD; color:#13243A; font-family:Helvetica, Arial, sans-serif; font-size:{% if strong %}18px{% else %}15px{% endif %}; line-height:22px; text-align:right;{% if money %} white-space:nowrap;{% endif %}{% if strong %} font-weight:bold;{% endif %}">{% if money %}{% if minus %}− {% endif %}€ {{ value|floatformat:2 }}{% else %}{{ value }}{% endif %}</td>
 </tr>

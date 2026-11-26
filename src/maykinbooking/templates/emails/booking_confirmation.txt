@@ -13,12 +13,15 @@
 {% trans "Verblijf" %}: {% blocktrans count counter=night_count %}{{ counter }} nacht{% plural %}{{ counter }} nachten{% endblocktrans %}
 
 
-{% trans "Prijs per nacht" %}
+{% trans "Prijsopbouw" %}
 ----------------------------------------
-{% for night in nights %}- {{ night.date|date:"l j F" }}: € {{ night.price|floatformat:2 }}
+{% comment %}The surcharge sentence of emails/_night_surcharges.html, inline: an include would end the line.{% endcomment %}{% for night in nights %}- {{ night.date|date:"l j F" }}: € {{ night.price|floatformat:2 }}{% if night.surcharges %} ({% blocktrans with base=night.base_price|floatformat:2 labels=night.surcharges|join:", " %}basisprijs € {{ base }}, {{ labels }}{% endblocktrans %}){% endif %}
 {% endfor %}
-{% trans "Totaal" %}: € {{ order.total_price|floatformat:2 }}
-{% if order.payment_status == "at_hotel" %}{% trans "Je betaalt in het hotel bij aankomst." %}
+{% if discount_lines %}{% trans "Subtotaal" %}: € {{ subtotal|floatformat:2 }}
+{% for line in discount_lines %}{{ line.label }}: − € {{ line.amount|floatformat:2 }}
+{% endfor %}{% endif %}{% trans "Totaal" %}: € {{ order.total_price|floatformat:2 }}
+{% if payment.status == "paid" %}{% if payment.paid_at %}{% blocktrans with date=payment.paid_at|date:"j F Y" %}Betaald via iDEAL op {{ date }}.{% endblocktrans %}{% else %}{% trans "Betaald via iDEAL." %}{% endif %}
+{% elif order.payment_status == "at_hotel" %}{% trans "Je betaalt in het hotel bij aankomst." %}
 {% endif %}
 
 {% trans "Bekijk je boeking:" %}
@@ -26,7 +29,8 @@
 
 {% if can_cancel %}{% blocktrans with day=last_free_cancellation_day|date:"l j F" %}Kosteloos annuleren kan tot en met {{ day }}.{% endblocktrans %} {% trans "Dat regel je zelf via Mijn boeking." %}{% else %}{% trans "Kosteloos annuleren kan voor deze boeking niet meer." %} {% trans "Wil je toch annuleren? Mail ons:" %} {{ contact_email }}{% endif %}
 
-{% trans "De bevestiging zit ook als PDF in de bijlage." %}
+{% trans "De bevestiging zit ook als PDF in de bijlage." %}{% if invoice %}
+{% blocktrans with number=invoice.number %}De factuur zit als PDF in de bijlage (factuurnummer {{ number }}).{% endblocktrans %}{% endif %}
 
 {% blocktrans with city=order.hotel.city.name %}We wensen je een fijn verblijf in {{ city }}.{% endblocktrans %}
 

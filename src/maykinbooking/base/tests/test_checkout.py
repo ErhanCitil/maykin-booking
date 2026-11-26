@@ -1,4 +1,5 @@
-"""The checkout wizard (US1.2, testpunt 5)."""
+"""The checkout wizard (US1.2, testpunt 5; phase 2: prices and discount codes)."""
+import re
 import uuid
 from datetime import timedelta
 from decimal import Decimal
@@ -9,7 +10,7 @@ from django.core import mail
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
-from django.test import TestCase, override_settings
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -25,9 +26,23 @@ from maykinbooking.base.models import (
     PaymentStatus,
     Room,
 )
+from maykinbooking.billing.models import DiscountKind, PricingSettings
+from maykinbooking.billing.services.pricing import (
+    InvalidDiscountCode,
+    check_discount_code,
+)
+from maykinbooking.billing.tests.factories import (
+    DiscountCodeFactory,
+    SeasonPeriodFactory,
+)
+from maykinbooking.billing.tests.utils import TempMediaMixin
 from maykinbooking.bookings.services.booking import RoomUnavailable
 
 from .factories import OrderFactory, RoomBlockFactory
+
+INVALID_CODE = "Deze kortingscode is niet geldig."
+PRICE_CHANGED = "De prijs van dit verblijf is gewijzigd."
+EXPECTED_TOTAL = re.compile(r'name="confirm-expected_total" value="([^"]*)"')
 
 GUEST = {
     "first_name": "Alex",
@@ -35,11 +50,12 @@ GUEST = {
     "email": "alex@example.com",
     "address": "Keizersgracht 117",
     "zipcode": "1015 CJ",
+    "city": "Amsterdam",
     "country": "NL",
 }
 
 
-class CheckoutTestCase(TestCase):
+class CheckoutTestCase(TempMediaMixin, TestCase):
     @classmethod
     def setUpTestData(cls):
         city = City.objects.create(city_id="AMS", name="Amsterdam")
@@ -74,8 +90,14 @@ class CheckoutTestCase(TestCase):
     def post_guest(self, **overrides):
         return self.post_step("guest", {**GUEST, **overrides})
 
-    def confirm(self):
-        return self.post_step("confirm", {"terms": "on"})
+    def confirm(self, **data):
+        return self.post_step("confirm", {"terms": "on", **data})
+
+    def expected_total(self, response):
+        """The total in the hidden field of step 3, as the browser posts it."""
+        match = EXPECTED_TOTAL.search(response.content.decode())
+        self.assertIsNotNone(match, "no expected_total on the page")
+        return match.group(1)
 
     def fill_room(self, room=None):
         """Another guest books the last room for the same period."""
@@ -118,9 +140,10 @@ class CheckoutTests(CheckoutTestCase):
         response = self.post_guest()
         self.assertContains(response, "Klopt alles?")
         self.assertContains(response, "alex@example.com")
+        self.assertContains(response, "1015CJ Amsterdam")
         self.assertEqual(Order.objects.count(), 0)
 
-        response = self.confirm()
+        response = self.confirm(expected_total=self.expected_total(response))
         order = Order.objects.get()
         detail_url = reverse("bookings:detail", kwargs={"token": order.token})
         self.assertRedirects(response, detail_url, fetch_redirect_response=False)
@@ -129,6 +152,7 @@ class CheckoutTests(CheckoutTestCase):
         self.assertEqual(order.start_date, self.start)
         self.assertEqual(order.end_date, self.end)
         self.assertEqual(order.zipcode, "1015CJ")
+        self.assertEqual(order.city, "Amsterdam")
         self.assertEqual(order.total_price, Decimal("300"))
         self.assertEqual(order.status, OrderStatus.CONFIRMED)
         self.assertEqual(order.payment_status, PaymentStatus.AT_HOTEL)
@@ -312,10 +336,10 @@ class CheckoutRoomFullBeforeConfirmTests(CheckoutTestCase):
         self.assertEqual(Order.objects.count(), 1)
 
     @mock.patch(
-        "maykinbooking.base.views.create_booking",
+        "maykinbooking.base.views.book_room",
         side_effect=RoomUnavailable("Deze kamer is niet meer vrij in deze periode."),
     )
-    def test_room_unavailable_while_booking_shows_step_one(self, create_booking):
+    def test_room_unavailable_while_booking_shows_step_one(self, book_room):
         # Another guest takes the last room after the revalidation of the steps,
         # but before ``create_booking`` locks the room.
         self.post_stay()
@@ -323,7 +347,7 @@ class CheckoutRoomFullBeforeConfirmTests(CheckoutTestCase):
 
         response = self.confirm()
 
-        create_booking.assert_called_once()
+        book_room.assert_called_once()
         self.assert_on_stay_step(response)
         self.assertContains(response, "Het boeken is niet gelukt.")
         self.assertContains(response, "Deze kamer is niet meer vrij in deze periode.")
@@ -335,10 +359,10 @@ class CheckoutRoomFullBeforeConfirmTests(CheckoutTestCase):
         self.assertContains(response, 'value="alex@example.com"')
 
     @mock.patch(
-        "maykinbooking.base.views.create_booking",
+        "maykinbooking.base.views.book_room",
         side_effect=ValidationError("Je kunt niet inchecken in het verleden."),
     )
-    def test_invalid_period_while_booking_shows_step_one(self, create_booking):
+    def test_invalid_period_while_booking_shows_step_one(self, book_room):
         self.post_stay()
         self.post_guest()
 
@@ -427,6 +451,23 @@ class DoubleSubmitTests(CheckoutTestCase):
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(order.status_changes.count(), 2)
 
+    def test_second_confirmation_for_the_last_room_goes_to_the_booking(self):
+        # The first confirmation took the last room: the steps of the second
+        # one are no longer valid, but it goes to the booking all the same.
+        Room.objects.filter(pk=self.room.pk).update(inventory=1)
+        saved = self.session_before_confirm()
+        first = self.confirm()
+
+        self.restore_session(saved)
+        second = self.confirm()
+
+        self.assertEqual(second["Location"], first["Location"])
+        self.assertEqual(Order.objects.count(), 1)
+        # The stale checkout is cleared: a new one gets a new token.
+        self.assertNotIn(
+            "booking_token", self.client.session["wizard_checkout"]["extra_data"]
+        )
+
     def test_token_is_made_at_the_first_step_and_kept(self):
         self.post_stay()
         token = self.client.session["wizard_checkout"]["extra_data"]["booking_token"]
@@ -456,13 +497,18 @@ class DoubleSubmitTests(CheckoutTestCase):
         )
 
         def other_request_wins(**kwargs):
+            # The other request (for another room) inserted the token first;
+            # book_room finds its order after the IntegrityError.
             OrderFactory(hotel=self.hotel, room=self.room, token=kwargs["token"])
             raise IntegrityError("UNIQUE constraint failed: base_order.token")
 
         with mock.patch(
-            "maykinbooking.base.views.create_booking", side_effect=other_request_wins
-        ):
+            "maykinbooking.bookings.services.booking._book_room",
+            side_effect=other_request_wins,
+        ), mock.patch("maykinbooking.base.views.start_online_payment") as start:
             response = self.confirm()
+
+        start.assert_not_called()
 
         detail_url = reverse("bookings:detail", kwargs={"token": token})
         self.assertRedirects(response, detail_url, fetch_redirect_response=False)
@@ -597,3 +643,371 @@ class CheckoutThrottleTests(CheckoutTestCase):
         self.assertEqual(base.BOOKING_LIMIT_PER_IP_PER_HOUR, 5)
         self.assertEqual(base.BOOKING_LIMIT_PER_EMAIL_PER_DAY, 3)
         self.assertEqual(base.BOOKING_PDF_LIMIT_PER_IP_PER_MINUTE, 20)
+
+
+class CheckoutPriceTests(CheckoutTestCase):
+    """Phase 2: the price of every night, the discounts and the total."""
+
+    def setUp(self):
+        super().setUp()
+        # From a Thursday to the Sunday: two weekend nights.
+        start = timezone.localdate() + timedelta(days=7)
+        self.start = start + timedelta(days=(3 - start.weekday()) % 7)
+        self.end = self.start + timedelta(days=3)
+        self.rules = PricingSettings.load()
+
+    def set_rules(self, **values):
+        PricingSettings.objects.filter(pk=1).update(**values)
+
+    def test_without_price_rules_every_night_costs_the_room_price(self):
+        response = self.post_stay()
+        self.assertContains(response, "€ 100 × 3 nachten")
+        self.assertNotContains(response, "weekend +")
+        self.assertEqual(response.context["stay"]["total"], Decimal("300.00"))
+
+    def test_weekend_surcharge_per_night(self):
+        self.set_rules(weekend_percent=Decimal("20"))
+        response = self.post_stay()
+        stay = response.context["stay"]
+        self.assertIsNone(stay["uniform_price"])
+        self.assertEqual(
+            [(line["price"], line["surcharges"]) for line in stay["night_lines"]],
+            [
+                (Decimal("100.00"), []),
+                (Decimal("120.00"), ["weekend +20%"]),
+                (Decimal("120.00"), ["weekend +20%"]),
+            ],
+        )
+        # The summary: the nights, then the total.
+        self.assertContains(response, "3 nachten")
+        self.assertContains(response, "weekend +20%", count=2)
+        self.assertContains(response, "€ 340,00", count=2)  # subtotal and total
+
+        # Step 3 shows the same, with the base price.
+        response = self.post_guest()
+        self.assertContains(response, "Prijsopbouw")
+        # In the table of step 3 and in the summary.
+        self.assertContains(response, "weekend +20%", count=4)
+        self.assertContains(response, "(basis € 100,00)", count=2)
+        self.assertEqual(self.expected_total(response), "340.00")
+        self.confirm(expected_total="340.00")
+        order = Order.objects.get()
+        self.assertEqual(order.total_price, Decimal("340.00"))
+        self.assertEqual(
+            list(order.nights.values_list("price", "weekend_percent")),
+            [
+                (Decimal("100.00"), Decimal("0.00")),
+                (Decimal("120.00"), Decimal("20.00")),
+                (Decimal("120.00"), Decimal("20.00")),
+            ],
+        )
+
+    def test_season_surcharge_with_its_name(self):
+        SeasonPeriodFactory(
+            name="Koningsdag", start_date=self.start, end_date=self.start, percent=50
+        )
+        response = self.post_stay()
+        self.assertContains(response, "Koningsdag +50%")
+        self.assertEqual(response.context["stay"]["total"], Decimal("350.00"))
+
+    def test_long_stay_discount(self):
+        self.set_rules(long_stay_min_nights=3, long_stay_percent=Decimal("10"))
+        response = self.post_stay()
+        self.assertContains(response, "Korting lang verblijf (10%)")
+        self.assertContains(response, "− € 30,00")
+        self.assertContains(response, "€ 270,00")
+        self.assertEqual(response.context["stay"]["subtotal"], Decimal("300.00"))
+
+    def test_many_nights_are_folded_away_in_the_summary(self):
+        self.end = self.start + timedelta(days=8)
+        response = self.post_stay()
+        self.assertFalse(response.context["stay"]["nights_open"])
+        self.assertContains(response, '<details class="group">')
+        self.end = self.start + timedelta(days=7)
+        response = self.post_stay()
+        self.assertContains(response, '<details class="group" open>')
+
+
+class CheckoutDiscountCodeTests(CheckoutTestCase):
+    """Phase 2: the optional discount code of step 1."""
+
+    def setUp(self):
+        super().setUp()
+        self.code = DiscountCodeFactory(code="WELKOM", value=Decimal("10"))
+
+    def test_code_field_is_folded_away_until_used(self):
+        unfolded = 'border-seam p-5" open>'
+        response = self.client.get(self.url)
+        self.assertContains(response, "Heb je een kortingscode?")
+        self.assertContains(response, 'name="stay-discount_code"')
+        self.assertNotContains(response, unfolded)
+        self.assertContains(self.post_stay(discount_code="NEP"), unfolded)
+
+    def test_valid_code_gives_its_discount(self):
+        response = self.post_stay(discount_code="welkom")
+        self.assertContains(response, "Wie verblijft er?")
+        self.assertContains(response, "Kortingscode WELKOM")
+        self.assertContains(response, "− € 30,00")
+        self.assertContains(response, "€ 270,00")
+
+        response = self.post_guest()
+        self.assertContains(response, "Kortingscode WELKOM")
+        self.assertEqual(self.expected_total(response), "270.00")
+        self.confirm(expected_total="270.00")
+
+        order = Order.objects.get()
+        self.assertEqual(order.discount_code, "WELKOM")
+        self.assertEqual(order.code_discount, Decimal("30.00"))
+        self.assertEqual(order.total_price, Decimal("270.00"))
+        self.code.refresh_from_db()
+        self.assertEqual(self.code.times_used, 1)
+        self.assertEqual(order.discount_redemption.code, self.code)
+
+    def test_invalid_code_stays_on_step_one_with_one_message(self):
+        for code in ["NEPCODE", "x", "WELKOM!"]:
+            with self.subTest(code=code):
+                response = self.post_stay(discount_code=code)
+                self.assert_on_stay_step(response)
+                self.assertContains(response, INVALID_CODE, count=1)
+                # Unfolded, and the field points at its error.
+                self.assertContains(
+                    response,
+                    'aria-invalid="true" aria-describedby="id_stay-discount_code_errors"',
+                )
+                self.assertContains(response, 'id="id_stay-discount_code_errors"')
+        self.assertEqual(Order.objects.count(), 0)
+
+    def test_used_up_code_gets_the_same_message(self):
+        DiscountCodeFactory(code="OPGEBRUIKT", max_uses=1, times_used=1)
+        response = self.post_stay(discount_code="OPGEBRUIKT")
+        self.assertContains(response, INVALID_CODE, count=1)
+
+    def test_code_used_up_before_confirming_sends_the_guest_back(self):
+        self.code.max_uses = 1
+        self.code.save()
+        self.post_stay(discount_code="WELKOM")
+        self.post_guest()
+        self.code.times_used = 1  # the last use went to another guest
+        self.code.save()
+
+        response = self.confirm()
+
+        self.assert_on_stay_step(response)
+        self.assertContains(response, INVALID_CODE, count=1)
+        self.assertEqual(Order.objects.count(), 0)
+        # Without the code the guest can go on; the details are kept.
+        response = self.post_stay(discount_code="")
+        self.assertContains(response, 'value="alex@example.com"')
+
+    def test_code_used_up_while_booking_sends_the_guest_back(self):
+        self.post_stay(discount_code="WELKOM")
+        self.post_guest()
+        with mock.patch(
+            "maykinbooking.base.views.book_room",
+            side_effect=InvalidDiscountCode("used_up"),
+        ):
+            with self.assertLogs("maykinbooking.base.views", "INFO") as logs:
+                response = self.confirm()
+
+        self.assert_on_stay_step(response)
+        self.assertContains(response, INVALID_CODE, count=1)
+        self.assertContains(response, 'value="WELKOM"')
+        self.assertEqual(Order.objects.count(), 0)
+        self.assertIn("checkout discount code refused reason=used_up", logs.output[0])
+
+    def test_fixed_code_never_takes_more_than_the_price(self):
+        DiscountCodeFactory(
+            code="CADEAU", kind=DiscountKind.FIXED, value=Decimal("500")
+        )
+        self.post_stay(discount_code="CADEAU")
+        response = self.post_guest()
+        self.assertContains(response, "− € 300,00")
+        self.assertEqual(self.expected_total(response), "0.00")
+        self.confirm(expected_total="0.00")
+        self.assertEqual(Order.objects.get().total_price, Decimal("0.00"))
+
+    @mock.patch("maykinbooking.base.views.DISCOUNT_CODE_LIMIT_PER_IP_PER_HOUR", 2)
+    def test_tries_per_ip_address_are_limited(self):
+        for code in ["NEP-1", "NEP-2"]:
+            self.assertContains(self.post_stay(discount_code=code), INVALID_CODE)
+
+        with mock.patch(
+            "maykinbooking.form.forms.check_discount_code"
+        ) as check_discount_code, self.assertLogs(
+            "maykinbooking.base.views", "INFO"
+        ) as logs:
+            response = self.post_stay(discount_code="WELKOM")
+
+        # The valid code is refused too, without looking it up.
+        check_discount_code.assert_not_called()
+        self.assert_on_stay_step(response)
+        self.assertContains(response, "Je hebt te vaak een kortingscode geprobeerd")
+        self.assertNotContains(response, INVALID_CODE)
+        self.assertEqual(
+            logs.output,
+            ["INFO:maykinbooking.base.views:discount code attempts throttled"],
+        )
+
+        # Going on without a code still works, and so does another address.
+        response = self.post_stay(discount_code="")
+        self.assertContains(response, "Wie verblijft er?")
+        self.client.get(self.url, REMOTE_ADDR="192.0.2.99")
+        self.client.defaults["REMOTE_ADDR"] = "192.0.2.99"
+        response = self.post_stay(discount_code="WELKOM")
+        self.assertContains(response, "Kortingscode WELKOM")
+
+    @mock.patch("maykinbooking.base.views.DISCOUNT_CODE_LIMIT_PER_IP_PER_HOUR", 1)
+    def test_only_posting_step_one_counts_as_a_try(self):
+        self.post_stay(discount_code="WELKOM")
+        # The later steps check the stored code again, without counting.
+        self.post_guest()
+        response = self.confirm()
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(Order.objects.get().discount_code, "WELKOM")
+
+    def test_default_limit(self):
+        from maykinbooking.base import views
+
+        self.assertEqual(views.DISCOUNT_CODE_LIMIT_PER_IP_PER_HOUR, 10)
+
+    def post_code(self, code, *, client=None, **extra):
+        payload = {
+            "checkout-current_step": "stay",
+            "stay-start_date": self.start,
+            "stay-end_date": self.end,
+            "stay-room": self.room.pk,
+            "stay-discount_code": code,
+            **extra,
+        }
+        return (client or self.client).post(self.url, payload)
+
+    def test_a_later_step_without_a_session_does_not_dodge_the_limit(self):
+        """
+        Security B1: without a session cookie formtools validates step 1 with
+        the posted data, whatever step the post says it is for. The code is
+        counted where it is looked up, so that counts too.
+        """
+        for step in ("guest", "confirm"):
+            with self.subTest(step=step):
+                cache.clear()
+                with mock.patch(
+                    "maykinbooking.form.forms.check_discount_code",
+                    wraps=check_discount_code,
+                ) as lookup:
+                    for attempt in range(10):
+                        response = self.post_code(
+                            f"NEP-{attempt}",
+                            client=Client(),
+                            **{"checkout-current_step": step},
+                        )
+                        self.assertContains(response, INVALID_CODE)
+                    response = self.post_code(
+                        "WELKOM", client=Client(), **{"checkout-current_step": step}
+                    )
+                self.assertContains(
+                    response, "Je hebt te vaak een kortingscode geprobeerd"
+                )
+                self.assertNotContains(response, "Kortingscode WELKOM")
+                # The 11th was refused without looking it up.
+                self.assertEqual(lookup.call_count, 10)
+
+    def test_a_step_that_does_not_exist_is_a_bad_request(self):
+        for client in (self.client, Client()):
+            with self.subTest(session=client is self.client):
+                response = self.post_code(
+                    "WELKOM", client=client, **{"checkout-current_step": "x"}
+                )
+                self.assertEqual(response.status_code, 400)
+        self.assertEqual(Order.objects.count(), 0)
+
+    @mock.patch("maykinbooking.base.views.DISCOUNT_CODE_LIMIT_PER_IP_PER_HOUR", 1)
+    def test_validating_the_stored_code_again_does_not_count(self):
+        self.post_code("WELKOM")
+        # Steps 2 and 3 validate the stored step 1 again (and look the code up)
+        # several times: no tries.
+        self.post_guest()
+        self.post_step("guest", GUEST)  # step 3 again: one more revalidation
+        response = self.confirm(expected_total="270.00")
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(Order.objects.get().discount_code, "WELKOM")
+
+    def test_a_made_up_step_to_go_to_does_not_dodge_the_limit(self):
+        """
+        Security B1: ``wizard_goto_step`` with a step that does not exist is not
+        "going back": the posted code is checked, so it counts.
+        """
+        for attempt in range(10):
+            response = self.post_code(f"NEP-{attempt}", wizard_goto_step="x")
+            self.assertContains(response, INVALID_CODE)
+        response = self.post_code("WELKOM", wizard_goto_step="x")
+        self.assertContains(response, "Je hebt te vaak een kortingscode geprobeerd")
+        self.assertNotContains(response, "Kortingscode WELKOM")
+
+    @mock.patch("maykinbooking.base.views.DISCOUNT_CODE_LIMIT_PER_IP_PER_HOUR", 2)
+    def test_going_back_to_a_real_step_does_not_count(self):
+        self.post_code("WELKOM")
+        self.post_guest()
+        # Going back renders a step without checking what was posted.
+        for _ in range(3):
+            self.post_code("NEP-1", wizard_goto_step="stay")
+        # The second real try, so within the limit.
+        response = self.post_code("WELKOM")
+        self.assertNotContains(response, "Je hebt te vaak een kortingscode geprobeerd")
+
+
+class CheckoutPriceChangedTests(CheckoutTestCase):
+    """The price changes between the review and the confirmation."""
+
+    def test_new_price_is_shown_and_booked_after_confirming_again(self):
+        self.post_stay()
+        response = self.post_guest()
+        self.assertEqual(self.expected_total(response), "300.00")
+        Room.objects.filter(pk=self.room.pk).update(price=Decimal("120"))
+
+        with self.assertLogs("maykinbooking.base.views", "INFO") as logs:
+            response = self.confirm(expected_total="300.00")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["wizard"]["steps"].current, "confirm")
+        self.assertContains(response, PRICE_CHANGED)
+        self.assertContains(response, 'role="alert"')
+        self.assertEqual(response.context["stay"]["total"], Decimal("360.00"))
+        self.assertEqual(self.expected_total(response), "360.00")
+        self.assertEqual(Order.objects.count(), 0)
+        self.assertEqual(
+            logs.output, ["INFO:maykinbooking.base.views:checkout price changed"]
+        )
+
+        response = self.confirm(expected_total=self.expected_total(response))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(Order.objects.get().total_price, Decimal("360.00"))
+
+    def test_changed_price_rules(self):
+        PricingSettings.load()
+        self.post_stay()
+        self.post_guest()
+        PricingSettings.objects.filter(pk=1).update(
+            long_stay_min_nights=2, long_stay_percent=Decimal("50")
+        )
+        response = self.confirm(expected_total="300.00")
+        self.assertContains(response, PRICE_CHANGED)
+        self.assertEqual(self.expected_total(response), "150.00")
+
+    def test_a_made_up_total_is_never_the_price(self):
+        """Security: the posted total is only compared, never booked."""
+        self.post_stay()
+        self.post_guest()
+        response = self.confirm(expected_total="1.00")
+        self.assertContains(response, PRICE_CHANGED)
+        self.assertEqual(Order.objects.count(), 0)
+
+    def test_unreadable_total_asks_to_confirm_again(self):
+        self.post_stay()
+        self.post_guest()
+        response = self.confirm(expected_total="drie euro")
+        self.assertContains(
+            response, "De prijs kon niet gecontroleerd worden. Bevestig opnieuw."
+        )
+        self.assertEqual(Order.objects.count(), 0)
+        response = self.confirm(expected_total=self.expected_total(response))
+        self.assertEqual(response.status_code, 302)

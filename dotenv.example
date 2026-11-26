@@ -15,3 +15,22 @@ DB_PORT=""
 SITE_URL="http://localhost:8000"
 DEFAULT_FROM_EMAIL="maykinbooking@example.com"
 BOOKING_CONTACT_EMAIL="info@maykinbooking.nl"
+#
+# Invoices: the seller. While one of these is empty, invoices get the watermark
+# "Testfactuur – niet geldig". In the address, \n starts a new line.
+#
+INVOICE_SELLER_NAME=""
+INVOICE_SELLER_ADDRESS=""
+INVOICE_SELLER_KVK=""
+INVOICE_SELLER_VAT_ID=""
+# Where the invoice PDFs are stored; never served as files, keep it outside
+# MEDIA_ROOT and STATIC_ROOT and back it up (default: private_media/).
+#PRIVATE_MEDIA_ROOT=""
+#
+# Online payment (iDEAL): a Mollie *test* key (test_...). Never commit a key.
+# Without a key, dev uses the fake provider (PAYMENT_FAKE_PROVIDER, on by default
+# in dev, refused in production). The room is held PAYMENT_HOLD_MINUTES.
+#
+MOLLIE_API_KEY=""
+PAYMENT_FAKE_PROVIDER="yes"
+PAYMENT_HOLD_MINUTES="15"

@@ -1,0 +1,37 @@
+{% extends "emails/_layout.html" %}
+{% load i18n l10n %}
+
+{% block title %}{% blocktrans with number=order.pk|unlocalize %}Terugbetaling boeking #{{ number }}{% endblocktrans %}{% endblock %}
+
+{% block preheader %}{% blocktrans with amount=refund.amount|floatformat:2 number=order.pk|unlocalize %}We storten € {{ amount }} terug voor boeking #{{ number }}.{% endblocktrans %}{% endblock %}
+
+{% block content %}
+<h1 class="mb-text mb-serif mb-h1" style="margin:0 0 16px; color:#13243A; font-family:Georgia, 'Times New Roman', serif; font-size:30px; line-height:36px; font-weight:bold; letter-spacing:-0.02em;">{% trans "We storten je geld terug" %}</h1>
+<p style="margin:0 0 8px;">{% blocktrans with name=order.first_name %}Beste {{ name }},{% endblocktrans %}</p>
+<p style="margin:0 0 24px;">{% if refund.reason == "late_payment" %}{% blocktrans with number=order.pk|unlocalize hotel=order.hotel.name %}Je betaling kwam binnen nadat de reservering was verlopen; we storten het bedrag terug. Boeking #{{ number }} bij {{ hotel }} is daardoor niet doorgegaan.{% endblocktrans %}{% elif refund.reason == "duplicate" %}{% blocktrans with number=order.pk|unlocalize %}Je hebt boeking #{{ number }} twee keer betaald. De tweede betaling storten we terug; je boeking blijft gewoon staan.{% endblocktrans %}{% elif refund.reason == "mismatch" %}{% blocktrans with number=order.pk|unlocalize %}We hebben een betaling ontvangen voor boeking #{{ number }}, maar dat is niet het bedrag van je boeking. De boeking is daarom niet gemaakt; we storten het ontvangen bedrag terug.{% endblocktrans %}{% else %}{% blocktrans with number=order.pk|unlocalize hotel=order.hotel.name %}Je boeking #{{ number }} bij {{ hotel }} is geannuleerd. We storten het betaalde bedrag terug.{% endblocktrans %}{% endif %}</p>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="mb-panel" bgcolor="#F6F1E8" style="width:100%; background-color:#F6F1E8; border-radius:12px;">
+  <tr>
+    <td class="mb-panel-pad" style="padding:24px;">
+      <p class="mb-accent" style="margin:0 0 12px; color:#B4492A; font-family:Helvetica, Arial, sans-serif; font-size:12px; line-height:16px; font-weight:bold; letter-spacing:0.16em; text-transform:uppercase;">{% trans "Terugbetaling" %}</p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; border-collapse:collapse;">
+        {% with number=order.pk|unlocalize %}{% include "emails/_row.html" with label=_("Boeking") value="#"|add:number %}{% endwith %}
+        {% include "emails/_row.html" with label=_("Hotel") value=order.hotel.name %}
+        {% if refund.refunded_at %}{% include "emails/_row.html" with label=_("Teruggestort op") value=refund.refunded_at|date:"j F Y" %}{% endif %}
+        {% include "emails/_row.html" with label=_("Bedrag") value=refund.amount money=True strong=True %}
+      </table>
+    </td>
+  </tr>
+</table>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; margin-top:20px;">
+  <tr>
+    <td class="mb-note mb-text" bgcolor="#EEF5F3" style="padding:14px 18px; background-color:#EEF5F3; border-left:4px solid #2E6B62; color:#13243A; font-family:Helvetica, Arial, sans-serif; font-size:15px; line-height:22px;">
+      <strong>{% trans "Het bedrag staat binnen 1 tot 3 werkdagen op je rekening." %}</strong>
+      {% trans "Het gaat terug naar de rekening waarmee je hebt betaald." %}
+    </td>
+  </tr>
+</table>
+
+{% include "emails/_button.html" with url=my_booking_url label=_("Bekijk je boeking") dark=True %}
+{% endblock %}
