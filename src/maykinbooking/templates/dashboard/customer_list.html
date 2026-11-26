@@ -1,0 +1,88 @@
+{% extends 'dashboard/base.html' %}
+{% load i18n form_a11y money %}
+
+{% block title %}{% trans "Klanten" %}{% endblock %}
+
+{% block content %}
+<div class="flex flex-wrap items-end justify-between gap-4">
+  <div>
+    <p class="eyebrow mb-2">{% trans "Beheer" %}</p>
+    <h1 class="font-display font-semibold text-4xl md:text-5xl tracking-[-0.02em]">{% trans "Klanten" %}</h1>
+    <p class="mt-3 text-muted max-w-2xl">{% trans "Een klant is een e-mailadres over alle boekingen heen. Alleen bevestigde en geannuleerde boekingen tellen mee." %}</p>
+  </div>
+  <a href="{% url 'dashboard:customer_export' %}{% if querystring %}?{{ querystring }}{% endif %}" class="btn-outline">
+    <svg aria-hidden="true" viewBox="0 0 24 24" class="w-[18px] h-[18px]" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>
+    {% trans "Exporteer als CSV" %}
+  </a>
+</div>
+
+<form method="get" role="search" class="mt-8 card p-4 flex flex-wrap items-end gap-3">
+  {% if request.GET.sort %}<input type="hidden" name="sort" value="{{ sort }}">{% endif %}
+  {% for field in form.visible_fields %}
+  <div class="flex-[2_1_240px] min-w-0 flex flex-col gap-1.5">
+    <label for="{{ field.id_for_label }}" class="text-[13px] font-semibold">{{ field.label }}</label>
+    {% accessible_widget field %}
+    {% if field.errors %}<div id="{{ field.auto_id }}_errors">{% for error in field.errors %}<p class="text-sm font-medium text-brick-dark">{{ error }}</p>{% endfor %}</div>{% endif %}
+  </div>
+  {% endfor %}
+  <button type="submit" class="btn-dark">{% trans "Zoeken" %}</button>
+  {% if is_filtered %}
+  <a href="{% url 'dashboard:customer_list' %}" class="btn text-muted hover:text-ink">{% trans "Wissen" %}</a>
+  {% endif %}
+</form>
+
+<p class="mt-6 mb-3 text-sm text-muted">{% blocktrans count counter=paginator.count %}{{ counter }} klant{% plural %}{{ counter }} klanten{% endblocktrans %}</p>
+
+{% if customers %}
+<div class="card overflow-x-auto">
+  <table class="w-full text-sm text-left">
+    <thead class="text-[12px] uppercase tracking-[0.1em] text-muted border-b border-seam">
+      <tr>
+        {% for column in sort_links %}
+        <th scope="col" class="px-5 py-3 font-semibold{% if not forloop.first %} text-right{% endif %}" {% if column.direction %}aria-sort="{{ column.direction }}"{% endif %}>
+          <a href="?{{ column.query }}" class="inline-flex items-center gap-1 no-underline {% if column.direction %}text-ink{% else %}text-muted hover:text-ink{% endif %}">
+            {{ column.label }}
+            {% if column.direction == 'ascending' %}<span aria-hidden="true">↑</span>{% elif column.direction == 'descending' %}<span aria-hidden="true">↓</span>{% endif %}
+          </a>
+        </th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-seam">
+      {% for customer in customers %}
+      <tr class="hover:bg-linen/60">
+        <td class="px-5 py-3.5">
+          <a href="{% url 'dashboard:customer_detail' customer.last_order_id %}" class="font-semibold text-ink no-underline hover:text-brick">{{ customer.name|default:customer.key }}</a>
+          <span class="block text-[12px] text-muted break-all">{{ customer.key }}</span>
+        </td>
+        <td class="px-5 py-3.5 text-right">{{ customer.bookings }}</td>
+        <td class="px-5 py-3.5 text-right">{% if customer.cancellations %}{{ customer.cancellations }}{% else %}<span class="text-muted">0</span>{% endif %}</td>
+        <td class="px-5 py-3.5 text-right whitespace-nowrap">{{ customer.spent|euro }}</td>
+        <td class="px-5 py-3.5 text-right whitespace-nowrap">{% if customer.last_stay %}{{ customer.last_stay|date:"j b Y" }}{% else %}<span class="text-muted">{% trans "nog niet" %}</span>{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<p class="mt-3 text-[13px] text-muted">{% trans "Totaal besteed: de bevestigde boekingen, ook toekomstige. Laatste verblijf: de laatste aankomst tot en met vandaag." %}</p>
+{% else %}
+<div class="card p-8">
+  <p class="font-display font-semibold text-xl">{% trans "Geen klanten gevonden" %}</p>
+  <p class="mt-2 text-muted">{% trans "Zoek op naam, e-mailadres of het nummer van een boeking." %}</p>
+</div>
+{% endif %}
+
+{% if is_paginated %}
+<nav aria-label="{% trans 'Paginering' %}" class="mt-8 flex flex-wrap items-center justify-between gap-4">
+  <span class="text-sm text-muted">{% blocktrans with number=page_obj.number total=paginator.num_pages %}Pagina {{ number }} van {{ total }}{% endblocktrans %}</span>
+  <div class="flex gap-2">
+    {% if page_obj.has_previous %}
+    <a href="?{% if querystring %}{{ querystring }}&amp;{% endif %}page={{ page_obj.previous_page_number }}" class="btn-outline min-h-[44px] px-5 text-sm">← {% trans "Vorige" %}</a>
+    {% endif %}
+    {% if page_obj.has_next %}
+    <a href="?{% if querystring %}{{ querystring }}&amp;{% endif %}page={{ page_obj.next_page_number }}" class="btn-dark min-h-[44px] px-5 text-sm">{% trans "Volgende" %} →</a>
+    {% endif %}
+  </div>
+</nav>
+{% endif %}
+{% endblock %}

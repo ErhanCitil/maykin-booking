@@ -1,5 +1,5 @@
 {% extends 'dashboard/base.html' %}
-{% load i18n l10n order_status %}
+{% load i18n l10n order_status money %}
 
 {% block title %}{% blocktrans with number=order.pk|unlocalize %}Boeking #{{ number }}{% endblocktrans %}{% endblock %}
 
@@ -59,21 +59,165 @@
         <tbody class="divide-y divide-seam">
           {% for night in order.nights.all %}
           <tr>
-            <td class="py-2.5">{{ night.date|date:"D j b Y" }}</td>
-            <td class="py-2.5 text-right whitespace-nowrap">€ {{ night.price|floatformat:2 }}</td>
+            <td class="py-2.5">
+              {{ night.date|date:"D j b Y" }}
+              {% if night.weekend_percent or night.season_percent %}
+              <span class="block text-[12px] text-muted">{% if night.weekend_percent %}{% blocktrans with percent=night.weekend_percent|floatformat %}weekend +{{ percent }}%{% endblocktrans %}{% endif %}{% if night.weekend_percent and night.season_percent %} · {% endif %}{% if night.season_percent %}{{ night.season_name|default:_("seizoen") }} +{{ night.season_percent|floatformat }}%{% endif %}</span>
+              {% endif %}
+            </td>
+            <td class="py-2.5 text-right whitespace-nowrap">{{ night.price|euro }}</td>
           </tr>
           {% empty %}
           <tr><td colspan="2" class="py-2.5 text-muted">{% trans "Geen nachten vastgelegd." %}</td></tr>
           {% endfor %}
         </tbody>
         <tfoot class="border-t-2 border-ink">
+          {% if discount_lines %}
+          <tr>
+            <th scope="row" class="pt-3 font-medium">{% trans "Subtotaal" %}</th>
+            <td class="pt-3 text-right whitespace-nowrap">{{ order.subtotal_price|euro }}</td>
+          </tr>
+          {% for line in discount_lines %}
+          <tr>
+            <th scope="row" class="pt-1.5 font-medium">{{ line.label }}</th>
+            <td class="pt-1.5 text-right whitespace-nowrap text-moss font-semibold">{{ line.amount|euro_minus }}</td>
+          </tr>
+          {% endfor %}
+          {% endif %}
           <tr>
             <th scope="row" class="pt-3 font-semibold">{% blocktrans count counter=order.night_count %}Totaal voor {{ counter }} nacht{% plural %}Totaal voor {{ counter }} nachten{% endblocktrans %}</th>
-            <td class="pt-3 text-right font-display font-semibold text-xl whitespace-nowrap">€ {{ order.total_price|floatformat:2 }}</td>
+            <td class="pt-3 text-right font-display font-semibold text-xl whitespace-nowrap">{{ order.total_price|euro }}</td>
           </tr>
         </tfoot>
       </table>
       <p class="mt-3 text-[13px] text-muted">{% trans "De prijzen zijn vastgelegd bij het boeken. Een nieuwe kamerprijs verandert deze boeking niet." %}</p>
+    </section>
+
+    <section class="card p-7" aria-labelledby="payment-title">
+      <div class="flex flex-wrap items-start justify-between gap-3">
+        <h2 id="payment-title" class="font-display font-semibold text-2xl">{% trans "Betaling" %}</h2>
+        {% if refund_retry_needed %}
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#F3E3DD] text-[#8A3519] text-xs font-semibold whitespace-nowrap"><span aria-hidden="true" class="w-1.5 h-1.5 rounded-full bg-brick"></span>{% trans "terugbetaling mislukt" %}</span>
+        {% endif %}
+      </div>
+      <dl class="mt-4 grid gap-x-6 gap-y-3 sm:grid-cols-2 text-sm">
+        <div>
+          <dt class="text-[13px] text-muted">{% trans "Methode" %}</dt>
+          <dd class="font-semibold">{% if payment %}{% trans "Online" %}{% if payment.method == 'ideal' %} · iDEAL{% elif payment.method %} · {{ payment.method }}{% endif %} <span class="font-normal text-muted">({{ payment.get_provider_display }})</span>{% elif order.payment_status == 'at_hotel' %}{% trans "In het hotel" %}{% else %}—{% endif %}</dd>
+        </div>
+        <div>
+          <dt class="text-[13px] text-muted">{% trans "Status" %}</dt>
+          <dd class="font-semibold">{% if payment %}{{ payment.get_status_display }}{% else %}{{ order.get_payment_status_display }}{% endif %}</dd>
+        </div>
+        <div>
+          <dt class="text-[13px] text-muted">{% trans "Bedrag" %}</dt>
+          <dd class="font-semibold whitespace-nowrap">{% if payment %}{{ payment.amount|euro }}{% else %}{{ order.total_price|euro }}{% endif %}</dd>
+        </div>
+        <div>
+          <dt class="text-[13px] text-muted">{% trans "Betaald op" %}</dt>
+          <dd>{% if payment.paid_at %}{{ payment.paid_at|date:"j b Y H:i" }}{% elif order.payment_status == 'at_hotel' %}{% trans "In het hotel, bij aankomst of vertrek" %}{% else %}—{% endif %}</dd>
+        </div>
+      </dl>
+      {% if payment.last_error %}<p class="mt-3 text-[12px] text-[#8A3519] break-words">{{ payment.last_error }}</p>{% endif %}
+
+      {% if payments|length > 1 %}
+      <details class="mt-4">
+        <summary class="cursor-pointer text-sm font-semibold text-brick hover:text-ink">{% blocktrans count counter=payments|length %}{{ counter }} betaalpoging{% plural %}{{ counter }} betaalpogingen{% endblocktrans %}</summary>
+        <div class="mt-3 overflow-x-auto">
+          <table class="w-full text-sm text-left">
+            <thead class="text-[12px] uppercase tracking-[0.1em] text-muted border-b border-seam">
+              <tr>
+                <th scope="col" class="py-2 pr-4 font-semibold">{% trans "Gestart" %}</th>
+                <th scope="col" class="py-2 pr-4 font-semibold">{% trans "Status" %}</th>
+                <th scope="col" class="py-2 pr-4 font-semibold text-right">{% trans "Bedrag" %}</th>
+                <th scope="col" class="py-2 font-semibold">{% trans "Id bij de provider" %}</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-seam">
+              {% for attempt in payments %}
+              <tr>
+                <td class="py-2 pr-4 whitespace-nowrap">{{ attempt.created_at|date:"j b Y H:i" }}</td>
+                <td class="py-2 pr-4">{{ attempt.get_status_display }}</td>
+                <td class="py-2 pr-4 text-right whitespace-nowrap">{{ attempt.amount|euro }}</td>
+                <td class="py-2 break-all text-muted">{{ attempt.provider_id|default:"—" }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </details>
+      {% endif %}
+
+      {% if refunds %}
+      <h3 class="mt-6 font-semibold">{% trans "Terugbetalingen" %}</h3>
+      <div class="mt-2 overflow-x-auto">
+        <table class="w-full text-sm text-left">
+          <thead class="text-[12px] uppercase tracking-[0.1em] text-muted border-b border-seam">
+            <tr>
+              <th scope="col" class="py-2 pr-4 font-semibold">{% trans "Aangevraagd" %}</th>
+              <th scope="col" class="py-2 pr-4 font-semibold text-right">{% trans "Bedrag" %}</th>
+              <th scope="col" class="py-2 pr-4 font-semibold">{% trans "Reden" %}</th>
+              <th scope="col" class="py-2 pr-4 font-semibold">{% trans "Pogingen" %}</th>
+              <th scope="col" class="py-2 font-semibold">{% trans "Status" %}</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-seam">
+            {% for refund in refunds %}
+            <tr class="align-top">
+              <td class="py-2.5 pr-4 whitespace-nowrap">
+                {{ refund.created_at|date:"j b Y H:i" }}
+                {% if refund.created_by %}<span class="block text-[12px] text-muted">{% blocktrans with name=refund.created_by.get_username %}door {{ name }}{% endblocktrans %}</span>{% endif %}
+              </td>
+              <td class="py-2.5 pr-4 text-right whitespace-nowrap">{{ refund.amount|euro }}</td>
+              <td class="py-2.5 pr-4">{{ refund.get_reason_display }}</td>
+              <td class="py-2.5 pr-4">{{ refund.attempts }}</td>
+              <td class="py-2.5">
+                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap {% if refund.status == refund_done %}bg-[#E3F0EC] text-[#1F5148]{% elif refund.status == refund_error or refund.status == 'failed' or refund.status == 'canceled' %}bg-[#F3E3DD] text-[#8A3519]{% else %}bg-[#F8EDD6] text-[#6E4A0E]{% endif %}">{{ refund.get_status_display }}</span>
+                {% if refund.refunded_at %}<span class="block mt-1 text-[12px] text-muted">{{ refund.refunded_at|date:"j b Y H:i" }}</span>{% endif %}
+                {% if refund.error %}<p class="mt-1.5 text-[12px] text-[#8A3519] break-words">{{ refund.error }}</p>{% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+
+      {% if refund_retry_needed and perms.base.cancel_order %}
+      <form method="post" action="{% url 'dashboard:booking_refund_retry' order.pk %}" class="mt-5 rounded-xl bg-[#F3E3DD] px-5 py-4 flex flex-wrap items-center justify-between gap-3">
+        {% csrf_token %}
+        <p class="text-sm font-medium text-[#8A3519] max-w-md">{% trans "Het geld is nog niet teruggestort. De betaalprovider wordt opnieuw gevraagd het volledige bedrag terug te storten; een eerdere terugbetaling wordt niet dubbel gedaan." %}</p>
+        <button type="submit" class="btn bg-brick-dark text-white hover:bg-[#7a2f19]">{% trans "Terugbetaling opnieuw proberen" %}</button>
+      </form>
+      {% endif %}
+
+      <h3 class="mt-6 font-semibold">{% trans "Facturen" %}</h3>
+      {% if invoice %}
+      <ul class="mt-2 divide-y divide-seam text-sm">
+        <li class="py-2.5 flex flex-wrap items-center justify-between gap-3">
+          <span><span class="font-semibold">{% trans "Factuur" %} {{ invoice.number }}</span> <span class="text-muted">· {{ invoice.issue_date|date:"j b Y" }}</span>{% if invoice.is_test %} <span class="ml-1 inline-flex items-center px-2 py-0.5 rounded-full bg-[#F8EDD6] text-[#6E4A0E] text-[11px] font-semibold">{% trans "Test" %}</span>{% endif %}</span>
+          <span class="flex items-center gap-4">
+            <span class="whitespace-nowrap">{{ invoice.total_incl|euro }}</span>
+            {% if perms.billing.view_invoice %}<a href="{% url 'dashboard:invoice_pdf' invoice.pk %}" class="font-semibold text-brick no-underline hover:text-ink">{% trans "PDF" %}<span class="sr-only"> {% trans "factuur" %} {{ invoice.number }}</span></a>{% endif %}
+          </span>
+        </li>
+        {% if credit_note %}
+        <li class="py-2.5 flex flex-wrap items-center justify-between gap-3">
+          <span><span class="font-semibold">{% trans "Creditnota" %} {{ credit_note.number }}</span> <span class="text-muted">· {{ credit_note.issue_date|date:"j b Y" }}</span>{% if credit_note.is_test %} <span class="ml-1 inline-flex items-center px-2 py-0.5 rounded-full bg-[#F8EDD6] text-[#6E4A0E] text-[11px] font-semibold">{% trans "Test" %}</span>{% endif %}</span>
+          <span class="flex items-center gap-4">
+            <span class="whitespace-nowrap text-brick-dark">{{ credit_note.total_incl|euro }}</span>
+            {% if perms.billing.view_invoice %}<a href="{% url 'dashboard:invoice_pdf' credit_note.pk %}" class="font-semibold text-brick no-underline hover:text-ink">{% trans "PDF" %}<span class="sr-only"> {% trans "creditnota" %} {{ credit_note.number }}</span></a>{% endif %}
+          </span>
+        </li>
+        {% endif %}
+      </ul>
+      {% elif order.status == 'pending_payment' %}
+      <p class="mt-2 text-sm text-muted">{% trans "De factuur volgt zodra de betaling binnen is." %}</p>
+      {% elif order.status == 'expired' %}
+      <p class="mt-2 text-sm text-muted">{% trans "Een verlopen boeking krijgt geen factuur." %}</p>
+      {% else %}
+      <p class="mt-2 text-sm text-muted">{% trans "Deze boeking is van voor de facturen en heeft er geen." %}</p>
+      {% endif %}
     </section>
 
     <section class="card p-7" aria-labelledby="log-title">
@@ -166,7 +310,7 @@
       </dl>
       <details class="mt-5">
         <summary class="cursor-pointer text-sm font-semibold text-brick hover:text-ink">{% trans "Link naar Mijn boeking tonen" %}</summary>
-        <p role="note" class="mt-3 rounded-xl bg-[#F8EDD6] text-[#6E4A0E] px-4 py-3 text-[13px] font-medium">{% trans "Deze link geeft volledige toegang tot de boeking van de gast: bekijken en annuleren. Deel hem alleen met de gast zelf." %}</p>
+        <p role="note" class="mt-3 rounded-xl bg-[#F8EDD6] text-[#6E4A0E] px-4 py-3 text-[13px] font-medium">{% trans "Deze link geeft volledige toegang tot de boeking van de gast: bekijken, annuleren en de facturen downloaden. Deel hem alleen met de gast zelf." %}</p>
         <a href="{{ my_booking_url }}" target="_blank" rel="noopener noreferrer" class="inline-block mt-3 text-sm font-semibold text-brick hover:text-ink">{% trans "Mijn boeking van de gast openen" %} ↗</a>
       </details>
     </section>

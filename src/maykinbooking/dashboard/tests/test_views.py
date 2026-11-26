@@ -12,6 +12,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.formats import date_format
 
+from maykinbooking.accounts.roles import MANAGEMENT, role_group
 from maykinbooking.base.models import City, Hotel, OrderStatus, Room, RoomBlock
 from maykinbooking.base.tests.factories import OrderFactory, RoomBlockFactory
 
@@ -44,6 +45,7 @@ class DashboardTestCase(TestCase):
         cls.staff = User.objects.create_user(
             username="medewerker", password="secret", is_staff=True
         )
+        cls.staff.groups.add(role_group(MANAGEMENT))
         cls.guest = User.objects.create_user(username="gast", password="secret")
         cls.amsterdam = City.objects.create(city_id="AMS", name="Amsterdam")
         cls.berlin = City.objects.create(city_id="BER", name="Berlijn")
@@ -148,6 +150,7 @@ class HotelCrudTests(DashboardTestCase):
             {
                 "name": "Hotel V",
                 "city": self.amsterdam.pk,
+                "country": "NL",
                 "description": "Aan het Vondelpark",
                 "is_available": "on",
                 "upload": make_photo(),
@@ -168,6 +171,7 @@ class HotelCrudTests(DashboardTestCase):
                 "name": "Hotel V",
                 "address": "Weesperzijde 8",
                 "city": self.amsterdam.pk,
+                "country": "NL",
                 "is_available": "on",
             },
         )
@@ -181,7 +185,7 @@ class HotelCrudTests(DashboardTestCase):
     def test_address_is_optional(self):
         self.client.post(
             reverse("dashboard:hotel_create"),
-            {"name": "Hotel zonder adres", "city": self.amsterdam.pk},
+            {"name": "Hotel zonder adres", "city": self.amsterdam.pk, "country": "NL"},
         )
         self.assertEqual(Hotel.objects.get(name="Hotel zonder adres").address, "")
 
@@ -192,6 +196,21 @@ class HotelCrudTests(DashboardTestCase):
         self.assertEqual(form["address"].label, "Adres")
         self.assertContains(response, 'for="id_address"')
         self.assertContains(response, 'name="address"')
+
+    def test_country_decides_the_vat_and_is_required(self):
+        response = self.client.get(reverse("dashboard:hotel_create"))
+        form = response.context["form"]
+        self.assertEqual(form["country"].label, "Land")
+        self.assertEqual(form["country"].initial, "NL")
+        self.assertContains(response, "btw-tarief op de facturen")
+
+        response = self.client.post(
+            reverse("dashboard:hotel_create"),
+            {"name": "Zonder land", "city": self.amsterdam.pk, "country": ""},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("country", response.context["form"].errors)
+        self.assertFalse(Hotel.objects.filter(name="Zonder land").exists())
 
     def test_create_hotel_requires_city(self):
         response = self.client.post(
@@ -212,6 +231,7 @@ class HotelCrudTests(DashboardTestCase):
             {
                 "name": "Ibis Amsterdam Centre",
                 "city": self.berlin.pk,
+                "country": "DE",
                 "description": "Nieuw",
             },
         )
@@ -221,6 +241,7 @@ class HotelCrudTests(DashboardTestCase):
         self.hotel.refresh_from_db()
         self.assertEqual(self.hotel.name, "Ibis Amsterdam Centre")
         self.assertEqual(self.hotel.city, self.berlin)
+        self.assertEqual(self.hotel.country, "DE")
         self.assertFalse(self.hotel.is_available)
         # The hotel id stays the same when the city changes.
         self.assertEqual(self.hotel.hotel_id, "AMS01")
@@ -230,6 +251,7 @@ class HotelCrudTests(DashboardTestCase):
         data = {
             "name": self.hotel.name,
             "city": self.amsterdam.pk,
+            "country": "NL",
             "is_available": "on",
         }
 
@@ -262,6 +284,7 @@ class HotelCrudTests(DashboardTestCase):
             {
                 "name": self.hotel.name,
                 "city": self.amsterdam.pk,
+                "country": "NL",
                 "remove_upload": "on",
             },
         )
