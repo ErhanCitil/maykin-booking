@@ -16,6 +16,8 @@ services:
     environment:
       - DJANGO_SETTINGS_MODULE=maykinbooking.conf.docker
       - SECRET_KEY=${SECRET_KEY:-django-insecure-hjafzqtg!)^h8mqn9pd6+@b7bc_+ksu*=agg(g&&_jcxwdp}
+      # Base URL of the links in the booking mails; required by the settings.
+      - SITE_URL=${SITE_URL:-http://localhost:8000}
     ports:
       - 8000:8000
     depends_on:

@@ -1,0 +1,1 @@
+{% load i18n l10n %}{% autoescape off %}{% blocktrans with number=order.pk|unlocalize hotel=order.hotel.name %}Bevestiging boeking #{{ number }} – {{ hotel }}{% endblocktrans %}{% endautoescape %}

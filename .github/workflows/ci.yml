@@ -70,6 +70,10 @@ jobs:
           python -m pip install "pip<24.1"
           pip install -r requirements/ci.txt
 
+      # Fails when a model change has no migration yet
+      - name: Check for missing migrations
+        run: python src/manage.py makemigrations --check --dry-run
+
       - name: Run tests
         run: python src/manage.py test src
 

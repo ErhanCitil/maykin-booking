@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-{% load static %}
+{% load static i18n %}
 <html lang="nl">
   <head>
     <meta charset="UTF-8" />
@@ -12,7 +12,7 @@
 
     <main class="flex-1">
       <section class="max-w-site mx-auto px-6 md:px-8 pt-10">
-        <a href="{% url 'stad' object.city.name %}" class="text-sm text-muted hover:text-ink no-underline">← Hotels in {{ object.city.name }}</a>
+        <a href="{% url 'stad' object.city.name %}{% if period_querystring %}?{{ period_querystring }}{% endif %}" class="text-sm text-muted hover:text-ink no-underline">← Hotels in {{ object.city.name }}</a>
       </section>
 
       <section class="max-w-site mx-auto px-6 md:px-8 pt-6 grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px] items-start">
@@ -48,7 +48,13 @@
         <aside class="card p-7 lg:sticky lg:top-6">
           <p class="text-[13px] text-muted">Prijs per nacht vanaf</p>
           <p class="font-display font-semibold text-5xl mt-1">€ {{ min_price|floatformat:0 }}</p>
-          <a href="{% url 'order' object.id %}" class="btn-primary w-full mt-6">
+          {% if period %}
+          <p class="mt-4 text-sm">{% blocktrans with start=period.0|date:"j F Y" end=period.1|date:"j F Y" %}Je verblijf: {{ start }} tot {{ end }}{% endblocktrans %}</p>
+          {% if not free_room_ids %}
+          <p role="status" class="mt-3 rounded-xl px-4 py-3 text-sm font-medium bg-[#F3E3DD] text-[#8A3519]">{% trans "Geen kamers vrij in deze periode. Kies andere data bij het boeken." %}</p>
+          {% endif %}
+          {% endif %}
+          <a href="{% url 'order' object.id %}{% if period_querystring %}?{{ period_querystring }}{% endif %}" class="btn-primary w-full mt-6">
             Boek nu
             <svg aria-hidden="true" viewBox="0 0 24 24" class="w-[18px] h-[18px]" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
           </a>
@@ -72,12 +78,20 @@
             <div class="p-6 flex flex-col flex-1">
               <div class="flex items-center justify-between gap-3">
                 <h3 class="font-display font-semibold text-2xl">{{ room.get_room_type_display }}</h3>
+                {% if period %}
+                {% if room.pk in free_room_ids %}{% include 'components/availability.html' with available=True %}{% else %}{% include 'components/availability.html' with available=False %}{% endif %}
+                {% else %}
                 {% include 'components/availability.html' with available=room.is_available %}
+                {% endif %}
               </div>
               <p class="mt-3 text-sm leading-relaxed text-muted line-clamp-4">{{ room.description }}</p>
               <div class="mt-auto pt-6 flex items-end justify-between">
                 <span class="text-[13px] text-muted"><span class="font-display font-semibold text-2xl text-ink">€ {{ room.price|floatformat:0 }}</span> /nacht</span>
-                <a href="{% url 'order' object.id %}" class="text-sm font-semibold text-brick no-underline hover:text-ink">Boek →</a>
+                {% if period and room.pk not in free_room_ids %}
+                <span class="text-sm text-muted">{% trans "Niet vrij in deze periode" %}</span>
+                {% else %}
+                <a href="{% url 'order' object.id %}{% if period_querystring %}?{{ period_querystring }}{% endif %}" class="text-sm font-semibold text-brick no-underline hover:text-ink">Boek →</a>
+                {% endif %}
               </div>
             </div>
           </article>

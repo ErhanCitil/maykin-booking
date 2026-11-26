@@ -8,3 +8,10 @@ DB_USER="maykinbooking"
 DB_PASSWORD=""
 DB_HOST=""
 DB_PORT=""
+#
+# Booking mails: the links in the mails start with SITE_URL (required in
+# production, and https there), and guests can reply to BOOKING_CONTACT_EMAIL.
+#
+SITE_URL="http://localhost:8000"
+DEFAULT_FROM_EMAIL="maykinbooking@example.com"
+BOOKING_CONTACT_EMAIL="info@maykinbooking.nl"

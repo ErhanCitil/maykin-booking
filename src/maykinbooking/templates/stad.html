@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-{% load static %}
+{% load static i18n form_a11y %}
 <html lang="nl">
   <head>
     <meta charset="UTF-8" />
@@ -17,27 +17,55 @@
           <p class="mt-6 text-[13px] font-semibold uppercase tracking-[0.16em] text-lantern mb-3">Hotels in</p>
           <h1 class="font-display font-semibold text-5xl md:text-6xl leading-[1.05] tracking-[-0.02em]">{{ city_name }}</h1>
 
-          <form action="" method="GET" role="search" class="mt-8 flex flex-wrap gap-3 max-w-xl">
-            <label for="hotel-search" class="sr-only">Zoek op hotelnaam</label>
-            <input id="hotel-search" type="search" name="q" value="{{ request.GET.q }}" placeholder="Zoek op hotelnaam" class="form-control flex-1 min-w-[220px]">
-            <button type="submit" class="btn bg-linen text-ink hover:bg-white">
-              <svg aria-hidden="true" viewBox="0 0 24 24" class="w-[18px] h-[18px]" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-              Zoeken
-            </button>
+          <form action="" method="GET" role="search" class="mt-8 flex flex-wrap items-end gap-x-6 gap-y-4" novalidate>
+            <div class="flex flex-1 items-end gap-3 min-w-[min(100%,320px)]">
+              <div class="flex flex-1 flex-col gap-1.5">
+                <label for="hotel-search" class="text-[13px] font-semibold text-linen/80">{% trans "Hotelnaam" %}</label>
+                <input id="hotel-search" type="search" name="q" value="{{ search }}" placeholder="Zoek op hotelnaam" class="form-control">
+              </div>
+              <button type="submit" class="btn bg-linen text-ink hover:bg-white">
+                <svg aria-hidden="true" viewBox="0 0 24 24" class="w-[18px] h-[18px]" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                Zoeken
+              </button>
+            </div>
+
+            <fieldset class="flex flex-wrap items-end gap-3">
+              <legend class="sr-only">{% trans "Alleen hotels met een vrije kamer" %}</legend>
+              {% for field in filter_form %}
+              <div class="flex flex-col gap-1.5 w-[calc(50%-6px)] sm:w-[170px]">
+                <label for="{{ field.id_for_label }}" class="text-[13px] font-semibold text-linen/80">{{ field.label }}</label>
+                {% accessible_widget field has_errors=filter_form.errors errors_id="period-errors" %}
+              </div>
+              {% endfor %}
+              <button type="submit" class="btn-primary">{% trans "Toon beschikbaar" %}</button>
+            </fieldset>
           </form>
+
+          {% if filter_form.errors %}
+          <div id="period-errors" role="alert" class="mt-5 max-w-2xl rounded-xl px-4 py-3 text-sm font-medium bg-[#F3E3DD] text-[#8A3519]">
+            <p class="font-semibold">{% trans "Deze periode klopt niet, daarom zie je alle hotels." %}</p>
+            {% for error in filter_form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+            {% for field in filter_form %}{% for error in field.errors %}<p>{{ error }}</p>{% endfor %}{% endfor %}
+          </div>
+          {% endif %}
         </div>
       </section>
 
       <section class="max-w-site mx-auto px-6 md:px-8 py-14">
-        <p class="text-sm text-muted mb-6">
-          {{ paginator.count }} hotel{{ paginator.count|pluralize:"s" }}{% if request.GET.q %} gevonden voor “{{ request.GET.q }}”{% endif %}
-        </p>
+        <div class="mb-6 flex flex-wrap items-baseline justify-between gap-3">
+          <p class="text-sm text-muted">
+            {{ paginator.count }} hotel{{ paginator.count|pluralize:"s" }}{% if search %} gevonden voor “{{ search }}”{% endif %}{% if period %} {% blocktrans with start=period.0|date:"j F Y" end=period.1|date:"j F Y" %}met een kamer vrij van {{ start }} tot {{ end }}{% endblocktrans %}{% endif %}
+          </p>
+          {% if period %}
+          <a href="{% url 'stad' city_name %}{% if search %}?q={{ search|urlencode }}{% endif %}" class="text-sm font-semibold text-brick no-underline hover:text-ink">{% trans "Toon alle hotels" %}</a>
+          {% endif %}
+        </div>
 
         <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {% for hotel in object_list %}
-          <a href="{% url 'hotel_detail' hotel.id %}" class="card overflow-hidden flex flex-col no-underline text-ink hover:border-ink transition-colors">
+          <article class="card relative overflow-hidden flex flex-col hover:border-ink transition-colors">
             {% if hotel.photo_url %}
-            <img src="{{ hotel.photo_url }}" alt="{{ hotel.name }}" class="h-44 w-full object-cover">
+            <img src="{{ hotel.photo_url }}" alt="" class="h-44 w-full object-cover">
             {% else %}
             <div class="h-44 w-full bg-seam"></div>
             {% endif %}
@@ -46,20 +74,31 @@
                 <span class="text-[13px] text-muted">{{ city_name }}</span>
                 {% include 'components/availability.html' with available=hotel.is_available %}
               </div>
-              <h2 class="font-display font-semibold text-xl mt-2 leading-snug">{{ hotel.name }}</h2>
+              <h2 class="font-display font-semibold text-xl mt-2 leading-snug">
+                <a href="{% url 'hotel_detail' hotel.id %}{% if period_querystring %}?{{ period_querystring }}{% endif %}" class="text-ink no-underline after:absolute after:inset-0">{{ hotel.name }}</a>
+              </h2>
               {% if hotel.description %}
               <p class="mt-2 text-sm text-muted line-clamp-2">{{ hotel.description }}</p>
               {% endif %}
               <div class="mt-auto pt-5 flex items-end justify-between">
                 <span class="text-[13px] text-muted">vanaf <span class="font-display font-semibold text-2xl text-ink">€ {{ hotel.min_price|default:hotel.price|floatformat:0 }}</span></span>
-                <span class="text-sm font-semibold text-brick">Bekijk →</span>
+                {% if period %}
+                <a href="{% url 'order' hotel.id %}?{{ period_querystring }}" class="relative z-10 text-sm font-semibold text-brick no-underline hover:text-ink">{% trans "Boek" %} <span class="sr-only">{{ hotel.name }}</span>→</a>
+                {% else %}
+                <span aria-hidden="true" class="text-sm font-semibold text-brick">Bekijk →</span>
+                {% endif %}
               </div>
             </div>
-          </a>
+          </article>
           {% empty %}
           <div class="card p-8 sm:col-span-2 lg:col-span-4">
+            {% if period %}
+            <p class="font-display font-semibold text-xl">{% trans "Geen hotels met een vrije kamer in deze periode" %}</p>
+            <p class="mt-2 text-muted">{% trans "Probeer andere data, of" %} <a href="{% url 'stad' city_name %}" class="text-brick font-semibold">bekijk alle hotels in {{ city_name }}</a>.</p>
+            {% else %}
             <p class="font-display font-semibold text-xl">Geen hotels gevonden</p>
             <p class="mt-2 text-muted">Probeer een andere zoekterm, of <a href="{% url 'stad' city_name %}" class="text-brick font-semibold">bekijk alle hotels in {{ city_name }}</a>.</p>
+            {% endif %}
           </div>
           {% endfor %}
         </div>
@@ -69,10 +108,10 @@
           <span class="text-sm text-muted">Pagina {{ page_obj.number }} van {{ page_obj.paginator.num_pages }}</span>
           <div class="flex items-center gap-2">
             {% if page_obj.has_previous %}
-            <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q|urlencode }}{% endif %}" class="btn-outline min-h-[44px] px-5 text-sm">← Vorige</a>
+            <a href="?page={{ page_obj.previous_page_number }}{% if querystring %}&amp;{{ querystring }}{% endif %}" class="btn-outline min-h-[44px] px-5 text-sm">← Vorige</a>
             {% endif %}
             {% if page_obj.has_next %}
-            <a href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q|urlencode }}{% endif %}" class="btn-dark min-h-[44px] px-5 text-sm">Volgende →</a>
+            <a href="?page={{ page_obj.next_page_number }}{% if querystring %}&amp;{{ querystring }}{% endif %}" class="btn-dark min-h-[44px] px-5 text-sm">Volgende →</a>
             {% endif %}
           </div>
         </nav>

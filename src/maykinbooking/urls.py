@@ -37,6 +37,8 @@ urlpatterns = [
         name="password_reset_complete",
     ),
     path("dashboard/", include("maykinbooking.dashboard.urls")),
+    # "Mijn boeking": the guest's own booking, reached with the token in the URL.
+    path("", include("maykinbooking.bookings.urls")),
     # Simply show the master template.
     path("", include("maykinbooking.base.urls")),
     path("", include("maykinbooking.api.urls")),

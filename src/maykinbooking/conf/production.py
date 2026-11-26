@@ -5,6 +5,8 @@ and HTTPS is leveraged where possible to further secure things.
 """
 import os
 
+from django.core.exceptions import ImproperlyConfigured
+
 os.environ.setdefault("ENVIRONMENT", "production")
 # NOTE: watch out for multiple projects using the same cache!
 os.environ.setdefault("CACHE_DEFAULT", "127.0.0.1:6379/2")
@@ -49,6 +51,10 @@ LOGGING["loggers"].update(
 
 # Only set this when we're behind a reverse proxy
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+# HTTPS only: redirect http, and tell browsers to use https for a year (HSTS).
+# conf/docker.py turns the redirect off, because it runs locally on http.
+SECURE_SSL_REDIRECT = config("SECURE_SSL_REDIRECT", default=True)
+SECURE_HSTS_SECONDS = config("SECURE_HSTS_SECONDS", default=31536000)
 SECURE_CONTENT_TYPE_NOSNIFF = True  # Sets X-Content-Type-Options: nosniff
 SECURE_BROWSER_XSS_FILTER = True  # Sets X-XSS-Protection: 1; mode=block
 
@@ -56,6 +62,20 @@ SECURE_BROWSER_XSS_FILTER = True  # Sets X-XSS-Protection: 1; mode=block
 # Custom settings overrides
 #
 SHOW_ALERT = False
+
+# Required: the links in the booking mails are built with it. No default, so a
+# missing SITE_URL stops the start instead of sending links to localhost.
+SITE_URL = config("SITE_URL")
+# The links contain the token of a booking, so they must be https. Applies to
+# everything that builds on these settings (staging, test, docker), unless it is
+# turned off explicitly with SITE_URL_REQUIRE_HTTPS=no; conf/docker.py does that
+# because it runs locally on http.
+SITE_URL_REQUIRE_HTTPS = config("SITE_URL_REQUIRE_HTTPS", default=True)
+if SITE_URL_REQUIRE_HTTPS and not SITE_URL.startswith("https://"):
+    raise ImproperlyConfigured(
+        f"SITE_URL must start with https://, not {SITE_URL!r}. "
+        "Set SITE_URL_REQUIRE_HTTPS=no only for a local http setup."
+    )
 
 ##############################
 #                            #

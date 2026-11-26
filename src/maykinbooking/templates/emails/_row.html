@@ -1,0 +1,9 @@
+{% comment %}
+  One label/value row of a details table in a mail.
+  Use: {% include "emails/_row.html" with label=_("Kamer") value=order.room.get_room_type_display %}
+  Optional: money=True shows value as an amount ("€ 75,50"), strong=True for a
+  total row.
+{% endcomment %}<tr>
+  <td class="mb-line {% if strong %}mb-text{% else %}mb-muted{% endif %}" valign="top" style="padding:10px 12px 10px 0; border-top:1px solid #E4DCCD; color:{% if strong %}#13243A{% else %}#4F5A6B{% endif %}; font-family:Helvetica, Arial, sans-serif; font-size:15px; line-height:22px;{% if strong %} font-weight:bold;{% endif %}">{{ label }}</td>
+  <td class="mb-line mb-text" valign="top" align="right" style="padding:10px 0; border-top:1px solid #E4DCCD; color:#13243A; font-family:Helvetica, Arial, sans-serif; font-size:{% if strong %}18px{% else %}15px{% endif %}; line-height:22px; text-align:right;{% if money %} white-space:nowrap;{% endif %}{% if strong %} font-weight:bold;{% endif %}">{% if money %}€ {{ value|floatformat:2 }}{% else %}{{ value }}{% endif %}</td>
+</tr>

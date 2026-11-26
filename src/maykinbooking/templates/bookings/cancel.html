@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+{% load i18n l10n order_status %}
+<html lang="nl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <meta name="referrer" content="no-referrer" />
+    <title>{% blocktrans with number=order.pk|unlocalize %}Boeking #{{ number }} annuleren{% endblocktrans %} · Maykin Booking</title>
+    {% include 'components/head.html' %}
+  </head>
+  <body class="min-h-screen flex flex-col bg-linen text-ink font-sans antialiased">
+    {% include 'components/header.html' %}
+
+    <main class="flex-1 max-w-site w-full mx-auto px-6 md:px-8 py-12">
+      <a href="{% url 'bookings:detail' order.token %}" class="text-sm text-muted hover:text-ink no-underline">← {% trans "Terug naar je boeking" %}</a>
+      <h1 class="mt-5 font-display font-semibold text-4xl md:text-5xl tracking-[-0.02em]">{% trans "Boeking annuleren" %}</h1>
+
+      <div class="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px] items-start">
+        <div class="card p-7 md:p-9">
+          {% if order.status == 'cancelled' %}
+          <p class="font-display font-semibold text-2xl">{% trans "Deze boeking is al geannuleerd" %}</p>
+          <p class="mt-2 text-muted">{% trans "Je hoeft niets meer te doen." %}</p>
+          <a href="{% url 'bookings:detail' order.token %}" class="btn-dark mt-6">{% trans "Naar je boeking" %}</a>
+
+          {% elif order|stay_over %}
+          <p class="font-display font-semibold text-2xl">{% trans "Je verblijf is voorbij" %}</p>
+          <p class="mt-2 text-muted">{% trans "Deze boeking kan niet meer geannuleerd worden." %}</p>
+          <a href="{% url 'bookings:detail' order.token %}" class="btn-dark mt-6">{% trans "Naar je boeking" %}</a>
+
+          {% elif can_cancel and not refused %}
+          <p class="font-display font-semibold text-2xl">{% trans "Weet je zeker dat je wilt annuleren?" %}</p>
+          <p class="mt-3 text-[15px]">{% blocktrans with day=last_free_cancellation_day|date:"l j F" %}Kosteloos annuleren kan tot en met {{ day }}.{% endblocktrans %}</p>
+          <p class="mt-2 text-[15px] text-muted">{% trans "Je krijgt een bevestiging van de annulering per e-mail. Een geannuleerde boeking kun je niet terugzetten." %}</p>
+          <form action="{% url 'bookings:cancel' order.token %}" method="post" class="mt-7 flex flex-wrap gap-3">
+            {% csrf_token %}
+            <button type="submit" class="btn-primary">{% trans "Ja, annuleer mijn boeking" %}</button>
+            <a href="{% url 'bookings:detail' order.token %}" class="btn-outline">{% trans "Nee, terug" %}</a>
+          </form>
+
+          {% else %}
+          <div {% if refused %}role="alert"{% endif %}>
+            <p class="font-display font-semibold text-2xl">{% trans "Kosteloos annuleren kan voor deze boeking niet meer." %}</p>
+            <p class="mt-3 text-[15px]">{% trans "Wil je toch annuleren? Mail ons:" %} <a href="mailto:{{ contact_email }}" class="text-brick font-semibold">{{ contact_email }}</a></p>
+          </div>
+          <a href="{% url 'bookings:detail' order.token %}" class="btn-dark mt-6">{% trans "Naar je boeking" %}</a>
+          {% endif %}
+        </div>
+
+        <aside class="card overflow-hidden" aria-labelledby="summary-title">
+          <div class="p-6">
+            <p class="eyebrow">{{ order.hotel.city.name }}</p>
+            <h2 id="summary-title" class="font-display font-semibold text-2xl mt-1">{{ order.hotel.name }}</h2>
+            <dl class="mt-5 text-sm space-y-2.5">
+              <div class="flex justify-between gap-4"><dt class="text-muted">{% trans "Boekingsnummer" %}</dt><dd>#{{ order.pk|unlocalize }}</dd></div>
+              <div class="flex justify-between gap-4"><dt class="text-muted">{% trans "Kamer" %}</dt><dd>{{ order.room.get_room_type_display }}</dd></div>
+              <div class="flex justify-between gap-4"><dt class="text-muted">{% trans "Inchecken" %}</dt><dd>{{ order.start_date|date:"j F Y" }}</dd></div>
+              <div class="flex justify-between gap-4"><dt class="text-muted">{% trans "Uitchecken" %}</dt><dd>{{ order.end_date|date:"j F Y" }}</dd></div>
+              <div class="flex justify-between items-baseline gap-4 pt-2.5 border-t border-seam"><dt class="font-semibold">{% trans "Totaal" %}</dt><dd class="font-display font-semibold text-2xl">€ {{ order.total_price|floatformat:2 }}</dd></div>
+            </dl>
+          </div>
+        </aside>
+      </div>
+    </main>
+
+    {% include 'components/footer.html' %}
+  </body>
+</html>

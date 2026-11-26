@@ -1,0 +1,111 @@
+{% load i18n %}{% get_current_language as LANGUAGE_CODE %}<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE }}" xmlns="http://www.w3.org/1999/xhtml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+  {% comment %}
+    Layout of the booking mails.
+
+    All styling is inline, in table layout, so Gmail, Outlook and Apple Mail show
+    the same mail. No external fonts, images or scripts. The <style> blocks below
+    only hold what cannot be inline: small screens and dark mode. A client that
+    drops them still gets a readable light mail.
+
+    Blocks: title, preheader (preview text in the inbox) and content.
+    Classes with the "mb-" prefix are hooks for the dark mode and mobile rules.
+  {% endcomment %}
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="x-apple-disable-message-reformatting">
+  <meta name="format-detection" content="telephone=no, date=no, address=no, email=no, url=no">
+  <meta name="color-scheme" content="light dark">
+  <meta name="supported-color-schemes" content="light dark">
+  <title>{% block title %}Maykin Booking{% endblock %}</title>
+  <!--[if mso]>
+  <noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript>
+  <style>
+    td, p, a, span, div { font-family: Arial, sans-serif !important; mso-line-height-rule: exactly; }
+    .mb-serif { font-family: Georgia, serif !important; }
+  </style>
+  <![endif]-->
+  {# Kept apart: Gmail drops a whole <style> block it cannot parse, and it does not do dark mode anyway. #}
+  <style>
+    @media screen and (max-width: 620px) {
+      .mb-outer { padding: 16px 8px !important; }
+      .mb-pad { padding-left: 22px !important; padding-right: 22px !important; }
+      .mb-card { padding-top: 28px !important; padding-bottom: 28px !important; }
+      .mb-panel-pad { padding: 18px !important; }
+      .mb-h1 { font-size: 26px !important; line-height: 32px !important; }
+      .mb-btn { width: 100% !important; }
+      .mb-btn a { display: block !important; }
+    }
+  </style>
+  <style>
+    :root { color-scheme: light dark; supported-color-schemes: light dark; }
+    @media (prefers-color-scheme: dark) {
+      .mb-bg { background-color: #0B1626 !important; }
+      .mb-card { background-color: #13243A !important; border-color: #2B3D55 !important; }
+      .mb-panel { background-color: #1B2F4A !important; }
+      .mb-text { color: #F6F1E8 !important; }
+      .mb-muted { color: #C3CAD5 !important; }
+      .mb-accent, .mb-link { color: #F0A58A !important; }
+      .mb-line { border-color: #2B3D55 !important; }
+      .mb-tile { background-color: #F6F1E8 !important; color: #13243A !important; }
+      .mb-note { background-color: #1B2F4A !important; border-color: #6FB3A8 !important; }
+      .mb-btn-dark { background-color: #F6F1E8 !important; }
+      .mb-btn-dark-text { color: #13243A !important; }
+    }
+    [data-ogsc] .mb-text { color: #F6F1E8 !important; }
+    [data-ogsc] .mb-muted { color: #C3CAD5 !important; }
+    [data-ogsc] .mb-accent, [data-ogsc] .mb-link { color: #F0A58A !important; }
+    [data-ogsb] .mb-bg { background-color: #0B1626 !important; }
+    [data-ogsb] .mb-card { background-color: #13243A !important; }
+    [data-ogsb] .mb-panel, [data-ogsb] .mb-note { background-color: #1B2F4A !important; }
+    [data-ogsb] .mb-btn-dark { background-color: #F6F1E8 !important; }
+    [data-ogsc] .mb-btn-dark-text { color: #13243A !important; }
+  </style>
+</head>
+<body class="mb-bg" style="margin:0; padding:0; width:100%; background-color:#F6F1E8; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%;">
+  <div style="display:none; max-height:0; max-width:0; overflow:hidden; mso-hide:all; font-size:1px; line-height:1px; color:#F6F1E8; opacity:0;">{% block preheader %}{% endblock %}&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;</div>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="mb-bg" bgcolor="#F6F1E8" style="width:100%; background-color:#F6F1E8;">
+    <tr>
+      <td align="center" class="mb-outer" style="padding:32px 12px;">
+        <!--[if mso]><table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" align="center"><tr><td><![endif]-->
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; max-width:600px; margin:0 auto;">
+
+          {# Logo: the word mark as text, with a tile in place of the image mark. #}
+          <tr>
+            <td class="mb-pad" style="padding:0 8px 20px;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td class="mb-tile mb-serif" width="38" height="38" align="center" valign="middle" bgcolor="#13243A" aria-hidden="true" style="width:38px; height:38px; background-color:#13243A; border-radius:10px; color:#F6F1E8; font-family:Georgia, 'Times New Roman', serif; font-size:22px; line-height:38px; font-weight:bold; text-align:center;">m</td>
+                  <td style="padding-left:12px;">
+                    <div class="mb-text mb-serif" style="margin:0; font-family:Georgia, 'Times New Roman', serif; font-size:24px; line-height:24px; font-weight:bold; letter-spacing:-0.02em; color:#13243A;">maykin</div>
+                    <div class="mb-muted" style="margin:0; padding-top:5px; font-family:Helvetica, Arial, sans-serif; font-size:10px; line-height:10px; font-weight:bold; letter-spacing:0.28em; text-transform:uppercase; color:#4F5A6B;">booking</div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <tr>
+            <td class="mb-card mb-pad mb-text" bgcolor="#FFFFFF" style="padding:40px; background-color:#FFFFFF; border:1px solid #E4DCCD; border-radius:16px; color:#13243A; font-family:Helvetica, Arial, sans-serif; font-size:16px; line-height:24px; text-align:left;">
+              {% block content %}{% endblock %}
+            </td>
+          </tr>
+
+          <tr>
+            <td class="mb-pad mb-muted" style="padding:24px 8px 8px; color:#4F5A6B; font-family:Helvetica, Arial, sans-serif; font-size:13px; line-height:20px; text-align:left;">
+              <p style="margin:0 0 4px;"><strong class="mb-text" style="color:#13243A;">Maykin Booking</strong></p>
+              <p style="margin:0 0 12px;">{% trans "Vragen over je boeking? Mail ons:" %} <a href="mailto:{{ contact_email }}" class="mb-link" style="color:#B4492A; text-decoration:underline;">{{ contact_email }}</a></p>
+              <p style="margin:0;">{% trans "Je ontvangt deze e-mail omdat er met dit e-mailadres een boeking is gemaakt bij Maykin Booking." %}</p>
+            </td>
+          </tr>
+
+        </table>
+        <!--[if mso]></td></tr></table><![endif]-->
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

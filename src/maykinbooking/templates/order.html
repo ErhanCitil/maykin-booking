@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-{% load static %}
+{% load static i18n %}
 <html lang="nl">
   <head>
     <meta charset="UTF-8" />
@@ -11,7 +11,7 @@
     {% include 'components/header.html' %}
 
     <main class="flex-1 max-w-site w-full mx-auto px-6 md:px-8 py-12">
-      <a href="{% url 'hotel_detail' hotel.pk %}" class="text-sm text-muted hover:text-ink no-underline">← Terug naar {{ hotel.name }}</a>
+      <a href="{% url 'hotel_detail' hotel.pk %}{% if period_querystring %}?{{ period_querystring }}{% endif %}" class="text-sm text-muted hover:text-ink no-underline">← Terug naar {{ hotel.name }}</a>
       <h1 class="mt-5 font-display font-semibold text-4xl md:text-5xl tracking-[-0.02em]">Boek je verblijf</h1>
 
       {% if bookable %}
@@ -47,6 +47,10 @@
           <div role="alert" class="mb-6 rounded-xl px-4 py-3 text-sm font-medium bg-[#F3E3DD] text-[#8A3519]">
             {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
           </div>
+          {% elif wizard.steps.current == 'stay' and form.no_rooms_available %}
+          <div role="status" class="mb-6 rounded-xl px-4 py-3 text-sm font-medium bg-[#F3E3DD] text-[#8A3519]">
+            <p>{% trans "Geen kamers vrij in deze periode." %} {% trans "Kies andere data." %}</p>
+          </div>
           {% endif %}
 
           {% if wizard.steps.current == 'stay' %}
@@ -79,6 +83,8 @@
                 </span>
               </label>
               {% endwith %}
+              {% empty %}
+              <p class="p-4 rounded-2xl border-[1.5px] border-dashed border-seam text-sm text-muted">{% trans "Er is geen kamer vrij voor deze data. Kies andere data en ga verder; dan zie je welke kamers vrij zijn." %}</p>
               {% endfor %}
             </div>
             {% for error in form.room.errors %}<p class="mt-2 text-sm font-medium text-brick-dark">{{ error }}</p>{% endfor %}

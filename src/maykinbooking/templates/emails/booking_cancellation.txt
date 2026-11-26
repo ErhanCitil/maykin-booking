@@ -1,0 +1,31 @@
+{% load i18n l10n %}{% autoescape off %}{% blocktrans with name=order.first_name %}Beste {{ name }},{% endblocktrans %}
+
+{% blocktrans with number=order.pk|unlocalize hotel=order.hotel.name %}Je boeking #{{ number }} bij {{ hotel }} is geannuleerd.{% endblocktrans %}
+{% if order.payment_status == "at_hotel" or order.payment_status == "open" %}{% trans "Je hoeft niets te betalen." %} {% trans "Er wordt niets in rekening gebracht." %}
+{% endif %}
+
+{% blocktrans with number=order.pk|unlocalize %}Boeking #{{ number }}{% endblocktrans %} ({% trans "geannuleerd" %})
+----------------------------------------
+{% trans "Hotel" %}: {{ order.hotel.name }}
+{% trans "Adres" %}: {% if order.hotel.address %}{{ order.hotel.address }}, {% endif %}{{ order.hotel.city.name }}
+{% trans "Kamer" %}: {{ order.room.get_room_type_display }}
+{% trans "Inchecken" %}: {{ order.start_date|date:"l j F Y" }}
+{% trans "Uitchecken" %}: {{ order.end_date|date:"l j F Y" }}
+{% trans "Verblijf" %}: {% blocktrans count counter=night_count %}{{ counter }} nacht{% plural %}{{ counter }} nachten{% endblocktrans %}
+
+
+{% trans "Bekijk je boeking:" %}
+{{ my_booking_url }}
+
+{% trans "Heb je deze annulering niet zelf aangevraagd? Mail ons dan zo snel mogelijk:" %} {{ contact_email }}
+
+{% trans "We hopen je een andere keer te mogen ontvangen." %}
+
+{% trans "Met vriendelijke groet," %}
+Maykin Booking
+
+
+--
+{% trans "Vragen over je boeking? Mail ons:" %} {{ contact_email }}
+{% trans "Je ontvangt deze e-mail omdat er met dit e-mailadres een boeking is gemaakt bij Maykin Booking." %}
+{% endautoescape %}

@@ -1,0 +1,35 @@
+{% extends "emails/_layout.html" %}
+{% load i18n l10n %}
+
+{% block title %}{% blocktrans with number=order.pk|unlocalize %}Bevestiging boeking #{{ number }}{% endblocktrans %}{% endblock %}
+
+{% block preheader %}{% blocktrans with hotel=order.hotel.name start=order.start_date|date:"j F" end=order.end_date|date:"j F Y" %}Je verblijf bij {{ hotel }} van {{ start }} tot {{ end }} staat vast.{% endblocktrans %}{% endblock %}
+
+{% block content %}
+<h1 class="mb-text mb-serif mb-h1" style="margin:0 0 16px; color:#13243A; font-family:Georgia, 'Times New Roman', serif; font-size:30px; line-height:36px; font-weight:bold; letter-spacing:-0.02em;">{% trans "Je boeking staat vast" %}</h1>
+<p style="margin:0 0 8px;">{% blocktrans with name=order.first_name %}Beste {{ name }},{% endblocktrans %}</p>
+<p style="margin:0 0 24px;">{% blocktrans with hotel=order.hotel.name %}Bedankt voor je boeking bij {{ hotel }}. Hieronder vind je alle gegevens van je verblijf.{% endblocktrans %}</p>
+
+{% include "emails/_booking_summary.html" with show_prices=True %}
+
+{% include "emails/_button.html" with url=my_booking_url label=_("Bekijk je boeking") %}
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; margin-top:20px;">
+  <tr>
+    {% if can_cancel %}
+    <td class="mb-note mb-text" bgcolor="#EEF5F3" style="padding:14px 18px; background-color:#EEF5F3; border-left:4px solid #2E6B62; color:#13243A; font-family:Helvetica, Arial, sans-serif; font-size:15px; line-height:22px;">
+      <strong>{% blocktrans with day=last_free_cancellation_day|date:"l j F" %}Kosteloos annuleren kan tot en met {{ day }}.{% endblocktrans %}</strong>
+      {% trans "Dat regel je zelf via Mijn boeking." %}
+    </td>
+    {% else %}
+    <td class="mb-note mb-text" bgcolor="#F6F1E8" style="padding:14px 18px; background-color:#F6F1E8; border-left:4px solid #B4492A; color:#13243A; font-family:Helvetica, Arial, sans-serif; font-size:15px; line-height:22px;">
+      <strong>{% trans "Kosteloos annuleren kan voor deze boeking niet meer." %}</strong>
+      {% trans "Wil je toch annuleren? Mail ons:" %} <a href="mailto:{{ contact_email }}" class="mb-link" style="color:#B4492A; text-decoration:underline;">{{ contact_email }}</a>
+    </td>
+    {% endif %}
+  </tr>
+</table>
+
+<p style="margin:24px 0 0;">{% trans "De bevestiging zit ook als PDF in de bijlage." %}</p>
+<p style="margin:8px 0 0;">{% blocktrans with city=order.hotel.city.name %}We wensen je een fijn verblijf in {{ city }}.{% endblocktrans %}</p>
+{% endblock %}

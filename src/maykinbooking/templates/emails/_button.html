@@ -1,0 +1,25 @@
+{% load i18n %}{% comment %}
+  A large call-to-action button that also works in Outlook (mso-padding-alt),
+  followed by the plain link for clients that do not show the button.
+  Use: {% include "emails/_button.html" with url=my_booking_url label=_("Bekijk je boeking") %}
+  Optional: dark=True for the ink-coloured variant (linen in dark mode, where an
+  ink button would disappear against the ink card).
+{% endcomment %}<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr>
+    <td style="padding:32px 0 12px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" class="mb-btn">
+        <tr>
+          <td align="center"{% if dark %} class="mb-btn-dark"{% endif %} bgcolor="{% if dark %}#13243A{% else %}#B4492A{% endif %}" style="background-color:{% if dark %}#13243A{% else %}#B4492A{% endif %}; border-radius:999px; mso-padding-alt:16px 36px;">
+            <a href="{{ url }}"{% if dark %} class="mb-btn-dark-text"{% endif %} style="display:inline-block; padding:16px 36px; border-radius:999px; color:#FFFFFF; font-family:Helvetica, Arial, sans-serif; font-size:17px; line-height:22px; font-weight:bold; text-align:center; text-decoration:none;">{{ label }}</a>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+  <tr>
+    <td class="mb-muted" style="padding:0 0 8px; color:#4F5A6B; font-family:Helvetica, Arial, sans-serif; font-size:13px; line-height:20px;">
+      {% trans "Werkt de knop niet? Open dan deze link:" %}<br>
+      <a href="{{ url }}" class="mb-link" style="color:#B4492A; text-decoration:underline; word-break:break-all;">{{ url }}</a>
+    </td>
+  </tr>
+</table>

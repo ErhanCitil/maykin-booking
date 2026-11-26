@@ -100,6 +100,9 @@ ENV RELEASE=${RELEASE} \
     DJANGO_SETTINGS_MODULE=maykinbooking.conf.docker
 
 ARG SECRET_KEY=dummy
+# The settings require SITE_URL (conf/production.py). Only for the build steps
+# below; the running container gets it from its environment (docker-compose.yml).
+ARG SITE_URL=http://localhost:8000
 
 LABEL org.label-schema.vcs-ref=$COMMIT_HASH \
       org.label-schema.vcs-url="https://bitbucket.org/maykinmedia/maykinbooking" \
