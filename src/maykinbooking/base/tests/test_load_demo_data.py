@@ -17,6 +17,7 @@ from pathlib import Path
 from unittest import mock
 
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.core.management import CommandError, call_command
 from django.db.models import Count, Min, Q
 from django.test import TestCase, override_settings
@@ -26,7 +27,19 @@ from django.utils.html import escape
 from maykinbooking.dashboard.forms import next_hotel_id
 
 from ..management.commands import load_demo_data
-from ..models import ROOM_CHOICES, City, Highlight, Hotel, Order, Review, Room
+from ..models import (
+    ROOM_CHOICES,
+    City,
+    EmailLog,
+    Highlight,
+    Hotel,
+    Order,
+    OrderNight,
+    OrderStatusChange,
+    Review,
+    Room,
+    RoomBlock,
+)
 
 STATIC_DIR = Path(__file__).resolve().parents[2] / "static"
 
@@ -148,6 +161,7 @@ class ExistingDataMixin:
             zipcode="1015CJ",
             start_date=date(2027, 1, 1),
             end_date=date(2027, 1, 3),
+            total_price=Decimal("100"),
         )
         cls.review = Review.objects.create(
             hotel=hotel, name="Sam", rating=4, description="Prima verblijf"
@@ -240,6 +254,38 @@ class LoadDemoDataTests(ExistingDataMixin, TestCase):
         with self.assertRaisesMessage(CommandError, "niet bedoeld voor productie"):
             run_command("--noinput")
         self.assertExistingDataUntouched()
+
+    def test_every_room_type_gets_inventory_5(self):
+        run_command("--noinput")
+        self.assertEqual(
+            set(Room.objects.values_list("inventory", flat=True)),
+            {load_demo_data.ROOM_INVENTORY},
+        )
+        self.assertEqual(load_demo_data.ROOM_INVENTORY, 5)
+
+    def test_orders_with_nights_history_mails_and_room_blocks_are_deleted(self):
+        # Orders protect their room and hotel, so they have to go first.
+        room = Room.objects.get()
+        OrderNight.objects.create(
+            order=self.order, date=date(2027, 1, 1), price=Decimal("50")
+        )
+        OrderStatusChange.objects.create(
+            order=self.order, field="status", new_value="confirmed", actor_type="system"
+        )
+        EmailLog.objects.create(
+            order=self.order, kind="booking_confirmation", recipient="a@example.com"
+        )
+        RoomBlock.objects.create(
+            room=room, start_date=date(2027, 2, 1), end_date=date(2027, 2, 3)
+        )
+
+        output = run_command("--noinput")
+
+        self.assertIn("Verwijderd: 1 boekingen, 1 reviews, 1 kamers", output)
+        self.assertDemoDataLoaded()
+        for model in [Order, OrderNight, OrderStatusChange, EmailLog, RoomBlock]:
+            with self.subTest(model=model.__name__):
+                self.assertFalse(model.objects.exists())
 
     def test_new_dashboard_hotel_continues_the_hotel_id_sequence(self):
         run_command("--noinput")
@@ -705,6 +751,10 @@ class DemoDataPagesTests(TestCase):
         run_command("--noinput")
         cls.hotel = Hotel.objects.select_related("city").get(hotel_id="AMS01")
 
+    def setUp(self):
+        # The rate limits count in the cache, which all tests share.
+        cache.clear()
+
     def page_urls(self):
         return [
             reverse("index"),
@@ -815,11 +865,12 @@ class DemoDataPagesTests(TestCase):
             response = self.client.post(url, payload)
 
         order = Order.objects.get()
-        self.assertRedirects(response, reverse("success", args=[order.pk]))
+        detail_url = reverse("bookings:detail", kwargs={"token": order.token})
+        self.assertRedirects(response, detail_url)
         self.assertEqual(order.hotel, self.hotel)
         self.assertEqual(order.room, room)
         self.assertEqual(order.total_price, room.price * 2)
 
-        response = self.client.get(reverse("success", args=[order.pk]))
+        response = self.client.get(detail_url)
         self.assertContains(response, escape(self.hotel.name))
-        self.assertContains(response, "× 2 nachten")
+        self.assertContains(response, "2 nachten")

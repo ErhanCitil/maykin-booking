@@ -1,9 +1,22 @@
 import datetime
+from decimal import Decimal
+
+from django.utils import timezone
 
 import factory
 import factory.fuzzy
 
-from maykinbooking.base.models import City, Highlight, Hotel, Order, Room
+from maykinbooking.base.models import (
+    City,
+    Highlight,
+    Hotel,
+    Order,
+    OrderNight,
+    OrderStatus,
+    PaymentStatus,
+    Room,
+    RoomBlock,
+)
 
 # Images are set by name only: the pages just need a URL, and generating real
 # files would leave them behind in static/ and media/ after every test run.
@@ -46,11 +59,25 @@ class RoomFactory(factory.django.DjangoModelFactory):
     image = factory.Sequence(lambda n: f"example_room_{n}.jpg")
     price = factory.fuzzy.FuzzyDecimal(100.00)
     description = factory.fuzzy.FuzzyText(length=100)
+    inventory = 5
+
+
+def _nights(order):
+    return (order.end_date - order.start_date).days
 
 
 class OrderFactory(factory.django.DjangoModelFactory):
+    """
+    A confirmed order, like the booking service makes it: with ``total_price``
+    and one ``OrderNight`` per night at the room price.
+
+    ``OrderFactory(nights=False)`` skips the nights. Note: ``create_booking``
+    checks availability, this factory does not.
+    """
+
     class Meta:
         model = Order
+        skip_postgeneration_save = True
 
     hotel = factory.SubFactory(HotelFactory)
     room = factory.SubFactory(RoomFactory, hotel=factory.SelfAttribute("..hotel"))
@@ -64,6 +91,44 @@ class OrderFactory(factory.django.DjangoModelFactory):
     address = factory.fuzzy.FuzzyText(length=100)
     zipcode = factory.fuzzy.FuzzyText(length=6)
     country = "NL"
+    status = OrderStatus.CONFIRMED
+    payment_status = PaymentStatus.AT_HOTEL
+    total_price = factory.LazyAttribute(
+        lambda order: (Decimal(str(order.room.price)) * _nights(order)).quantize(
+            Decimal("0.01")
+        )
+    )
+
+    @factory.post_generation
+    def nights(self, create, extracted, **kwargs):
+        if not create or extracted is False:
+            return
+        price = Decimal(str(self.room.price)).quantize(Decimal("0.01"))
+        OrderNight.objects.bulk_create(
+            OrderNight(
+                order=self,
+                date=self.start_date + datetime.timedelta(days=offset),
+                price=price,
+            )
+            for offset in range(_nights(self))
+        )
+
+
+class RoomBlockFactory(factory.django.DjangoModelFactory):
+    """One room blocked for two nights, starting a week from today."""
+
+    class Meta:
+        model = RoomBlock
+
+    room = factory.SubFactory(RoomFactory)
+    start_date = factory.LazyFunction(
+        lambda: timezone.localdate() + datetime.timedelta(days=7)
+    )
+    end_date = factory.LazyAttribute(
+        lambda block: block.start_date + datetime.timedelta(days=2)
+    )
+    quantity = 1
+    reason = "Onderhoud"
 
 
 class HighlightFactory(factory.django.DjangoModelFactory):

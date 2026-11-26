@@ -29,7 +29,9 @@ from maykinbooking.base.models import (
 DATA_FILE = Path(__file__).resolve().parents[2] / "demo_data" / "hotels.json"
 
 ROOM_TYPES = {value for value, _label in ROOM_CHOICES}
-MAX_PRICE = Decimal("9999.99")  # Room.price / Hotel.price: max_digits=6, 2 decimals
+# Hotel.price (the lowest room price) has max_digits=6 and 2 decimals.
+MAX_PRICE = Decimal("9999.99")
+ROOM_INVENTORY = 5  # rooms of each type per hotel
 MAX_ADDRESS_LENGTH = Hotel._meta.get_field("address").max_length
 
 CONFIRM_PROMPT = """Je staat op het punt de demodata te laden.
@@ -281,6 +283,7 @@ class Command(BaseCommand):
                         description=room["description"],
                         image=room["image"],
                         is_available=True,
+                        inventory=ROOM_INVENTORY,
                     )
                     for room in rooms
                 )
