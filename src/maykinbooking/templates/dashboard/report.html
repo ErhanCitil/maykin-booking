@@ -1,0 +1,97 @@
+{% extends 'dashboard/base.html' %}
+{% load i18n form_a11y money %}
+
+{% block title %}{% trans "Bezetting en omzet" %}{% endblock %}
+
+{% block content %}
+<div class="flex flex-wrap items-end justify-between gap-4">
+  <div>
+    <p class="eyebrow mb-2">{% trans "Rapportage" %}</p>
+    <h1 class="font-display font-semibold text-4xl md:text-5xl tracking-[-0.02em]">{% trans "Bezetting en omzet" %}</h1>
+    <p class="mt-3 text-muted">{% blocktrans count counter=nights with start=start|date:"j F Y" last=last|date:"j F Y" %}{{ start }} t/m {{ last }} · {{ counter }} nacht{% plural %}{{ start }} t/m {{ last }} · {{ counter }} nachten{% endblocktrans %}{% if hotel %} · {{ hotel.name }}{% endif %}</p>
+  </div>
+  <nav aria-label="{% trans 'Maanden' %}" class="flex flex-wrap gap-2">
+    {% for link in month_links %}
+    <a href="?{{ link.query }}" class="inline-flex items-center min-h-[40px] px-4 rounded-full text-sm font-semibold no-underline border-[1.5px] bg-white border-seam text-ink hover:border-ink">{{ link.label }}</a>
+    {% endfor %}
+  </nav>
+</div>
+
+<form method="get" class="mt-8 card p-4 flex flex-wrap items-end gap-3" aria-label="{% trans 'Periode en hotel' %}">
+  {% for field in form.visible_fields %}
+  <div class="{% if field.name == 'hotel' %}flex-[2_1_220px]{% else %}flex-[1_1_150px]{% endif %} min-w-0 flex flex-col gap-1.5">
+    <label for="{{ field.id_for_label }}" class="text-[13px] font-semibold">{{ field.label }}</label>
+    {% accessible_widget field %}
+    {% if field.errors %}<div id="{{ field.auto_id }}_errors">{% for error in field.errors %}<p class="text-sm font-medium text-brick-dark">{{ error }}</p>{% endfor %}</div>{% endif %}
+  </div>
+  {% endfor %}
+  <button type="submit" class="btn-dark">{% trans "Toon" %}</button>
+</form>
+
+{% if rows %}
+<div class="mt-6 card overflow-x-auto">
+  <table class="w-full text-sm text-left">
+    <caption class="sr-only">{% trans "Bezetting en omzet per hotel" %}</caption>
+    <thead class="text-[12px] uppercase tracking-[0.1em] text-muted border-b border-seam">
+      <tr>
+        <th scope="col" class="px-5 py-3 font-semibold">{% trans "Hotel" %}</th>
+        <th scope="col" class="px-5 py-3 font-semibold text-right">{% trans "Capaciteit" %}</th>
+        <th scope="col" class="px-5 py-3 font-semibold text-right">{% trans "Geblokkeerd" %}</th>
+        <th scope="col" class="px-5 py-3 font-semibold text-right">{% trans "Geboekt" %}</th>
+        <th scope="col" class="px-5 py-3 font-semibold text-right">{% trans "Bezetting" %}</th>
+        <th scope="col" class="px-5 py-3 font-semibold text-right">{% trans "Omzet excl. btw" %}</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-seam">
+      {% for row in rows %}
+      <tr class="hover:bg-linen/60">
+        <th scope="row" class="px-5 py-3.5 font-normal text-left">
+          <span class="font-semibold">{{ row.name }}</span>
+          <span class="block text-[12px] text-muted">{{ row.city }}</span>
+        </th>
+        <td class="px-5 py-3.5 text-right">{{ row.capacity }}</td>
+        <td class="px-5 py-3.5 text-right">{% if row.blocked %}{{ row.blocked }}{% else %}<span class="text-muted">0</span>{% endif %}</td>
+        <td class="px-5 py-3.5 text-right">{{ row.booked }}</td>
+        <td class="px-5 py-3.5 text-right whitespace-nowrap font-semibold">{% if row.occupancy is None %}<span class="font-normal text-muted">—</span>{% else %}{{ row.occupancy|floatformat:1 }}%{% endif %}</td>
+        <td class="px-5 py-3.5 text-right whitespace-nowrap {% if row.revenue < 0 %}text-brick-dark{% endif %}">
+          {{ row.revenue|euro }}
+          {% if row.untaxed_invoices %}<span class="block text-[12px] font-medium text-[#6E4A0E] whitespace-normal">{% blocktrans count counter=row.untaxed_invoices with amount=row.untaxed_incl|euro %}{{ counter }} factuur zonder btw-tarief niet meegeteld ({{ amount }} incl.){% plural %}{{ counter }} facturen zonder btw-tarief niet meegeteld ({{ amount }} incl.){% endblocktrans %}</span>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    {% if rows|length > 1 %}
+    <tfoot class="border-t-2 border-ink">
+      <tr>
+        <th scope="row" class="px-5 py-3.5 text-left font-semibold">{{ total.name }}</th>
+        <td class="px-5 py-3.5 text-right font-semibold">{{ total.capacity }}</td>
+        <td class="px-5 py-3.5 text-right font-semibold">{{ total.blocked }}</td>
+        <td class="px-5 py-3.5 text-right font-semibold">{{ total.booked }}</td>
+        <td class="px-5 py-3.5 text-right font-semibold whitespace-nowrap">{% if total.occupancy is None %}—{% else %}{{ total.occupancy|floatformat:1 }}%{% endif %}</td>
+        <td class="px-5 py-3.5 text-right whitespace-nowrap">
+          <span class="font-display font-semibold text-lg">{{ total.revenue|euro }}</span>
+          {% if total.untaxed_invoices %}<span class="block text-[12px] font-medium text-[#6E4A0E] whitespace-normal">{% blocktrans count counter=total.untaxed_invoices with amount=total.untaxed_incl|euro %}{{ counter }} factuur zonder btw-tarief niet meegeteld ({{ amount }} incl.){% plural %}{{ counter }} facturen zonder btw-tarief niet meegeteld ({{ amount }} incl.){% endblocktrans %}</span>{% endif %}
+        </td>
+      </tr>
+    </tfoot>
+    {% endif %}
+  </table>
+</div>
+{% else %}
+<div class="mt-6 card p-8">
+  <p class="font-display font-semibold text-xl">{% trans "Geen hotels" %}</p>
+</div>
+{% endif %}
+
+<section class="mt-6 card p-7 text-sm leading-relaxed text-muted" aria-labelledby="formula-title">
+  <h2 id="formula-title" class="font-semibold text-ink mb-2">{% trans "Zo wordt er gerekend" %}</h2>
+  <ul class="list-disc pl-5 space-y-1">
+    <li>{% trans "Capaciteit: het aantal kamers van alle kamertypes (de huidige voorraad) × het aantal nachten." %}</li>
+    <li>{% trans "Geblokkeerd: de kamernachten die door blokkades uit de verkoop zijn, per nacht hoogstens de voorraad." %}</li>
+    <li>{% trans "Geboekt: de nachten van bevestigde boekingen. Geannuleerde en verlopen boekingen tellen niet mee." %}</li>
+    <li>{% trans "Bezetting: geboekt ÷ (capaciteit − geblokkeerd)." %}</li>
+    <li>{% trans "Omzet: het gefactureerde bedrag excl. btw van de nachten in de periode, met de kortingen naar rato verdeeld en min de creditnota’s. Boekingen van voor de facturen tellen niet mee." %}</li>
+    <li>{% trans "Facturen zonder btw-tarief (er was geen tarief voor het land van het hotel) tellen niet mee in de omzet: het bedrag excl. btw is niet bekend. Ze staan apart vermeld, met hun bedrag incl. btw." %}</li>
+  </ul>
+</section>
+{% endblock %}

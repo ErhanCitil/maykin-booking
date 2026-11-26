@@ -47,6 +47,25 @@ class ScrubBookingTokensTests(SimpleTestCase):
         self.assertEqual(scrubbed["level"], "error")
         self.assertEqual(scrubbed["extra"], {"count": 3, "ids": (1, 2)})
 
+    def test_payment_references_are_replaced_too(self):
+        event = {
+            "request": {
+                "url": f"https://booking.example.com/betalen/{TOKEN}/terug/",
+                "headers": {"Referer": f"https://www.mollie.com/?r=/betalen/{TOKEN}"},
+            },
+            "breadcrumbs": {"values": [{"message": f"GET /betalen/{TOKEN}/terug/"}]},
+        }
+        scrubbed = scrub_booking_tokens(event, hint={})
+        self.assertNotIn(TOKEN[:8], str(scrubbed))
+        self.assertEqual(
+            scrubbed["request"]["url"],
+            "https://booking.example.com/betalen/<token>/terug/",
+        )
+        self.assertEqual(
+            scrubbed["breadcrumbs"]["values"][0]["message"],
+            "GET /betalen/<token>/terug/",
+        )
+
     def test_other_urls_are_kept(self):
         event = {
             "request": {"url": "https://booking.example.com/stad/Amsterdam?page=2"}

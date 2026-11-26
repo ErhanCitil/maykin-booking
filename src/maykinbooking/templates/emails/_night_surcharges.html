@@ -1,0 +1,8 @@
+{% load i18n %}{% comment %}
+  How the price of one night (``night``: an OrderNight snapshot, or a night of
+  ``billing.services.pricing.night_lines``) was made: "basisprijs € 100,00,
+  weekend +20%, Hoogseizoen +50%". The surcharge labels are the shared ones
+  (``night.surcharges``). Empty for a night without surcharges. Used in HTML
+  only (mail rows and the booking PDF), where the newline at the end of this
+  file does not matter; the text mail has the same sentence inline.
+{% endcomment %}{% if night.surcharges %}{% blocktrans with base=night.base_price|floatformat:2 labels=night.surcharges|join:", " %}basisprijs € {{ base }}, {{ labels }}{% endblocktrans %}{% endif %}

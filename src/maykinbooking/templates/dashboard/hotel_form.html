@@ -1,5 +1,5 @@
 {% extends 'dashboard/base.html' %}
-{% load i18n %}
+{% load i18n money %}
 
 {% block title %}{% if object %}{{ object.name }} bewerken{% else %}Nieuw hotel{% endif %}{% endblock %}
 
@@ -42,7 +42,7 @@
             <p class="text-[13px] text-muted">{% blocktrans count counter=room.inventory %}{{ counter }} kamer{% plural %}{{ counter }} kamers{% endblocktrans %} · {% if room.is_available %}Beschikbaar{% else %}Niet beschikbaar{% endif %}</p>
           </div>
           <div class="flex items-center gap-4">
-            <span class="font-display font-semibold text-xl whitespace-nowrap">€ {{ room.price|floatformat:2 }}</span>
+            <span class="font-display font-semibold text-xl whitespace-nowrap">{{ room.price|euro }}</span>
             <div class="flex flex-col items-end gap-0.5">
               <a href="{% url 'dashboard:room_edit' room.pk %}" class="text-sm font-semibold text-brick no-underline hover:text-ink">Bewerken</a>
               <a href="{% url 'dashboard:room_blocks' room.pk %}" class="text-[13px] text-muted no-underline hover:text-ink">{% trans "Blokkades" %}</a>
@@ -68,6 +68,7 @@
   <aside class="card p-7 text-sm leading-relaxed text-muted">
     <p class="font-semibold text-ink mb-2">Zo werkt het</p>
     <p>Na het opslaan voeg je kamers toe. De prijs per nacht stel je per kamer in, en op de site tonen we de laagste kamerprijs als “vanaf”-prijs.</p>
+    <p class="mt-3">{% trans "Het land bepaalt het btw-tarief op de facturen van dit hotel." %}</p>
     <p class="mt-3">Staat de stad er niet tussen? <a href="{% url 'dashboard:city_create' %}" class="text-brick font-semibold">Voeg een nieuwe stad toe</a>.</p>
   </aside>
   {% endif %}

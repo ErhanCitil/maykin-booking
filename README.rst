@@ -62,25 +62,37 @@ For visitors
 * Hotel page (``/hotel/<pk>``) with photo, address, highlights, rooms and
   prices per night.
 * Three-step checkout (``/order/<pk>``, a django-formtools wizard):
-  "Je verblijf" (dates and room), "Je gegevens" (guest details) and
-  "Controleren" (review and accept the terms). Only rooms that are free for
-  the whole stay can be chosen.
+  "Je verblijf" (dates, room and an optional discount code), "Je gegevens"
+  (guest details) and "Controleren" (price per night, choice of payment, and
+  accepting the terms). Only rooms that are free for the whole stay can be
+  chosen.
 * Availability per night: every room type has a number of rooms (5 by
   default), minus the bookings and the rooms that staff have blocked.
+* Prices per night with a weekend surcharge (Friday and Saturday night),
+  high-season surcharges, a discount for long stays and discount codes. The
+  price of every night is fixed when the guest books.
+* Pay at the hotel or online with iDEAL (Mollie, test mode only). An online
+  booking holds the room (15 minutes by default). A payment that comes too
+  late, twice or for another amount is refunded automatically.
 * "Mijn boeking" (``/boeking/<token>/``): after booking, the guest gets a
-  confirmation mail with the booking as PDF (WeasyPrint) and a link to this
-  page, with the details, the PDF and free cancellation up to and including
-  two days before arrival (the deadline is 00:00 on the day before arrival).
-* No online payment: guests pay at the hotel.
+  confirmation mail with the booking as PDF (WeasyPrint), the invoice and a
+  link to this page. The page has the details, the PDFs and free cancellation
+  up to and including two days before arrival (the deadline is 00:00 on the
+  day before arrival). A cancellation gets a credit note, and an online
+  payment is refunded.
 
 Staff dashboard
 ---------------
 
 * ``/dashboard/``, for staff only. Log in at ``/login/``; staff go straight to
   the dashboard.
+* Two roles, as groups: "Receptie" (see bookings, cancel them, send mails
+  again and retry refunds) and "Beheer" (everything). The superuser can do
+  everything; staff without a role only see the home page.
 * All hotels at a glance, with search by name and a filter per city.
-* Add, edit and delete hotels: name, city, address, description, photo, terms
-  and availability. An unavailable hotel is labelled "Vol" on the site.
+* Add, edit and delete hotels: name, city, country, address, description,
+  photo, terms and availability. An unavailable hotel is labelled "Vol" on the
+  site.
 * Manage the rooms of each hotel: type, price per night, number of rooms,
   description, photo and availability. Block rooms for a period, for example
   for maintenance.
@@ -90,9 +102,23 @@ Staff dashboard
   e-mail address, filter by city, hotel, status and arrival date, quick
   filters for today's arrivals and departures and for failed mails, and a CSV
   export of the filtered list.
-* Booking page with the nights, a log of every status change and the mails
-  sent. Staff can cancel a booking with a reason until the stay is over, and
-  send the last mail again (once per 2 minutes at most).
+* Booking page with the nights, the payments and refunds, a log of every
+  status change and the mails sent. Staff can cancel a booking with a reason
+  until the stay is over, send the last mail again (once per 2 minutes at
+  most) and retry a refund that failed.
+* Price rules (``/dashboard/prijsregels/``): weekend surcharge, discount for
+  long stays and high seasons. Discount codes (``/dashboard/kortingscodes/``):
+  a percentage or a fixed amount, a period of validity and a maximum number of
+  uses.
+* Invoices (``/dashboard/facturen/``), with search, filters, the PDFs and a
+  CSV export. An invoice is made when a booking is confirmed, numbered per
+  year without gaps (``2026-00001``), and never changes; a cancellation gets a
+  credit note. VAT rates per country are in the Django admin (superuser only).
+* Customers (``/dashboard/klanten/``): the bookings per e-mail address, with a
+  CSV export.
+* Report (``/dashboard/rapportage/``): occupancy and revenue without VAT per
+  hotel for a period. Invoices without a VAT rate are not counted in the
+  revenue, but listed apart.
 
 Demo data
 ---------
@@ -102,9 +128,12 @@ Demo data
   OpenStreetMap and 510 rooms.
 * Prices are realistic but generated. The photos are freely licensed
   illustrations and don't show the hotel itself.
+* Every hotel gets the country of its city. Only the Netherlands has a VAT
+  rate, so bookings in the other cities get test invoices.
 * The command is destructive: it first deletes all cities, hotels, rooms,
-  bookings and reviews (users are kept). It asks for confirmation and refuses
-  to run when ``ENVIRONMENT`` is ``production``.
+  bookings and reviews, with their invoices and payments (users are kept). It
+  asks for confirmation, and only runs in development and CI, never over real
+  invoices.
 * How the dataset was made: see the `demo data README`_ (in Dutch).
 
 
@@ -114,7 +143,10 @@ Tech stack
 * Python 3.10 and Django 3.2
 * PostgreSQL, plus Redis for cache and sessions with the production settings.
   Locally, SQLite is enough and Redis is not needed.
-* django-formtools for the checkout, WeasyPrint for the PDF confirmation
+* django-formtools for the checkout, WeasyPrint for the PDF confirmation and
+  the invoices
+* Mollie for online payment (iDEAL, test mode only), with a fake provider for
+  development and CI
 * Tailwind CSS, loaded from a CDN, with the project's own colours and logo
 * GitHub Actions for the tests and code quality (black, isort, flake8)
 

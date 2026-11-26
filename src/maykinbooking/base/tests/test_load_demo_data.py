@@ -255,6 +255,63 @@ class LoadDemoDataTests(ExistingDataMixin, TestCase):
             run_command("--noinput")
         self.assertExistingDataUntouched()
 
+    def test_only_with_debug_or_in_a_development_environment(self):
+        """Security V3: an allowlist, not only "not production"."""
+        for environment in ("staging", "test", "docker", "acceptatie", ""):
+            with self.subTest(environment=environment):
+                with override_settings(ENVIRONMENT=environment, DEBUG=False):
+                    with self.assertRaisesMessage(CommandError, "weigert"):
+                        run_command("--noinput")
+                self.assertExistingDataUntouched()
+        for environment, debug in (("development", False), ("staging", True)):
+            with self.subTest(environment=environment, debug=debug):
+                with override_settings(ENVIRONMENT=environment, DEBUG=debug):
+                    run_command("--noinput", verbosity=0)
+        self.assertDemoDataLoaded()
+
+    def test_real_invoices_are_never_deleted(self):
+        from maykinbooking.billing.models import Invoice
+        from maykinbooking.billing.tests.utils import book, in_days
+
+        room = Room.objects.get()
+        room.hotel.is_available = True
+        room.hotel.save()
+        seller = {
+            "INVOICE_SELLER_NAME": "Maykin Booking B.V.",
+            "INVOICE_SELLER_ADDRESS": "Kingsfordweg 151",
+            "INVOICE_SELLER_KVK": "12345678",
+            "INVOICE_SELLER_VAT_ID": "NL123456789B01",
+        }
+        with override_settings(**seller):
+            book(room, in_days(10), in_days(12))
+        self.assertFalse(Invoice.objects.get().is_test)
+
+        with mock.patch("builtins.input") as prompt:
+            with self.assertRaisesMessage(CommandError, "1 real invoices"):
+                run_command()
+        # Refused before the question, and nothing is deleted.
+        prompt.assert_not_called()
+        self.assertEqual(Invoice.objects.count(), 1)
+        self.assertEqual(Order.objects.count(), 2)
+
+    def test_hotels_get_the_country_of_their_city(self):
+        run_command("--noinput")
+        self.assertEqual(
+            dict(
+                Hotel.objects.values_list("city__city_id", "country")
+                .distinct()
+                .order_by("city__city_id")
+            ),
+            {
+                "AMS": "NL",
+                "ANT": "BE",
+                "ATH": "GR",
+                "BAK": "TH",
+                "BAR": "ES",
+                "BER": "DE",
+            },
+        )
+
     def test_every_room_type_gets_inventory_5(self):
         run_command("--noinput")
         self.assertEqual(
@@ -267,7 +324,10 @@ class LoadDemoDataTests(ExistingDataMixin, TestCase):
         # Orders protect their room and hotel, so they have to go first.
         room = Room.objects.get()
         OrderNight.objects.create(
-            order=self.order, date=date(2027, 1, 1), price=Decimal("50")
+            order=self.order,
+            date=date(2027, 1, 1),
+            base_price=Decimal("50"),
+            price=Decimal("50"),
         )
         OrderStatusChange.objects.create(
             order=self.order, field="status", new_value="confirmed", actor_type="system"
@@ -286,6 +346,42 @@ class LoadDemoDataTests(ExistingDataMixin, TestCase):
         for model in [Order, OrderNight, OrderStatusChange, EmailLog, RoomBlock]:
             with self.subTest(model=model.__name__):
                 self.assertFalse(model.objects.exists())
+
+    def test_invoices_payments_refunds_and_code_uses_are_deleted(self):
+        # They protect the orders, and invoices cannot be deleted otherwise.
+        from maykinbooking.billing.models import (
+            DiscountRedemption,
+            Invoice,
+            InvoiceSequence,
+            Payment,
+            Refund,
+        )
+        from maykinbooking.billing.tests.factories import (
+            DiscountCodeFactory,
+            RefundFactory,
+        )
+        from maykinbooking.billing.tests.utils import book, in_days
+        from maykinbooking.bookings.services.booking import Actor, cancel_booking
+
+        room = Room.objects.get()
+        room.hotel.is_available = True
+        room.hotel.save()
+        code = DiscountCodeFactory(code="DEMO", max_uses=5)
+        # A booking with invoice, discount code and credit note, and a paid
+        # order with a payment and a refund.
+        order = book(room, in_days(10), in_days(12), discount_code=code.code)
+        cancel_booking(order.pk, actor=Actor.guest())
+        RefundFactory()
+
+        run_command("--noinput")
+
+        for model in [Invoice, Payment, Refund, DiscountRedemption, Order]:
+            with self.subTest(model=model.__name__):
+                self.assertFalse(model.objects.exists())
+        code.refresh_from_db()
+        self.assertEqual(code.times_used, 0)
+        # Invoice numbers are never used twice.
+        self.assertEqual(InvoiceSequence.objects.get().last_number, 2)
 
     def test_new_dashboard_hotel_continues_the_hotel_id_sequence(self):
         run_command("--noinput")
@@ -854,6 +950,7 @@ class DemoDataPagesTests(TestCase):
                     "email": "alex@example.com",
                     "address": "Keizersgracht 117",
                     "zipcode": "1015 CJ",
+                    "city": "Amsterdam",
                     "country": "NL",
                 },
             ),

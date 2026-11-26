@@ -11,24 +11,43 @@
   <body class="min-h-screen flex flex-col bg-linen text-ink font-sans antialiased">
     {% include 'components/header.html' %}
 
-    {% with current=request.resolver_match.url_name %}
+    {% comment %}
+      Only the parts the user has permissions for. `nav_section` is set by
+      StaffRequiredMixin from the URL name of the page.
+    {% endcomment %}
     <div class="bg-white border-b border-seam">
       <nav aria-label="Dashboard" class="max-w-site mx-auto px-6 md:px-8 py-3 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
-        <span class="text-[12px] font-semibold uppercase tracking-[0.14em] text-muted">Dashboard</span>
-        <a href="{% url 'dashboard:home' %}" class="no-underline {% if current == 'home' or current == 'hotel_edit' or current == 'room_create' or current == 'room_edit' or current == 'room_blocks' %}font-semibold text-ink{% else %}text-muted hover:text-ink{% endif %}">Hotels</a>
-        <a href="{% url 'dashboard:booking_list' %}" class="no-underline {% if current == 'booking_list' or current == 'booking_detail' or current == 'booking_cancel' %}font-semibold text-ink{% else %}text-muted hover:text-ink{% endif %}">{% trans "Boekingen" %}</a>
-        <a href="{% url 'dashboard:hotel_create' %}" class="no-underline {% if current == 'hotel_create' %}font-semibold text-ink{% else %}text-muted hover:text-ink{% endif %}">Nieuw hotel</a>
-        <a href="{% url 'dashboard:city_create' %}" class="no-underline {% if current == 'city_create' %}font-semibold text-ink{% else %}text-muted hover:text-ink{% endif %}">Nieuwe stad</a>
+        <a href="{% url 'dashboard:home' %}" class="text-[12px] font-semibold uppercase tracking-[0.14em] text-muted no-underline hover:text-ink">Dashboard</a>
+        {% if perms.base.view_order %}
+        <a href="{% url 'dashboard:booking_list' %}" {% if nav_section == 'bookings' %}aria-current="page"{% endif %} class="no-underline {% if nav_section == 'bookings' %}font-semibold text-ink{% else %}text-muted hover:text-ink{% endif %}">{% trans "Boekingen" %}</a>
+        {% endif %}
+        {% if perms.base.view_hotel %}
+        <a href="{% url 'dashboard:home' %}" {% if nav_section == 'hotels' %}aria-current="page"{% endif %} class="no-underline {% if nav_section == 'hotels' %}font-semibold text-ink{% else %}text-muted hover:text-ink{% endif %}">{% trans "Hotels" %}</a>
+        {% endif %}
+        {% if perms.billing.change_pricingsettings %}
+        <a href="{% url 'dashboard:pricing_rules' %}" {% if nav_section == 'pricing' %}aria-current="page"{% endif %} class="no-underline {% if nav_section == 'pricing' %}font-semibold text-ink{% else %}text-muted hover:text-ink{% endif %}">{% trans "Prijsregels" %}</a>
+        {% endif %}
+        {% if perms.billing.view_discountcode %}
+        <a href="{% url 'dashboard:discount_list' %}" {% if nav_section == 'discounts' %}aria-current="page"{% endif %} class="no-underline {% if nav_section == 'discounts' %}font-semibold text-ink{% else %}text-muted hover:text-ink{% endif %}">{% trans "Kortingscodes" %}</a>
+        {% endif %}
+        {% if perms.billing.view_invoice %}
+        <a href="{% url 'dashboard:invoice_list' %}" {% if nav_section == 'invoices' %}aria-current="page"{% endif %} class="no-underline {% if nav_section == 'invoices' %}font-semibold text-ink{% else %}text-muted hover:text-ink{% endif %}">{% trans "Facturen" %}</a>
+        {% endif %}
+        {% if perms.base.view_customers %}
+        <a href="{% url 'dashboard:customer_list' %}" {% if nav_section == 'customers' %}aria-current="page"{% endif %} class="no-underline {% if nav_section == 'customers' %}font-semibold text-ink{% else %}text-muted hover:text-ink{% endif %}">{% trans "Klanten" %}</a>
+        {% endif %}
+        {% if perms.base.view_reports %}
+        <a href="{% url 'dashboard:report' %}" {% if nav_section == 'reports' %}aria-current="page"{% endif %} class="no-underline {% if nav_section == 'reports' %}font-semibold text-ink{% else %}text-muted hover:text-ink{% endif %}">{% trans "Rapportage" %}</a>
+        {% endif %}
         <div class="ml-auto flex items-center gap-4">
-          <span class="text-muted">Ingelogd als <span class="font-semibold text-ink">{{ user.get_username }}</span></span>
+          <span class="text-muted">{% trans "Ingelogd als" %} <span class="font-semibold text-ink">{{ user.get_username }}</span></span>
           <form method="post" action="{% url 'logout' %}">
             {% csrf_token %}
-            <button type="submit" class="font-semibold text-brick hover:text-ink">Uitloggen</button>
+            <button type="submit" class="font-semibold text-brick hover:text-ink">{% trans "Uitloggen" %}</button>
           </form>
         </div>
       </nav>
     </div>
-    {% endwith %}
 
     <main class="flex-1 max-w-site w-full mx-auto px-6 md:px-8 py-10">
       {% if messages %}

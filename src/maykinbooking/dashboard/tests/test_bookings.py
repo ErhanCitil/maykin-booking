@@ -20,7 +20,7 @@ from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
 
-from maykinbooking.accounts.tests.factories import StaffUserFactory, UserFactory
+from maykinbooking.accounts.tests.factories import ManagerUserFactory, UserFactory
 from maykinbooking.base.models import (
     ActorType,
     EmailKind,
@@ -35,6 +35,7 @@ from maykinbooking.base.tests.factories import (
     OrderFactory,
     RoomFactory,
 )
+from maykinbooking.billing.tests.utils import TempMediaMixin
 from maykinbooking.bookings.services.booking import (
     Actor,
     CancellationNotAllowed,
@@ -56,10 +57,10 @@ GUEST = {
 
 
 @override_settings(SITE_URL="https://booking.example.com")
-class BookingDashboardTestCase(TestCase):
+class BookingDashboardTestCase(TempMediaMixin, TestCase):
     @classmethod
     def setUpTestData(cls):
-        cls.staff = StaffUserFactory(
+        cls.staff = ManagerUserFactory(
             username="medewerker", first_name="Mila", last_name="de Vries"
         )
         cls.user = UserFactory(username="gast")

@@ -69,8 +69,9 @@ COPY ./bin/docker_start.sh /start.sh
 # COPY ./bin/celery_flower.sh /celery_flower.sh
 RUN mkdir /app/log
 RUN mkdir /app/media
-
-VOLUME ["/app/log", "/app/media"]
+# Invoice PDFs (PRIVATE_MEDIA_ROOT): never served as files, only through the
+# views that check access, so no web server or uwsgi --static-map points here.
+RUN mkdir -m 700 /app/private_media
 
 # copy backend build deps
 COPY --from=backend-build /usr/local/lib/python3.10 /usr/local/lib/python3.10
@@ -87,6 +88,10 @@ COPY ./src /app/src
 
 RUN useradd -M -u 1000 maykin
 RUN chown -R maykin:maykin /app
+
+# Declared after the chown: changes to a volume after its declaration are
+# discarded, so the volumes would otherwise stay owned by root.
+VOLUME ["/app/log", "/app/media", "/app/private_media"]
 
 # drop privileges
 USER maykin

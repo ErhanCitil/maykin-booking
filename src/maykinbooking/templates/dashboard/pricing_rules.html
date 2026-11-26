@@ -1,0 +1,122 @@
+{% extends 'dashboard/base.html' %}
+{% load i18n money %}
+
+{% block title %}{% trans "Prijsregels" %}{% endblock %}
+
+{% block content %}
+<div class="flex flex-wrap items-end justify-between gap-4">
+  <div>
+    <p class="eyebrow mb-2">{% trans "Beheer" %}</p>
+    <h1 class="font-display font-semibold text-4xl md:text-5xl tracking-[-0.02em]">{% trans "Prijsregels" %}</h1>
+    <p class="mt-3 text-muted max-w-2xl">{% trans "Toeslagen en kortingen voor alle hotels. Ze gelden voor nieuwe boekingen; een bestaande boeking houdt de prijs waarvoor ze geboekt is." %}</p>
+  </div>
+</div>
+
+<div class="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_400px] items-start">
+  <div class="space-y-8 min-w-0">
+    <form method="post" class="card p-7 md:p-9" aria-labelledby="rules-title">
+      <h2 id="rules-title" class="font-display font-semibold text-2xl mb-5">{% trans "Weekend en lang verblijf" %}</h2>
+      {% csrf_token %}
+      {% include 'dashboard/_fields.html' %}
+      <div class="flex flex-wrap items-center gap-4 pt-2">
+        <button type="submit" class="btn-primary">{% trans "Prijsregels opslaan" %}</button>
+        {% if saved.updated_by %}
+        <span class="text-[13px] text-muted">{% blocktrans with name=saved.updated_by.get_username when=saved.updated_at|date:"j b Y H:i" %}Laatst gewijzigd door {{ name }} op {{ when }}{% endblocktrans %}</span>
+        {% endif %}
+      </div>
+    </form>
+
+    <section class="card p-7" aria-labelledby="seasons-title">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <h2 id="seasons-title" class="font-display font-semibold text-2xl">{% trans "Hoogseizoenen" %}</h2>
+        {% if perms.billing.add_seasonperiod %}
+        <a href="{% url 'dashboard:season_create' %}" class="btn-dark min-h-[44px] px-5 text-sm">{% trans "Seizoen toevoegen" %}</a>
+        {% endif %}
+      </div>
+      <p class="mt-2 text-sm text-muted">{% trans "Elke nacht in een seizoen krijgt de toeslag, ook in het weekend. Seizoenen mogen elkaar niet overlappen." %}</p>
+      {% if seasons %}
+      <div class="mt-4 overflow-x-auto">
+        <table class="w-full text-sm text-left">
+          <thead class="text-[12px] uppercase tracking-[0.1em] text-muted border-b border-seam">
+            <tr>
+              <th scope="col" class="py-2 pr-4 font-semibold">{% trans "Naam" %}</th>
+              <th scope="col" class="py-2 pr-4 font-semibold">{% trans "Van" %}</th>
+              <th scope="col" class="py-2 pr-4 font-semibold">{% trans "Tot en met" %}</th>
+              <th scope="col" class="py-2 pr-4 font-semibold text-right">{% trans "Toeslag" %}</th>
+              <th scope="col" class="py-2"><span class="sr-only">{% trans "Acties" %}</span></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-seam">
+            {% for season in seasons %}
+            <tr class="align-top{% if season.end_date < today %} text-muted{% endif %}">
+              <td class="py-3 pr-4">
+                <span class="font-semibold">{{ season.name }}</span>
+                {% if season.end_date < today %}<span class="block text-[12px]">{% trans "voorbij" %}</span>{% elif season.start_date <= today %}<span class="block text-[12px] text-moss font-semibold">{% trans "nu" %}</span>{% endif %}
+              </td>
+              <td class="py-3 pr-4 whitespace-nowrap">{{ season.start_date|date:"D j b Y" }}</td>
+              <td class="py-3 pr-4 whitespace-nowrap">{{ season.end_date|date:"D j b Y" }}</td>
+              <td class="py-3 pr-4 text-right whitespace-nowrap">+{{ season.percent|floatformat }}%</td>
+              <td class="py-3 text-right whitespace-nowrap">
+                {% if perms.billing.change_seasonperiod %}
+                <a href="{% url 'dashboard:season_edit' season.pk %}" class="font-semibold text-brick no-underline hover:text-ink">{% trans "Bewerken" %}<span class="sr-only"> {{ season.name }}</span></a>
+                {% endif %}
+                {% if perms.billing.delete_seasonperiod %}
+                <details class="mt-1">
+                  <summary class="cursor-pointer list-none text-sm font-semibold text-brick-dark hover:text-ink whitespace-nowrap">{% trans "Verwijderen…" %}</summary>
+                  <form method="post" action="{% url 'dashboard:season_delete' season.pk %}" class="mt-2 flex flex-col items-end gap-2">
+                    {% csrf_token %}
+                    <span class="text-[13px] text-muted whitespace-nowrap">{% blocktrans with name=season.name %}“{{ name }}” verwijderen?{% endblocktrans %}</span>
+                    <button type="submit" class="inline-flex items-center min-h-[40px] px-4 rounded-full bg-brick-dark text-white text-sm font-semibold hover:bg-[#7a2f19] whitespace-nowrap">{% trans "Ja, verwijderen" %}</button>
+                  </form>
+                </details>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="mt-4 text-sm text-muted">{% trans "Er zijn nog geen seizoenen. Zonder seizoen geldt overal de gewone kamerprijs." %}</p>
+      {% endif %}
+    </section>
+  </div>
+
+  <aside class="card p-7 text-sm leading-relaxed" aria-labelledby="example-title">
+    <h2 id="example-title" class="font-semibold text-ink mb-2">{% trans "Zo wordt de prijs berekend" %}</h2>
+    <p class="text-muted">{% trans "Per nacht: kamerprijs × (1 + weekendtoeslag) × (1 + seizoenstoeslag), één keer afgerond op centen. Het weekend is de vrijdag- en de zaterdagnacht." %}</p>
+    <p class="mt-3 text-muted">{% trans "Daarna gaat de korting voor een lang verblijf van het subtotaal af, en dan pas een kortingscode." %}</p>
+
+    <h3 class="mt-5 font-semibold text-ink">{% blocktrans with price=example.base|euro %}Voorbeeld: kamer van {{ price }}, donderdag tot zondag{% endblocktrans %}</h3>
+    <table class="mt-2 w-full">
+      <caption class="sr-only">{% trans "Rekenvoorbeeld met de huidige prijsregels" %}</caption>
+      <tbody class="divide-y divide-seam">
+        {% for night in example.nights %}
+        <tr>
+          <th scope="row" class="py-1.5 font-normal text-left">{{ night.date|date:"l" }}{% if night.weekend_percent %} <span class="text-muted">(+{{ night.weekend_percent|floatformat }}%)</span>{% endif %}</th>
+          <td class="py-1.5 text-right whitespace-nowrap">{{ night.price|euro }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot class="border-t-2 border-ink">
+        <tr>
+          <th scope="row" class="pt-2 text-left font-semibold">{% trans "Totaal" %}</th>
+          <td class="pt-2 text-right font-semibold whitespace-nowrap">{{ example.total|euro }}</td>
+        </tr>
+      </tfoot>
+    </table>
+
+    {% if example.season %}
+    <p class="mt-4">{% blocktrans with name=example.season.name percent=example.season.percent|floatformat price=example.season.price|euro %}Valt de zaterdag in “{{ name }}” (+{{ percent }}%), dan kost die nacht {{ price }}.{% endblocktrans %}</p>
+    {% endif %}
+
+    <p class="mt-4">
+      {% if example.long_stay.percent %}
+      {% blocktrans with nights=example.long_stay.nights subtotal=example.long_stay.subtotal|euro percent=example.long_stay.percent|floatformat discount=example.long_stay.discount|euro total=example.long_stay.total|euro %}Lang verblijf: {{ nights }} nachten zonder toeslagen = {{ subtotal }}, min {{ percent }}% ({{ discount }}) = {{ total }}.{% endblocktrans %}
+      {% else %}
+      {% trans "Er is nu geen korting voor een lang verblijf." %}
+      {% endif %}
+    </p>
+  </aside>
+</div>
+{% endblock %}

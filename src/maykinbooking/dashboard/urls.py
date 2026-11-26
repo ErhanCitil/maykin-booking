@@ -56,4 +56,59 @@ urlpatterns = [
         views.BookingResend.as_view(),
         name="booking_resend",
     ),
+    path(
+        "boekingen/<int:pk>/terugbetaling/",
+        views.BookingRefundRetry.as_view(),
+        name="booking_refund_retry",
+    ),
+    path("prijsregels/", views.PricingRulesView.as_view(), name="pricing_rules"),
+    path(
+        "prijsregels/seizoenen/nieuw/",
+        views.SeasonCreate.as_view(),
+        name="season_create",
+    ),
+    path(
+        "prijsregels/seizoenen/<int:pk>/",
+        views.SeasonUpdate.as_view(),
+        name="season_edit",
+    ),
+    path(
+        "prijsregels/seizoenen/<int:pk>/verwijderen/",
+        views.SeasonDelete.as_view(),
+        name="season_delete",
+    ),
+    path("kortingscodes/", views.DiscountList.as_view(), name="discount_list"),
+    path(
+        "kortingscodes/nieuw/",
+        views.DiscountCreate.as_view(),
+        name="discount_create",
+    ),
+    path(
+        "kortingscodes/<int:pk>/",
+        views.DiscountUpdate.as_view(),
+        name="discount_edit",
+    ),
+    path("facturen/", views.InvoiceList.as_view(), name="invoice_list"),
+    path(
+        "facturen/export.csv",
+        views.InvoiceExport.as_view(),
+        name="invoice_export",
+    ),
+    path(
+        "facturen/<int:pk>/pdf/",
+        views.InvoicePdf.as_view(),
+        name="invoice_pdf",
+    ),
+    path("klanten/", views.CustomerList.as_view(), name="customer_list"),
+    path(
+        "klanten/export.csv",
+        views.CustomerExport.as_view(),
+        name="customer_export",
+    ),
+    path(
+        "klanten/<int:order_pk>/",
+        views.CustomerDetail.as_view(),
+        name="customer_detail",
+    ),
+    path("rapportage/", views.Report.as_view(), name="report"),
 ]

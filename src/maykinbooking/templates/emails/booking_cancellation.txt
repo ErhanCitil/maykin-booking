@@ -1,7 +1,9 @@
 {% load i18n l10n %}{% autoescape off %}{% blocktrans with name=order.first_name %}Beste {{ name }},{% endblocktrans %}
 
 {% blocktrans with number=order.pk|unlocalize hotel=order.hotel.name %}Je boeking #{{ number }} bij {{ hotel }} is geannuleerd.{% endblocktrans %}
-{% if order.payment_status == "at_hotel" or order.payment_status == "open" %}{% trans "Je hoeft niets te betalen." %} {% trans "Er wordt niets in rekening gebracht." %}
+{% if refund or payment.status == "paid" %}{% if refund.status == "refunded" %}{% if refund.refunded_at %}{% blocktrans with amount=refund.amount|floatformat:2 date=refund.refunded_at|date:"j F Y" %}€ {{ amount }} is op {{ date }} teruggestort op je rekening.{% endblocktrans %}{% else %}{% blocktrans with amount=refund.amount|floatformat:2 %}€ {{ amount }} is teruggestort op je rekening.{% endblocktrans %}{% endif %}{% else %}{% blocktrans with amount=refund.amount|default:payment.amount|floatformat:2 %}€ {{ amount }} wordt teruggestort op je rekening (1–3 werkdagen).{% endblocktrans %} {% trans "Je krijgt een e-mail zodra we het bedrag hebben teruggestort." %}{% endif %}
+{% else %}{% trans "Je hoeft niets te betalen." %} {% trans "Er wordt niets in rekening gebracht." %}
+{% endif %}{% if credit_note %}{% blocktrans with number=credit_note.number %}De creditnota zit als PDF in de bijlage (creditnotanummer {{ number }}).{% endblocktrans %}
 {% endif %}
 
 {% blocktrans with number=order.pk|unlocalize %}Boeking #{{ number }}{% endblocktrans %} ({% trans "geannuleerd" %})

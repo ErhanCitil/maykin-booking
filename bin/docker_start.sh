@@ -26,7 +26,8 @@ done
 >&2 echo "Apply database migrations"
 python src/manage.py migrate
 
-# Start server
+# Start server. /app/private_media (the invoice PDFs) gets no --static-map: the
+# invoices are only handed out by the views that check access.
 >&2 echo "Starting server"
 exec uwsgi \
     --http :$uwsgi_port \

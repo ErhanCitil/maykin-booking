@@ -5,6 +5,7 @@ from django.core.files.storage import FileSystemStorage
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import F, Q
+from django.db.models.functions import Lower, Trim
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -42,6 +43,9 @@ class PaymentStatus(models.TextChoices):
     OPEN = "open", _("Open")
     PAID = "paid", _("Betaald")
     REFUNDED = "refunded", _("Terugbetaald")
+    # An online booking that expired without money coming in: there is nothing
+    # to pay anymore ("open" would say the guest can still pay).
+    UNPAID = "unpaid", _("Niet betaald")
 
 
 class ActorType(models.TextChoices):
@@ -60,6 +64,7 @@ class StatusField(models.TextChoices):
 class EmailKind(models.TextChoices):
     BOOKING_CONFIRMATION = "booking_confirmation", _("Boekingsbevestiging")
     BOOKING_CANCELLATION = "booking_cancellation", _("Annulering")
+    PAYMENT_REFUND = "payment_refund", _("Terugbetaling")
 
 
 class EmailStatus(models.TextChoices):
@@ -101,6 +106,8 @@ class Hotel(models.Model):
     is_available = models.BooleanField(default=True)
     terms = RichTextField(blank=True, null=True)
     upload = models.ImageField(upload_to="hotel_img/", null=True, blank=True)
+    # Decides the VAT rate of the invoices (billing.VatRate).
+    country = CountryField(_("land"), default="NL")
 
     def __str__(self):
         return self.name
@@ -157,6 +164,13 @@ class Order(models.Model):
     email = models.EmailField(max_length=100)
     address = models.CharField(max_length=100, validators=[no_control_characters])
     zipcode = models.CharField(max_length=6, validators=[no_control_characters])
+    city = models.CharField(
+        _("woonplaats"),
+        max_length=100,
+        blank=True,
+        validators=[no_control_characters],
+        help_text=_("Van de gast. Leeg bij boekingen van voor de facturen."),
+    )
     country = CountryField(default="NL")
     token = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     id = models.AutoField(primary_key=True, editable=False, null=False)
@@ -178,14 +192,34 @@ class Order(models.Model):
         blank=True,
         help_text=_("Alleen bij een boeking die op betaling wacht."),
     )
-    # Sum of the prices of the nights, fixed when the order is made.
+    # What the guest pays: the sum of the prices of the nights minus the
+    # discounts, fixed when the order is made.
     total_price = models.DecimalField(_("totaalprijs"), max_digits=10, decimal_places=2)
+    length_discount_percent = models.DecimalField(
+        _("korting lang verblijf (%)"), max_digits=5, decimal_places=2, default=0
+    )
+    length_discount = models.DecimalField(
+        _("korting lang verblijf"), max_digits=10, decimal_places=2, default=0
+    )
+    # Snapshot of the code; billing.DiscountRedemption links the order to it.
+    discount_code = models.CharField(_("kortingscode"), max_length=40, blank=True)
+    code_discount = models.DecimalField(
+        _("korting kortingscode"), max_digits=10, decimal_places=2, default=0
+    )
     language = models.CharField(_("taal"), max_length=10, default="nl")
 
     class Meta:
+        permissions = [
+            ("cancel_order", _("Kan boekingen annuleren")),
+            ("resend_order_email", _("Kan mails over boekingen opnieuw versturen")),
+            ("view_customers", _("Kan klanten bekijken")),
+            ("view_reports", _("Kan bezetting en omzet bekijken")),
+        ]
         indexes = [
             models.Index(fields=["start_date"], name="base_order_start_date_idx"),
             models.Index(fields=["end_date"], name="base_order_end_date_idx"),
+            # A customer is an e-mail address, trimmed and lower case.
+            models.Index(Lower(Trim("email")), name="base_order_email_key_idx"),
         ]
         constraints = [
             models.CheckConstraint(
@@ -199,6 +233,13 @@ class Order(models.Model):
                 check=Q(payment_status__in=PaymentStatus.values),
                 name="base_order_payment_status_valid",
             ),
+            models.CheckConstraint(
+                check=Q(total_price__gte=0), name="base_order_total_price_gte_0"
+            ),
+            models.CheckConstraint(
+                check=Q(length_discount__gte=0, code_discount__gte=0),
+                name="base_order_discounts_gte_0",
+            ),
         ]
 
     def __str__(self):
@@ -208,12 +249,28 @@ class Order(models.Model):
     def night_count(self):
         return (self.end_date - self.start_date).days
 
+    @property
+    def subtotal_price(self):
+        """The price of the nights before the discounts."""
+        return self.total_price + self.length_discount + self.code_discount
+
 
 class OrderNight(models.Model):
-    """One night of an order, with the price that was agreed for it."""
+    """
+    One night of an order, with the price that was agreed for it and how it was
+    made: ``base_price`` (the room price) with the weekend and season surcharges.
+    """
 
     order = models.ForeignKey(Order, related_name="nights", on_delete=models.CASCADE)
     date = models.DateField(_("nacht van"))
+    base_price = models.DecimalField(_("basisprijs"), max_digits=8, decimal_places=2)
+    weekend_percent = models.DecimalField(
+        _("weekendtoeslag (%)"), max_digits=5, decimal_places=2, default=0
+    )
+    season_percent = models.DecimalField(
+        _("seizoenstoeslag (%)"), max_digits=5, decimal_places=2, default=0
+    )
+    season_name = models.CharField(_("seizoen"), max_length=100, blank=True)
     price = models.DecimalField(_("prijs"), max_digits=8, decimal_places=2)
 
     class Meta:
@@ -227,6 +284,17 @@ class OrderNight(models.Model):
 
     def __str__(self):
         return f"{self.order_id}: {self.date}"
+
+    @property
+    def surcharges(self):
+        """
+        The labels of the surcharges of this night, e.g. ``["weekend +20%"]``:
+        the same labels everywhere (``billing.services.pricing``).
+        """
+        # Imported here: billing builds on base.
+        from maykinbooking.billing.services.pricing import surcharge_labels
+
+        return surcharge_labels(self)
 
 
 class OrderStatusChange(models.Model):

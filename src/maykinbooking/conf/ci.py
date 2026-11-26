@@ -10,7 +10,9 @@ the CI workflow points at its PostgreSQL service. ``SECRET_KEY`` must be set in 
 environment as well.
 """
 import os
+import tempfile
 import warnings
+from pathlib import Path
 
 os.environ.setdefault("DEBUG", "no")
 os.environ.setdefault("IS_HTTPS", "no")
@@ -32,6 +34,15 @@ SESSION_ENGINE = "django.contrib.sessions.backends.db"
 
 # Mails stay in memory (django.core.mail.outbox), nothing is sent.
 EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+
+# Payments: never Mollie (tests use no network), always the fake provider.
+MOLLIE_API_KEY = ""
+PAYMENT_FAKE_PROVIDER = True
+
+# Invoice PDFs and uploads of the tests go to temporary directories, not to
+# media/ and private_media/.
+MEDIA_ROOT = Path(tempfile.gettempdir()) / "maykinbooking-ci-media"
+PRIVATE_MEDIA_ROOT = Path(tempfile.gettempdir()) / "maykinbooking-ci-private-media"
 
 # THOU SHALT NOT USE NAIVE DATETIMES
 warnings.filterwarnings(

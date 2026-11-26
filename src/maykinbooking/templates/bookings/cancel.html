@@ -31,6 +31,9 @@
           {% elif can_cancel and not refused %}
           <p class="font-display font-semibold text-2xl">{% trans "Weet je zeker dat je wilt annuleren?" %}</p>
           <p class="mt-3 text-[15px]">{% blocktrans with day=last_free_cancellation_day|date:"l j F" %}Kosteloos annuleren kan tot en met {{ day }}.{% endblocktrans %}</p>
+          {% if paid_payment %}
+          <p class="mt-2 text-[15px] font-semibold">{% blocktrans with amount=paid_payment.amount|floatformat:2 %}Je krijgt € {{ amount }} teruggestort.{% endblocktrans %} <span class="font-normal">{% trans "Dat duurt meestal 1 tot 3 werkdagen na de annulering." %}</span></p>
+          {% endif %}
           <p class="mt-2 text-[15px] text-muted">{% trans "Je krijgt een bevestiging van de annulering per e-mail. Een geannuleerde boeking kun je niet terugzetten." %}</p>
           <form action="{% url 'bookings:cancel' order.token %}" method="post" class="mt-7 flex flex-wrap gap-3">
             {% csrf_token %}

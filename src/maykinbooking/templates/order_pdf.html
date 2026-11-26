@@ -5,8 +5,10 @@
     The booking as PDF (WeasyPrint, A4), rendered by bookings.pdf.render_order_pdf
     with bookings.emails.booking_context. Used for the download on "Mijn boeking"
     and as attachment of the confirmation mail.
-    Prices come from ``nights`` and ``order.total_price`` (the snapshot made at
-    booking time), never from the current room price.
+    Prices come from ``nights`` (with their surcharges), ``subtotal``,
+    ``discount_lines`` and ``order.total_price``: the snapshot made at booking
+    time, never the current room price or price rules. How it is paid comes
+    from ``payment`` (online) and ``refund`` (money going back).
   {% endcomment %}
   <meta charset="utf-8">
   <title>{% if order.status == "cancelled" %}{% blocktrans with number=order.pk|unlocalize %}Geannuleerde boeking #{{ number }}{% endblocktrans %}{% else %}{% blocktrans with number=order.pk|unlocalize %}Boekingsbevestiging #{{ number }}{% endblocktrans %}{% endif %}</title>
@@ -43,14 +45,14 @@
     .doc-number .value { display: block; font-family: Georgia, "Times New Roman", serif; font-size: 18pt; font-weight: bold; }
 
     /* Cancelled: a banner at the top and a stamp behind the content. */
-    .cancelled { margin-top: 6mm; padding: 3.5mm 5mm; border: 1pt solid #B4492A; border-left-width: 5pt; border-radius: 1.5mm; background: #FBEDE8; }
-    .cancelled strong { display: block; color: #B4492A; font-size: 17pt; letter-spacing: 0.22em; line-height: 1.2; }
+    .cancelled { margin-top: 5mm; padding: 3mm 5mm; border: 1pt solid #B4492A; border-left-width: 5pt; border-radius: 1.5mm; background: #FBEDE8; }
+    .cancelled strong { display: block; color: #B4492A; font-size: 15pt; letter-spacing: 0.22em; line-height: 1.2; }
     .cancelled span { display: block; margin-top: 1mm; }
     .stamp { position: fixed; top: 118mm; left: 0; right: 0; z-index: -1; text-align: center; transform: rotate(-22deg); }
     .stamp span { display: inline-block; padding: 1.5mm 7mm; border: 3pt solid rgba(180, 73, 42, 0.16); border-radius: 3mm; color: rgba(180, 73, 42, 0.16); font-size: 44pt; font-weight: bold; letter-spacing: 0.12em; }
 
-    h1 { margin: 8mm 0 1.5mm; font-family: Georgia, "Times New Roman", serif; font-size: 24pt; line-height: 1.15; letter-spacing: -0.01em; }
-    h2 { margin: 7mm 0 1.5mm; color: #B4492A; font-size: 8pt; font-weight: bold; letter-spacing: 0.16em; text-transform: uppercase; }
+    h1 { margin: 7mm 0 1mm; font-family: Georgia, "Times New Roman", serif; font-size: 24pt; line-height: 1.15; letter-spacing: -0.01em; }
+    h2 { margin: 6mm 0 1.5mm; color: #B4492A; font-size: 8pt; font-weight: bold; letter-spacing: 0.16em; text-transform: uppercase; }
     .lead { font-size: 10pt; }
 
     /* Hotel and guest side by side. */
@@ -59,8 +61,8 @@
     .columns .name { font-weight: bold; font-size: 11.5pt; }
 
     /* The stay as one strip: check-in, check-out, room and nights side by side. */
-    .stay { width: 100%; margin-top: 7mm; border-collapse: collapse; border-top: 0.75pt solid #E4DCCD; border-bottom: 0.75pt solid #E4DCCD; }
-    .stay td { padding: 3mm 4mm 3mm 0; vertical-align: top; }
+    .stay { width: 100%; margin-top: 6mm; border-collapse: collapse; border-top: 0.75pt solid #E4DCCD; border-bottom: 0.75pt solid #E4DCCD; }
+    .stay td { padding: 2.5mm 4mm 2.5mm 0; vertical-align: top; }
     .stay td + td { padding-left: 4mm; border-left: 0.5pt solid #E4DCCD; }
     .stay .label { display: block; margin-bottom: 0.8mm; color: #4F5A6B; font-size: 7.5pt; font-weight: bold; letter-spacing: 0.14em; text-transform: uppercase; }
     .stay .value { display: block; font-weight: bold; }
@@ -68,16 +70,20 @@
 
     table.lines { width: 100%; border-collapse: collapse; }
     .lines th { padding: 0 0 2mm; border-bottom: 1pt solid #13243A; color: #4F5A6B; font-size: 8pt; font-weight: bold; letter-spacing: 0.08em; text-align: left; text-transform: uppercase; }
-    .lines td { padding: 1.8mm 0; border-bottom: 0.5pt solid #E4DCCD; vertical-align: top; }
+    .lines td { padding: 1.5mm 0; border-bottom: 0.5pt solid #E4DCCD; vertical-align: top; }
     .lines tr { page-break-inside: avoid; }
-    .lines .amount { text-align: right; white-space: nowrap; }
-    .lines .total td { padding-top: 3mm; border-bottom: none; font-size: 13pt; font-weight: bold; }
+    .lines .amount { text-align: right; white-space: nowrap; padding-left: 4mm; }
+    .lines .detail { display: block; color: #4F5A6B; font-size: 8.5pt; line-height: 1.35; }
+    .lines .subtotal td { border-bottom: none; padding-bottom: 0.8mm; }
+    .lines .discount td { border-bottom: none; padding-top: 0.8mm; padding-bottom: 0.8mm; color: #2E6B62; }
+    .lines .total td { padding-top: 2.5mm; border-top: 1pt solid #13243A; border-bottom: none; font-size: 13pt; font-weight: bold; }
     .pay-note { margin-top: 2mm; font-size: 9.5pt; }
+    .pay-note .paid { color: #2E6B62; font-weight: bold; }
 
-    .note { margin-top: 7mm; padding: 4mm 5mm; border-radius: 2mm; background: #F6F1E8; page-break-inside: avoid; }
-    .note p + p { margin-top: 2mm; }
+    .note { margin-top: 6mm; padding: 3.5mm 5mm; border-radius: 2mm; background: #F6F1E8; page-break-inside: avoid; }
+    .note p + p { margin-top: 1.5mm; }
     .note .url { word-break: break-all; }
-    .contact { margin-top: 5mm; font-size: 9.5pt; }
+    .contact { margin-top: 4mm; font-size: 9.5pt; }
   </style>
 </head>
 <body>
@@ -103,7 +109,7 @@
   {% if order.status == "cancelled" %}
   <div class="cancelled">
     <strong>{% trans "GEANNULEERD" %}</strong>
-    <span>{% trans "Deze boeking is geannuleerd en niet meer geldig." %}{% if order.payment_status == "at_hotel" or order.payment_status == "open" %} {% trans "Je hoeft niets te betalen." %}{% endif %}</span>
+    <span>{% trans "Deze boeking is geannuleerd en niet meer geldig." %}{% if refund.status == "refunded" %} {% trans "Het betaalde bedrag is teruggestort." %}{% elif refund or payment.status == "paid" %} {% trans "Het betaalde bedrag wordt teruggestort." %}{% else %} {% trans "Je hoeft niets te betalen." %}{% endif %}</span>
   </div>
   <h1>{% trans "Geannuleerde boeking" %}</h1>
   {% else %}
@@ -126,7 +132,7 @@
         <p class="name">{{ order.first_name }} {{ order.last_name }}</p>
         <p>{{ order.email }}</p>
         <p>{{ order.address }}</p>
-        <p>{{ order.zipcode }}{% if order.country %}, {{ order.country.name }}{% endif %}</p>
+        <p>{{ order.zipcode }}{% if order.city %} {{ order.city }}{% endif %}{% if order.country %}, {{ order.country.name }}{% endif %}</p>
       </td>
     </tr>
   </table>
@@ -140,23 +146,36 @@
     </tr>
   </table>
 
-  <h2>{% trans "Prijs" %}</h2>
+  <h2>{% trans "Prijsopbouw" %}</h2>
   <table class="lines">
     <thead>
-      <tr><th>{% trans "Nacht van" %}</th><th>{% trans "Kamer" %}</th><th class="amount">{% trans "Prijs" %}</th></tr>
+      <tr><th>{% trans "Nacht van" %}</th><th>{% trans "Omschrijving" %}</th><th class="amount">{% trans "Prijs" %}</th></tr>
     </thead>
     <tbody>
       {% for night in nights %}
-      <tr><td>{{ night.date|date:"l j F Y" }}</td><td>{{ order.room.get_room_type_display }}</td><td class="amount">€ {{ night.price|floatformat:2 }}</td></tr>
+      <tr>
+        <td>{{ night.date|date:"l j F Y" }}</td>
+        <td>{{ order.room.get_room_type_display }}{% if night.weekend_percent or night.season_percent %}<span class="detail">{% include "emails/_night_surcharges.html" %}</span>{% endif %}</td>
+        <td class="amount">€ {{ night.price|floatformat:2 }}</td>
+      </tr>
       {% endfor %}
+      {% if discount_lines %}
+      <tr class="subtotal"><td colspan="2">{% trans "Subtotaal" %}</td><td class="amount">€ {{ subtotal|floatformat:2 }}</td></tr>
+      {% for line in discount_lines %}
+      <tr class="discount"><td colspan="2">{{ line.label }}</td><td class="amount">− € {{ line.amount|floatformat:2 }}</td></tr>
+      {% endfor %}
+      {% endif %}
       <tr class="total">
         <td colspan="2">{% blocktrans count counter=night_count %}Totaal ({{ counter }} nacht){% plural %}Totaal ({{ counter }} nachten){% endblocktrans %}</td>
         <td class="amount">€ {{ order.total_price|floatformat:2 }}</td>
       </tr>
     </tbody>
   </table>
-  {% if order.status != "cancelled" and order.payment_status == "at_hotel" %}
-  <p class="pay-note muted">{% trans "Je betaalt het totaalbedrag in het hotel bij aankomst." %}</p>
+  {% if payment.status == "paid" or refund or order.status != "cancelled" and order.payment_status == "at_hotel" %}
+  <p class="pay-note">
+    {% if payment.status == "paid" %}<span class="paid">{% if payment.paid_at %}{% blocktrans with date=payment.paid_at|date:"j F Y" %}Betaald via iDEAL op {{ date }}.{% endblocktrans %}{% else %}{% trans "Betaald via iDEAL." %}{% endif %}</span>{% elif order.status != "cancelled" and order.payment_status == "at_hotel" %}<span class="muted">{% trans "Je betaalt het totaalbedrag in het hotel bij aankomst." %}</span>{% endif %}
+    {% if refund %}{% if refund.status == "refunded" and refund.refunded_at %}{% blocktrans with amount=refund.amount|floatformat:2 date=refund.refunded_at|date:"j F Y" %}€ {{ amount }} is op {{ date }} teruggestort op je rekening.{% endblocktrans %}{% elif refund.status == "refunded" %}{% blocktrans with amount=refund.amount|floatformat:2 %}€ {{ amount }} is teruggestort op je rekening.{% endblocktrans %}{% else %}{% blocktrans with amount=refund.amount|floatformat:2 %}€ {{ amount }} wordt teruggestort op je rekening (1–3 werkdagen).{% endblocktrans %}{% endif %}{% endif %}
+  </p>
   {% endif %}
 
   <div class="note">

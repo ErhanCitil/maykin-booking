@@ -93,7 +93,7 @@ dill==0.3.7
     #   -c requirements/ci.txt
     #   -r requirements/ci.txt
     #   pylint
-django==3.2.21
+django==3.2.25
     # via
     #   -c requirements/ci.txt
     #   -r requirements/ci.txt
@@ -424,7 +424,7 @@ redis==5.0.1
     #   -c requirements/ci.txt
     #   -r requirements/ci.txt
     #   django-redis
-requests==2.31.0
+requests==2.32.4
     # via
     #   -c requirements/ci.txt
     #   -r requirements/ci.txt

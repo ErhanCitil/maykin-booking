@@ -16,7 +16,7 @@ from django.urls import reverse
 
 from freezegun import freeze_time
 
-from maykinbooking.accounts.tests.factories import StaffUserFactory
+from maykinbooking.accounts.tests.factories import ManagerUserFactory
 from maykinbooking.base.models import OrderStatus
 from maykinbooking.base.tests.factories import (
     CityFactory,
@@ -34,7 +34,7 @@ TODAY = date(2027, 3, 1)
 class ExportTestCase(TestCase):
     @classmethod
     def setUpTestData(cls):
-        cls.staff = StaffUserFactory()
+        cls.staff = ManagerUserFactory()
         cls.amsterdam = CityFactory(name="Amsterdam")
         cls.utrecht = CityFactory(name="Utrecht")
         cls.gracht = HotelFactory(

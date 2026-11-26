@@ -1,5 +1,5 @@
 {% extends 'dashboard/base.html' %}
-{% load i18n l10n form_a11y %}
+{% load i18n l10n form_a11y money %}
 
 {% block title %}{% trans "Boekingen" %}{% endblock %}
 
@@ -29,6 +29,7 @@
 <form method="get" role="search" class="mt-4 card p-4 flex flex-wrap items-end gap-3">
   {% if form.snel.value %}{{ form.snel }}{% endif %}
   {% if form.mail.value %}{{ form.mail }}{% endif %}
+  {% if form.terugbetaling.value %}{{ form.terugbetaling }}{% endif %}
   {% for field in form.visible_fields %}
   <div class="{% if field.name == 'q' %}flex-[2_1_170px]{% else %}flex-[1_1_145px]{% endif %} min-w-0 flex flex-col gap-1.5">
     <label for="{{ field.id_for_label }}" class="text-[13px] font-semibold">{{ field.label }}</label>
@@ -78,12 +79,15 @@
           <span class="block text-[12px] text-muted">{% trans "tot" %} {{ order.end_date|date:"j b Y" }}</span>
         </td>
         <td class="px-5 py-3.5">{{ order.night_count }}</td>
-        <td class="px-5 py-3.5 whitespace-nowrap">€ {{ order.total_price|floatformat:2 }}</td>
+        <td class="px-5 py-3.5 whitespace-nowrap">{{ order.total_price|euro }}</td>
         <td class="px-5 py-3.5">
           <div class="flex flex-col items-start gap-1.5">
             {% include 'components/order_status_badge.html' with order=order %}
             {% if order.last_mail_status == mail_failed %}
             <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#F3E3DD] text-[#8A3519] text-xs font-semibold whitespace-nowrap"><span class="w-1.5 h-1.5 rounded-full bg-brick"></span>{% trans "mail mislukt" %}</span>
+            {% endif %}
+            {% if order.refund_failed %}
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#F3E3DD] text-[#8A3519] text-xs font-semibold whitespace-nowrap"><span class="w-1.5 h-1.5 rounded-full bg-brick"></span>{% trans "terugbetaling mislukt" %}</span>
             {% endif %}
           </div>
         </td>

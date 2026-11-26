@@ -1,5 +1,6 @@
 from datetime import date, timedelta
 from decimal import Decimal
+from unittest import mock
 
 from django.test import TestCase
 from django.utils import timezone
@@ -8,6 +9,7 @@ from freezegun import freeze_time
 
 from maykinbooking.base.models import City, Hotel, Room
 from maykinbooking.base.tests.factories import OrderFactory, RoomBlockFactory
+from maykinbooking.billing.tests.factories import DiscountCodeFactory
 
 from ..forms import AvailabilityFilterForm, ConfirmForm, GuestForm, StayForm
 
@@ -17,8 +19,10 @@ GUEST_DATA = {
     "email": "alex@example.com",
     "address": "Keizersgracht 117",
     "zipcode": "1015 cj",
+    "city": "Amsterdam",
     "country": "NL",
 }
+INVALID_CODE = "Deze kortingscode is niet geldig."
 
 
 class StayFormTests(TestCase):
@@ -247,6 +251,98 @@ class StayFormAvailabilityTests(TestCase):
         self.assertTrue(self.bound_form(self.single).is_valid())
 
 
+class StayFormDiscountCodeTests(TestCase):
+    """The optional discount code of step 1 (phase 2)."""
+
+    @classmethod
+    def setUpTestData(cls):
+        city = City.objects.create(city_id="AMS", name="Amsterdam")
+        cls.hotel = Hotel.objects.create(city=city, hotel_id="AMS01", name="Ibis")
+        cls.room = Room.objects.create(
+            hotel=cls.hotel, room_type="Double", price=Decimal("100"), description="x"
+        )
+
+    def make_form(self, code, **kwargs):
+        start = timezone.localdate() + timedelta(days=5)
+        return StayForm(
+            data={
+                "start_date": start,
+                "end_date": start + timedelta(days=2),
+                "room": self.room.pk,
+                "discount_code": code,
+            },
+            hotel=self.hotel,
+            **kwargs,
+        )
+
+    def test_without_a_code(self):
+        form = self.make_form("")
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.cleaned_data["discount_code"], "")
+        self.assertFalse(form.fields["discount_code"].required)
+
+    def test_valid_code_is_normalised(self):
+        DiscountCodeFactory(code="ZOMER-26")
+        form = self.make_form("  zomer-26 ")
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.cleaned_data["discount_code"], "ZOMER-26")
+
+    def test_every_unusable_code_gets_the_same_message(self):
+        today = timezone.localdate()
+        DiscountCodeFactory(code="UIT", is_active=False)
+        DiscountCodeFactory(code="LATER", valid_from=today + timedelta(days=1))
+        DiscountCodeFactory(
+            code="VOORBIJ",
+            valid_from=today - timedelta(days=10),
+            valid_until=today - timedelta(days=1),
+        )
+        DiscountCodeFactory(code="OPGEBRUIKT", max_uses=1, times_used=1)
+        for code in [
+            "NIETBEKEND",
+            "UIT",
+            "LATER",
+            "VOORBIJ",
+            "OPGEBRUIKT",
+            "a b",
+            "x" * 41,
+        ]:
+            with self.subTest(code=code):
+                form = self.make_form(code)
+                self.assertFalse(form.is_valid())
+                self.assertEqual(form.errors["discount_code"], [INVALID_CODE])
+
+    def test_reason_is_logged_without_the_code(self):
+        with self.assertLogs("maykinbooking.form.forms", "INFO") as logs:
+            self.make_form("GEHEIM-123").is_valid()
+        self.assertEqual(
+            logs.output,
+            ["INFO:maykinbooking.form.forms:discount code refused reason=unknown"],
+        )
+
+    @mock.patch("maykinbooking.form.forms.check_discount_code")
+    def test_throttled_code_is_not_looked_up(self, check_discount_code):
+        DiscountCodeFactory(code="ZOMER-26")
+        form = self.make_form("ZOMER-26", count_discount_code=lambda: True)
+        self.assertFalse(form.is_valid())
+        self.assertIn("te vaak een kortingscode", form.errors["discount_code"][0])
+        check_discount_code.assert_not_called()
+
+    def test_throttling_does_not_refuse_a_stay_without_a_code(self):
+        throttle = mock.Mock(return_value=True)
+        form = self.make_form("", count_discount_code=throttle)
+        self.assertTrue(form.is_valid(), form.errors)
+        # No code, no try.
+        throttle.assert_not_called()
+
+    def test_every_code_that_is_looked_up_is_counted_once(self):
+        count = mock.Mock(return_value=False)
+        for code in ("ONBEKEND", "x", "ZOMER-26"):
+            with self.subTest(code=code):
+                count.reset_mock()
+                self.make_form(code, count_discount_code=count).is_valid()
+                count.assert_called_once_with()
+
+
 class AvailabilityFilterFormTests(TestCase):
     def setUp(self):
         self.start = timezone.localdate() + timedelta(days=3)
@@ -316,8 +412,30 @@ class AvailabilityFilterFormTests(TestCase):
 
 class GuestFormTests(TestCase):
     def test_form_has_fields(self):
-        expected = ["first_name", "last_name", "email", "address", "zipcode", "country"]
+        expected = [
+            "first_name",
+            "last_name",
+            "email",
+            "address",
+            "zipcode",
+            "city",
+            "country",
+        ]
         self.assertSequenceEqual(expected, list(GuestForm().fields))
+
+    def test_city_is_required_and_labelled(self):
+        form = GuestForm(data={**GUEST_DATA, "city": " "})
+        self.assertFalse(form.is_valid())
+        self.assertEqual(form.errors["city"], ["Dit veld is vereist."])
+        self.assertEqual(GuestForm().fields["city"].label, "Woonplaats")
+        self.assertIn('autocomplete="address-level2"', str(GuestForm()["city"]))
+
+    def test_city_refuses_control_characters(self):
+        form = GuestForm(data={**GUEST_DATA, "city": "Amster\u202edam"})
+        self.assertFalse(form.is_valid())
+        self.assertEqual(
+            form.errors["city"], ["Gebruik geen regeleinden of speciale tekens."]
+        )
 
     def test_all_fields_are_required(self):
         form = GuestForm(data={})
@@ -379,3 +497,52 @@ class ConfirmFormTests(TestCase):
     def test_terms_must_be_accepted(self):
         self.assertFalse(ConfirmForm(data={}).is_valid())
         self.assertTrue(ConfirmForm(data={"terms": "on"}).is_valid())
+
+    def test_paying_at_the_hotel_is_the_default(self):
+        form = ConfirmForm(data={"terms": "on"})
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.cleaned_data["payment_method"], "at_hotel")
+        self.assertEqual(ConfirmForm().fields["payment_method"].initial, "at_hotel")
+
+    def test_online_only_when_offered(self):
+        self.assertEqual(
+            [value for value, _label in ConfirmForm().fields["payment_method"].choices],
+            ["at_hotel"],
+        )
+        form = ConfirmForm(data={"terms": "on", "payment_method": "online"})
+        self.assertFalse(form.is_valid())
+        self.assertIn("Online betalen is voor deze boeking niet mogelijk", str(form))
+
+        form = ConfirmForm(
+            data={"terms": "on", "payment_method": "online"}, online_payment=True
+        )
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.cleaned_data["payment_method"], "online")
+        self.assertEqual(
+            [label for _value, label in form.fields["payment_method"].choices],
+            ["In het hotel betalen", "Nu online betalen (iDEAL)"],
+        )
+
+    def test_unknown_payment_method(self):
+        form = ConfirmForm(
+            data={"terms": "on", "payment_method": "contant"}, online_payment=True
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn("payment_method", form.errors)
+
+    def test_expected_total(self):
+        for value, expected in [("", None), ("340.00", Decimal("340.00")), ("0", 0)]:
+            with self.subTest(value=value):
+                form = ConfirmForm(data={"terms": "on", "expected_total": value})
+                self.assertTrue(form.is_valid(), form.errors)
+                self.assertEqual(form.cleaned_data["expected_total"], expected)
+
+    def test_unreadable_expected_total_is_a_form_error(self):
+        for value in ["abc", "NaN", "-1", "Infinity", "1" * 21]:
+            with self.subTest(value=value):
+                form = ConfirmForm(data={"terms": "on", "expected_total": value})
+                self.assertFalse(form.is_valid())
+                self.assertEqual(
+                    form.non_field_errors(),
+                    ["De prijs kon niet gecontroleerd worden. Bevestig opnieuw."],
+                )

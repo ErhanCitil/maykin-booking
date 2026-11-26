@@ -8,6 +8,58 @@ is based on `Keep a Changelog`_.
 .. _Keep a Changelog: https://keepachangelog.com/en/1.1.0/
 
 
+Unreleased: phase 2 "Money"
+===========================
+
+Deploying this release needs extra steps (migrations, new environment
+variables, cron, roles, seller details): see ``docs/releases/phase-2.rst``.
+
+Added
+-----
+
+* Price rules: a weekend surcharge for the Friday and Saturday night,
+  high-season periods with a surcharge, and a discount from a number of
+  nights on. Every night stores its base price and surcharges.
+* Discount codes: a percentage or a fixed amount, a period of validity and a
+  maximum number of uses. The checkout allows 10 code attempts per hour per
+  IP address.
+* Invoices: issued when a booking is confirmed, numbered ``YYYY-NNNNN``
+  without gaps per year, and never changed. A cancelled booking gets a credit
+  note. The PDFs are stored in ``PRIVATE_MEDIA_ROOT`` and are never served as
+  files. VAT is calculated back from the price, with rates per country
+  (``VatRate``, in the admin); the Netherlands has 9% up to 2025 and 21% from
+  2026. Without seller details or a VAT rate, an invoice gets the watermark
+  "Testfactuur – niet geldig". Tourist tax is not on the invoice.
+* Online payment with iDEAL via Mollie (test keys only), or the fake provider
+  in development and CI. An online booking holds the room for
+  ``PAYMENT_HOLD_MINUTES`` (15). It has a webhook and a return URL.
+* Refunds: when a booking that was paid online is cancelled, and
+  automatically for a payment that comes too late, twice or for another
+  amount. A refund that fails is retried by the cron and from the dashboard.
+* Dashboard: price rules, discount codes, invoices (list, PDF, CSV),
+  customers per e-mail address (with CSV), and a report of occupancy and
+  revenue per hotel. Every booking page has a payment and refund panel.
+* Staff roles as groups: "Receptie" and "Beheer".
+* Guest field "Woonplaats"; country per hotel.
+* Management command ``sync_payments``, for cron every minute next to
+  ``expire_pending_orders``.
+* Settings ``INVOICE_SELLER_NAME``, ``INVOICE_SELLER_ADDRESS``,
+  ``INVOICE_SELLER_KVK``, ``INVOICE_SELLER_VAT_ID``, ``PRIVATE_MEDIA_ROOT``,
+  ``MOLLIE_API_KEY``, ``PAYMENT_FAKE_PROVIDER`` and ``PAYMENT_HOLD_MINUTES``.
+
+Changed
+-------
+
+* The dashboard checks permissions per page. Existing staff members get the
+  role "Beheer" (migration ``accounts/0002``).
+* An expired booking that was never paid gets the payment status "unpaid".
+* ``load_demo_data`` gives every hotel the country of its city. It also
+  deletes invoices, payments and refunds, and refuses outside development and
+  CI and when there are real invoices.
+* The production settings refuse ``DEBUG``, ``PAYMENT_FAKE_PROVIDER`` and live
+  Mollie keys.
+
+
 Unreleased: phase 1 "Foundation"
 ================================
 

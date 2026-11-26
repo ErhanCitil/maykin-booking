@@ -13,6 +13,9 @@ from django.utils import timezone
 from maykinbooking.accounts.tests.factories import StaffUserFactory
 from maykinbooking.base.models import EmailLog, Order, OrderStatus
 from maykinbooking.base.tests.factories import HotelFactory, RoomFactory
+from maykinbooking.billing.models import Invoice, PricingSettings
+from maykinbooking.billing.tests.factories import DiscountCodeFactory
+from maykinbooking.billing.tests.utils import TempMediaMixin
 
 from ..emails import (
     MAX_ERROR_LENGTH,
@@ -43,7 +46,7 @@ GUEST = {
     DEFAULT_FROM_EMAIL="boekingen@example.com",
     BOOKING_CONTACT_EMAIL="hulp@example.com",
 )
-class BookingEmailTestCase(TestCase):
+class BookingEmailTestCase(TempMediaMixin, TestCase):
     def setUp(self):
         hotel = HotelFactory(is_available=True, name="Hotel & Spa <Amsterdam>")
         self.room = RoomFactory(hotel=hotel, price=Decimal("100.00"), inventory=1)
@@ -79,10 +82,14 @@ class ConfirmationEmailTests(BookingEmailTestCase):
         self.assertEqual(mimetype, "text/html")
         self.assertIn(f'href="{link}"', html)
 
-        ((filename, content, attachment_type),) = message.attachments
-        self.assertEqual(filename, f"boeking_{order.pk}.pdf")
-        self.assertEqual(attachment_type, "application/pdf")
-        self.assertTrue(content.startswith(b"%PDF"))
+        invoice = Invoice.objects.get(order=order)
+        self.assertEqual(
+            [filename for filename, _content, _type in message.attachments],
+            [f"boeking_{order.pk}.pdf", f"factuur_{invoice.number}.pdf"],
+        )
+        for _filename, content, attachment_type in message.attachments:
+            self.assertEqual(attachment_type, "application/pdf")
+            self.assertTrue(content.startswith(b"%PDF"))
 
         log = EmailLog.objects.get()
         self.assertEqual(log.order, order)
@@ -192,7 +199,10 @@ class CancellationEmailTests(BookingEmailTestCase):
         self.assertEqual(message.subject, f"Je boeking #{order.pk} is geannuleerd")
         self.assertIn("is geannuleerd", message.body)
         self.assertIn(f"/boeking/{order.token}/", message.body)
-        self.assertEqual(message.attachments, [])
+        credit_note = Invoice.objects.get(order=order, kind="credit_note")
+        ((filename, content, attachment_type),) = message.attachments
+        self.assertEqual(filename, f"creditnota_{credit_note.number}.pdf")
+        self.assertTrue(content.startswith(b"%PDF"))
         log = EmailLog.objects.get()
         self.assertEqual((log.kind, log.status), ("booking_cancellation", "sent"))
 
@@ -229,6 +239,40 @@ class BookingContextTests(BookingEmailTestCase):
     def test_pdf(self):
         order = self.book()
         self.assertTrue(render_order_pdf(order).startswith(b"%PDF"))
+
+    def test_money(self):
+        PricingSettings.load()
+        PricingSettings.objects.update(
+            long_stay_min_nights=2, long_stay_percent=Decimal("10")
+        )
+        DiscountCodeFactory(code="WELKOM", kind="fixed", value=Decimal("5"))
+        order = create_booking(
+            room_id=self.room.pk,
+            start=self.start,
+            end=self.start + timedelta(days=2),
+            guest=GUEST,
+            language="nl",
+            actor=Actor.guest(),
+            discount_code="WELKOM",
+        )
+        context = booking_context(order)
+        self.assertEqual(context["invoice"], order.invoices.get())
+        self.assertIsNone(context["credit_note"])
+        self.assertIsNone(context["payment"])
+        self.assertIsNone(context["refund"])
+        self.assertEqual(context["subtotal"], Decimal("200.00"))
+        self.assertEqual(
+            context["discount_lines"],
+            [
+                {"label": "Korting lang verblijf (10%)", "amount": Decimal("20.00")},
+                {"label": "Kortingscode WELKOM", "amount": Decimal("5.00")},
+            ],
+        )
+        self.assertEqual(order.total_price, Decimal("175.00"))
+
+        cancel_booking(order.pk, actor=Actor.guest())
+        context = booking_context(order)
+        self.assertEqual(context["credit_note"].credited_invoice, context["invoice"])
 
 
 class EmailLogRobustnessTests(BookingEmailTestCase):

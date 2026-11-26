@@ -1,13 +1,19 @@
 """
-End-to-end flows through the test client: US1.2, US1.3, US2.1-US2.3, US3.1-US3.3.
+End-to-end flows through the test client: US1.2, US1.3, US2.1-US2.3, US3.1-US3.3,
+and the money of phase 2.
 
 A guest searches the city page with a period, opens the hotel, goes through the
-three checkout steps, gets the confirmation mail with the PDF and the link, opens
-"Mijn boeking" with that link, downloads the PDF and cancels. Afterwards the room
-is free again on the city page and staff sees the cancelled booking with its log
-in the dashboard.
+three checkout steps, gets the confirmation mail with the PDF, the invoice and
+the link, opens "Mijn boeking" with that link, downloads the PDF and the invoice
+and cancels. Afterwards the room is free again on the city page and staff sees
+the cancelled booking with its log in the dashboard.
 
-Time is frozen in UTC; mails are sent with ``captureOnCommitCallbacks``.
+Phase 2: paying online at the fake provider (paid, failed), a discount code,
+a price that changes before confirming, the invoice of another booking, and
+cancelling a paid booking (refund and credit note).
+
+Time is frozen in UTC; mails are sent with ``captureOnCommitCallbacks`` or, when
+a callback registers another one (a refund sends its mail), ``commit_hooks``.
 """
 import re
 from datetime import date
@@ -22,7 +28,7 @@ from django.utils.html import escape
 
 from freezegun import freeze_time
 
-from maykinbooking.accounts.tests.factories import StaffUserFactory
+from maykinbooking.accounts.tests.factories import ManagerUserFactory
 from maykinbooking.base.models import (
     ActorType,
     City,
@@ -34,6 +40,21 @@ from maykinbooking.base.models import (
     OrderStatus,
     PaymentStatus,
     Room,
+)
+from maykinbooking.billing.models import (
+    Invoice,
+    InvoiceKind,
+    Payment,
+    PaymentState,
+    PricingSettings,
+    RefundState,
+)
+from maykinbooking.billing.tests.factories import DiscountCodeFactory
+from maykinbooking.billing.tests.utils import (
+    TempMediaMixin,
+    commit_hooks,
+    fake_checkout_path,
+    path_of,
 )
 
 SITE_URL = "https://booking.example.com"
@@ -54,6 +75,7 @@ GUEST = {
     "email": "alex@example.com",
     "address": "Keizersgracht 117",
     "zipcode": "1015 CJ",
+    "city": "Amsterdam",
     "country": "NL",
 }
 
@@ -66,7 +88,7 @@ MY_BOOKING_LINK = re.compile(re.escape(SITE_URL) + r"(/boeking/[0-9a-f-]{36}/)")
     DEFAULT_FROM_EMAIL="boekingen@example.com",
     BOOKING_CONTACT_EMAIL="hulp@example.com",
 )
-class EndToEndTestCase(TestCase):
+class EndToEndTestCase(TempMediaMixin, TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.city = City.objects.create(city_id="AMS", name="Amsterdam")
@@ -94,7 +116,7 @@ class EndToEndTestCase(TestCase):
             description="Kamer",
             inventory=1,
         )
-        cls.staff = StaffUserFactory(
+        cls.staff = ManagerUserFactory(
             username="medewerker", first_name="Mila", last_name="de Vries"
         )
         cls.city_url = reverse("stad", args=[cls.city.name])
@@ -205,10 +227,14 @@ class GuestBooksAndCancelsTests(EndToEndTestCase):
         self.assertEqual(confirmation.from_email, "boekingen@example.com")
         self.assertIn(f"#{order.pk}", confirmation.subject)
         self.assertIn("Hotel de Gracht", confirmation.subject)
-        [(filename, content, mimetype)] = confirmation.attachments
-        self.assertEqual(filename, f"boeking_{order.pk}.pdf")
-        self.assertEqual(mimetype, "application/pdf")
-        self.assertTrue(content.startswith(b"%PDF"))
+        # The booking and the invoice (payment at the hotel: issued at once).
+        self.assertEqual(
+            [filename for filename, _content, _mimetype in confirmation.attachments],
+            [f"boeking_{order.pk}.pdf", "factuur_2027-00001.pdf"],
+        )
+        for _filename, content, mimetype in confirmation.attachments:
+            self.assertEqual(mimetype, "application/pdf")
+            self.assertTrue(content.startswith(b"%PDF"))
         link = self.my_booking_path(confirmation)
         self.assertEqual(
             link, reverse("bookings:detail", kwargs={"token": order.token})
@@ -228,9 +254,11 @@ class GuestBooksAndCancelsTests(EndToEndTestCase):
         )
         self.assert_private(response)
 
-        # 6. The PDF can be downloaded from there.
+        # 6. The PDF can be downloaded from there, and so can the invoice: the
+        # same file as the attachment.
         pdf_url = reverse("bookings:pdf", kwargs={"token": order.token})
         self.assertContains(response, f'href="{pdf_url}"')
+        self.assertContains(response, "Je betaalt in het hotel bij aankomst.")
         response = self.client.get(pdf_url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response["Content-Type"], "application/pdf")
@@ -238,6 +266,18 @@ class GuestBooksAndCancelsTests(EndToEndTestCase):
             f'filename="boeking_{order.pk}.pdf"', response["Content-Disposition"]
         )
         self.assertTrue(response.content.startswith(b"%PDF"))
+        self.assert_private(response)
+
+        invoice = order.invoices.get()
+        invoice_url = reverse("bookings:invoice", args=[order.token, invoice.pk])
+        self.assertContains(self.client.get(link), f'href="{invoice_url}"')
+        response = self.client.get(invoice_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response["Content-Disposition"],
+            'attachment; filename="factuur_2027-00001.pdf"',
+        )
+        self.assertEqual(response.content, confirmation.attachments[1][1])
         self.assert_private(response)
 
         # 7. The room is taken: the hotel is gone from the city page.
@@ -264,13 +304,24 @@ class GuestBooksAndCancelsTests(EndToEndTestCase):
         cancellation = mail.outbox[1]
         self.assertEqual(cancellation.to, ["alex@example.com"])
         self.assertIn("geannuleerd", cancellation.subject)
-        self.assertEqual(cancellation.attachments, [])
+        # The credit note of the invoice.
+        [(filename, content, mimetype)] = cancellation.attachments
+        self.assertEqual(filename, "creditnota_2027-00002.pdf")
+        self.assertTrue(content.startswith(b"%PDF"))
         self.assertEqual(self.my_booking_path(cancellation), link)
 
         response = self.client.get(link)
         self.assertContains(response, "Je boeking is geannuleerd.")
         self.assertContains(response, "Deze boeking is geannuleerd.")
         self.assertNotContains(response, f'href="{cancel_url}"')
+        # Nothing was paid, so nothing goes back; the credit note is there.
+        self.assertNotContains(response, "teruggestort")
+        credit_note = order.invoices.get(kind=InvoiceKind.CREDIT_NOTE)
+        credit_note_url = reverse(
+            "bookings:invoice", args=[order.token, credit_note.pk]
+        )
+        self.assertContains(response, f'href="{credit_note_url}"')
+        self.assertEqual(self.client.get(credit_note_url).content, content)
 
         # 9. The room is free again.
         self.assertEqual(
@@ -428,3 +479,260 @@ class StaffCancelsAfterTheDeadlineTests(EndToEndTestCase):
         self.assertContains(response, "Gast belde, ziek")
         self.assertContains(response, "Mila de Vries")
         self.assertContains(response, "door medewerker", count=2)
+
+
+@override_settings(MOLLIE_API_KEY="", PAYMENT_FAKE_PROVIDER=True)
+class OnlinePaymentTestCase(EndToEndTestCase):
+    def order_url(self, period=PERIOD):
+        return self.with_period(reverse("order", args=[self.hotel.pk]), period)
+
+    def to_confirm_step(self, stay=STAY, period=PERIOD, **stay_data):
+        url = self.order_url(period)
+        self.client.get(url)
+        self.post_step(url, "stay", {**stay, "room": self.room.pk, **stay_data})
+        response = self.post_step(url, "guest", GUEST)
+        self.assertContains(response, "Klopt alles?")
+        return response
+
+    def confirm(self, payment_method="online", **data):
+        return self.post_step(
+            self.order_url(),
+            "confirm",
+            {"terms": "on", "payment_method": payment_method, **data},
+        )
+
+    def pay(self, action="paid"):
+        """Confirm online, then pay (or not) at the fake provider."""
+        self.to_confirm_step()
+        response = self.confirm()
+        payment = Payment.objects.get(status=PaymentState.OPEN)
+        self.assertEqual(response["Location"], SITE_URL + fake_checkout_path(payment))
+
+        payment_page = path_of(response["Location"])
+        response = self.client.get(payment_page)
+        self.assertContains(
+            response, "Testbetaling, er wordt geen echt geld afgeschreven"
+        )
+        self.assertContains(response, "€ 191,00")
+        response = self.client.post(payment_page, {"action": action})
+        return_url = response["Location"]
+        self.assertEqual(
+            return_url,
+            SITE_URL + reverse("billing:payment_return", args=[payment.reference]),
+        )
+        with commit_hooks():
+            return self.client.get(path_of(return_url))
+
+
+class OnlinePaymentTests(OnlinePaymentTestCase):
+    def test_pay_online_confirm_invoice_and_mail(self):
+        # 1. Step 3 offers online payment; confirming holds the room.
+        response = self.to_confirm_step()
+        self.assertContains(response, "Nu online betalen (iDEAL)")
+
+        response = self.pay()
+
+        # 2. Back from the provider: "Mijn boeking", confirmed and paid.
+        order = Order.objects.get()
+        link = reverse("bookings:detail", kwargs={"token": order.token})
+        self.assertRedirects(response, link, fetch_redirect_response=False)
+        self.assertEqual(order.status, OrderStatus.CONFIRMED)
+        self.assertEqual(order.payment_status, PaymentStatus.PAID)
+        response = self.client.get(link)
+        self.assertContains(response, "Je betaling is ontvangen.")
+        self.assertContains(response, "Betaald via iDEAL op 1 maart 2027")
+        self.assertContains(response, "Betaald")
+        self.assertNotContains(response, "Je betaalt in het hotel")
+        self.assert_private(response)
+
+        # 3. The invoice, on the page and in the confirmation mail.
+        invoice = order.invoices.get()
+        self.assertEqual(invoice.total_incl, Decimal("191.00"))
+        invoice_url = reverse("bookings:invoice", args=[order.token, invoice.pk])
+        self.assertContains(response, f'href="{invoice_url}"')
+        download = self.client.get(invoice_url)
+        self.assertEqual(download.status_code, 200)
+        self.assertTrue(download.content.startswith(b"%PDF"))
+
+        [confirmation] = mail.outbox
+        self.assertEqual(
+            [filename for filename, _content, _mimetype in confirmation.attachments],
+            [f"boeking_{order.pk}.pdf", invoice.filename],
+        )
+        self.assertEqual(confirmation.attachments[1][1], download.content)
+        self.assertEqual(self.my_booking_path(confirmation), link)
+
+        # 4. The room is taken.
+        self.assertEqual(self.hotel_names(PERIOD), ["Hotel Centraal"])
+
+    def test_payment_fails_and_the_room_is_free_again(self):
+        self.to_confirm_step()
+        self.confirm()
+        # While the guest is paying, the room is held.
+        self.assertEqual(self.hotel_names(PERIOD), ["Hotel Centraal"])
+        order = Order.objects.get()
+        self.assertEqual(order.status, OrderStatus.PENDING_PAYMENT)
+
+        payment_page = path_of(Payment.objects.get().checkout_url)
+        response = self.client.post(payment_page, {"action": "failed"})
+        with commit_hooks():
+            response = self.client.get(path_of(response["Location"]))
+
+        # Back to the checkout with the dates of the booking, and a message.
+        self.assertRedirects(
+            response,
+            self.with_period(reverse("order", args=[self.hotel.pk]), PERIOD),
+            fetch_redirect_response=False,
+        )
+        response = self.client.get(response["Location"])
+        self.assertContains(response, "De betaling is niet gelukt")
+        self.assertContains(response, 'role="alert"')
+
+        order.refresh_from_db()
+        self.assertEqual(order.status, OrderStatus.EXPIRED)
+        self.assertFalse(Invoice.objects.exists())
+        self.assertEqual(mail.outbox, [])
+        # The room is free again, also for this guest.
+        self.assertEqual(
+            self.hotel_names(PERIOD), ["Hotel Centraal", "Hotel de Gracht"]
+        )
+        response = self.client.get(self.order_url())
+        self.assertContains(response, f'value="{self.room.pk}"')
+        self.assertNotContains(response, "Geen kamers vrij in deze periode.")
+
+
+class DiscountCodeEndToEndTests(OnlinePaymentTestCase):
+    def test_valid_code_is_on_the_booking(self):
+        DiscountCodeFactory(code="ZOMER", value=Decimal("10"))
+        response = self.to_confirm_step(discount_code="zomer")
+        self.assertContains(response, "Kortingscode ZOMER")
+        self.assertContains(response, "− € 19,10")
+        self.assertContains(response, "€ 171,90")
+
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.confirm(payment_method="at_hotel", expected_total="171.90")
+
+        order = Order.objects.get()
+        self.assertEqual(order.total_price, Decimal("171.90"))
+        response = self.client.get(response["Location"])
+        self.assertContains(response, "Je boeking staat vast")
+        self.assertContains(response, "Subtotaal")
+        self.assertContains(response, "€ 191,00")
+        self.assertContains(response, "Kortingscode ZOMER")
+        self.assertContains(response, "− € 19,10")
+        self.assertContains(response, "€ 171,90")
+        self.assertEqual(order.invoices.get().total_incl, Decimal("171.90"))
+
+    def test_invalid_code(self):
+        url = self.order_url()
+        self.client.get(url)
+        response = self.post_step(
+            url, "stay", {**STAY, "room": self.room.pk, "discount_code": "GRATIS"}
+        )
+        self.assertContains(response, "Deze kortingscode is niet geldig.", count=1)
+        self.assertEqual(response.context["wizard"]["steps"].current, "stay")
+        self.assertFalse(Order.objects.exists())
+
+
+class PriceChangedEndToEndTests(OnlinePaymentTestCase):
+    def test_new_price_before_booking(self):
+        response = self.to_confirm_step()
+        self.assertContains(response, 'name="confirm-expected_total" value="191.00"')
+        # Meanwhile staff sets a discount for stays of 2 nights or more.
+        PricingSettings.load()
+        PricingSettings.objects.filter(pk=1).update(
+            long_stay_min_nights=2, long_stay_percent=Decimal("10")
+        )
+
+        response = self.confirm(payment_method="online", expected_total="191.00")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "De prijs van dit verblijf is gewijzigd.")
+        self.assertContains(response, "Korting lang verblijf (10%)")
+        self.assertContains(response, 'name="confirm-expected_total" value="171.90"')
+        self.assertFalse(Order.objects.exists())
+        self.assertFalse(Payment.objects.exists())
+
+        response = self.confirm(payment_method="online", expected_total="171.90")
+        payment = Payment.objects.get()
+        self.assertEqual(response["Location"], payment.checkout_url)
+        self.assertEqual(payment.amount, Decimal("171.90"))
+
+
+class InvoiceOfAnotherBookingTests(OnlinePaymentTestCase):
+    def test_token_only_opens_its_own_invoices(self):
+        with self.captureOnCommitCallbacks(execute=True):
+            self.to_confirm_step()
+            first = self.client.get(self.confirm(payment_method="at_hotel")["Location"])
+        mine = Order.objects.get()
+        with self.captureOnCommitCallbacks(execute=True):
+            self.to_confirm_step(
+                stay={"start_date": "2027-03-20", "end_date": "2027-03-21"},
+                period={"van": "2027-03-20", "tot": "2027-03-21"},
+            )
+            self.confirm(payment_method="at_hotel")
+        other = Order.objects.exclude(pk=mine.pk).get()
+        self.assertEqual(first.status_code, 200)
+
+        other_invoice = other.invoices.get()
+        response = self.client.get(
+            reverse("bookings:invoice", args=[mine.token, other_invoice.pk])
+        )
+        self.assertEqual(response.status_code, 404)
+        response = self.client.get(
+            reverse("bookings:invoice", args=[other.token, other_invoice.pk])
+        )
+        self.assertEqual(response.status_code, 200)
+
+
+class PaidBookingCancelledTests(OnlinePaymentTestCase):
+    def test_refund_and_credit_note(self):
+        self.pay()
+        order = Order.objects.get()
+        link = reverse("bookings:detail", kwargs={"token": order.token})
+        cancel_url = reverse("bookings:cancel", kwargs={"token": order.token})
+
+        response = self.client.get(cancel_url)
+        self.assertContains(response, "Je krijgt € 191,00 teruggestort.")
+        with commit_hooks():
+            response = self.client.post(cancel_url)
+        self.assertRedirects(response, link, fetch_redirect_response=False)
+
+        order.refresh_from_db()
+        self.assertEqual(order.status, OrderStatus.CANCELLED)
+        self.assertEqual(order.payment_status, PaymentStatus.REFUNDED)
+        refund = order.payments.get().refunds.get()
+        self.assertEqual(refund.status, RefundState.REFUNDED)
+        self.assertEqual(refund.amount, Decimal("191.00"))
+
+        response = self.client.get(link)
+        self.assertContains(response, "Je krijgt € 191,00 teruggestort")
+        self.assertContains(response, "Teruggestort op 1 maart 2027: € 191,00")
+        self.assertContains(response, "het betaalde bedrag is teruggestort")
+        credit_note = order.invoices.get(kind=InvoiceKind.CREDIT_NOTE)
+        credit_note_url = reverse(
+            "bookings:invoice", args=[order.token, credit_note.pk]
+        )
+        self.assertContains(response, f'href="{credit_note_url}"')
+        self.assertEqual(credit_note.total_incl, Decimal("-191.00"))
+        download = self.client.get(credit_note_url)
+        self.assertEqual(download.status_code, 200)
+        self.assertEqual(
+            download["Content-Disposition"],
+            f'attachment; filename="{credit_note.filename}"',
+        )
+
+        # Confirmation, cancellation (with the credit note) and the refund.
+        self.assertEqual(
+            list(order.emails.values_list("kind", "status")),
+            [
+                (EmailKind.BOOKING_CONFIRMATION, EmailStatus.SENT),
+                (EmailKind.BOOKING_CANCELLATION, EmailStatus.SENT),
+                (EmailKind.PAYMENT_REFUND, EmailStatus.SENT),
+            ],
+        )
+        cancellation = mail.outbox[1]
+        self.assertEqual(
+            [filename for filename, _content, _mimetype in cancellation.attachments],
+            [credit_note.filename],
+        )

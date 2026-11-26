@@ -12,6 +12,8 @@ from django.utils.html import escape
 
 from django_webtest import WebTest
 
+from maykinbooking.accounts.roles import MANAGEMENT, role_group
+
 from .factories import (
     CityFactory,
     HighlightFactory,
@@ -88,6 +90,7 @@ class TestLogin(TestCase):
         cls.staff = User.objects.create_user(
             username="Alex", password=cls.password, is_staff=True
         )
+        cls.staff.groups.add(role_group(MANAGEMENT))
         cls.guest = User.objects.create_user(username="Sam", password=cls.password)
         cls.hotel = HotelFactory(
             highlight=[HighlightFactory(name="Free renting a bike")]
@@ -147,6 +150,7 @@ class EditPage(WebTest):
         self.staff = get_user_model().objects.create_user(
             username="Alex", password="Landgraaf123", is_staff=True
         )
+        self.staff.groups.add(role_group(MANAGEMENT))
         self.city = CityFactory()
         self.highlight = HighlightFactory(name="Free renting a bike")
         self.hotel = HotelFactory(

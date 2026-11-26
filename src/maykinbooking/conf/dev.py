@@ -17,6 +17,8 @@ os.environ.setdefault("DB_PASSWORD", "maykinbooking")
 os.environ.setdefault("ENVIRONMENT", "development")
 os.environ.setdefault("TWO_FACTOR_FORCE_OTP_ADMIN", "no")
 os.environ.setdefault("TWO_FACTOR_PATCH_ADMIN", "no")
+# Online payment without a Mollie key: the fake provider ("betaald"/"mislukt").
+os.environ.setdefault("PAYMENT_FAKE_PROVIDER", "yes")
 
 from .base import *  # noqa isort:skip
 

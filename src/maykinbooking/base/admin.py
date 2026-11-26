@@ -48,7 +48,14 @@ class ReadOnlyInline(admin.TabularInline):
 
 class OrderNightInline(ReadOnlyInline):
     model = OrderNight
-    fields = ("date", "price")
+    fields = (
+        "date",
+        "base_price",
+        "weekend_percent",
+        "season_name",
+        "season_percent",
+        "price",
+    )
 
 
 class OrderStatusChangeInline(ReadOnlyInline):
@@ -103,6 +110,10 @@ class OrderAdmin(admin.ModelAdmin):
         "status",
         "payment_status",
         "hold_expires_at",
+        "length_discount_percent",
+        "length_discount",
+        "discount_code",
+        "code_discount",
         "total_price",
     )
     inlines = [OrderNightInline, OrderStatusChangeInline, EmailLogInline]

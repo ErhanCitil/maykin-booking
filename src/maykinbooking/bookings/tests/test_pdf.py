@@ -6,7 +6,10 @@ from django.test import TestCase
 
 import weasyprint
 
+from maykinbooking.base.models import OrderStatus, PaymentStatus
 from maykinbooking.base.tests.factories import HotelFactory, OrderFactory, RoomFactory
+from maykinbooking.billing.models import PaymentState
+from maykinbooking.billing.tests.factories import PaymentFactory, RefundFactory
 
 from ..pdf import data_url_fetcher, render_order_pdf
 
@@ -55,3 +58,27 @@ class RenderOrderPdfTests(TestCase):
             pdf = render_order_pdf(order)
         self.assertIs(html.call_args.kwargs["url_fetcher"], data_url_fetcher)
         self.assertTrue(pdf.startswith(b"%PDF"))
+
+    def test_the_template_fetches_nothing(self):
+        # Everything the template can show: surcharges, discounts, a payment,
+        # a refund and the "cancelled" stamp. The logo is inline SVG.
+        room = RoomFactory(hotel=HotelFactory(), price=Decimal("100"))
+        order = OrderFactory(
+            room=room,
+            hotel=room.hotel,
+            status=OrderStatus.CANCELLED,
+            payment_status=PaymentStatus.PAID,
+            length_discount_percent=Decimal("10"),
+            length_discount=Decimal("20.00"),
+            discount_code="WELKOM",
+            code_discount=Decimal("5.00"),
+        )
+        order.nights.update(weekend_percent=Decimal("20"), season_name="Kerst")
+        payment = PaymentFactory(order=order, status=PaymentState.PAID)
+        RefundFactory(payment=payment)
+        with mock.patch(
+            "maykinbooking.bookings.pdf.data_url_fetcher", wraps=data_url_fetcher
+        ) as fetcher, self.assertNoLogs("weasyprint", "WARNING"):
+            pdf = render_order_pdf(order)
+        self.assertTrue(pdf.startswith(b"%PDF"))
+        fetcher.assert_not_called()

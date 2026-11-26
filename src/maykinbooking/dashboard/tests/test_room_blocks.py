@@ -8,7 +8,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.formats import date_format
 
-from maykinbooking.accounts.tests.factories import StaffUserFactory, UserFactory
+from maykinbooking.accounts.tests.factories import ManagerUserFactory, UserFactory
 from maykinbooking.base.models import RoomBlock
 from maykinbooking.base.tests.factories import (
     HotelFactory,
@@ -22,7 +22,7 @@ from maykinbooking.bookings.services.availability import free_counts
 class RoomBlockTestCase(TestCase):
     @classmethod
     def setUpTestData(cls):
-        cls.staff = StaffUserFactory(username="medewerker")
+        cls.staff = ManagerUserFactory(username="medewerker")
         cls.user = UserFactory()
         cls.hotel = HotelFactory(name="Hotel aan de Gracht", is_available=True)
         cls.room = RoomFactory(

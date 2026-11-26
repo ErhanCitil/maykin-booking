@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+{% load i18n l10n %}
+<html lang="nl">
+  <head>
+    {% comment %}
+      After online payment (billing.views.PaymentReturnView), when the guest
+      does not go straight to "Mijn boeking":
+      state "processing": the payment is not final yet, the page reloads itself;
+      state "refunded": paid too late (the room was taken), twice or another
+      amount (``refund.reason``); the money goes back.
+    {% endcomment %}
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <meta name="referrer" content="no-referrer" />
+    {% if state == "processing" %}<meta http-equiv="refresh" content="{{ refresh_seconds }}" />{% endif %}
+    <title>{% if state == "refunded" %}{% trans "Je betaling wordt teruggestort" %}{% else %}{% trans "Je betaling wordt verwerkt" %}{% endif %} · Maykin Booking</title>
+    {% include 'components/head.html' %}
+  </head>
+  <body class="min-h-screen flex flex-col bg-linen text-ink font-sans antialiased">
+    {% include 'components/header.html' %}
+
+    <main class="flex-1 max-w-site w-full mx-auto px-6 md:px-8 py-14">
+      <p class="eyebrow">{% blocktrans with number=order.pk|unlocalize %}Boeking #{{ number }}{% endblocktrans %}</p>
+      <h1 class="font-display font-semibold text-4xl md:text-5xl tracking-[-0.02em] mt-3">{% if state == "refunded" %}{% trans "Je betaling wordt teruggestort" %}{% else %}{% trans "Je betaling wordt verwerkt" %}{% endif %}</h1>
+
+      <div class="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px] items-start">
+        {% if state == "refunded" %}
+        <div class="card p-7 md:p-9">
+          <div class="flex gap-4">
+            <span aria-hidden="true" class="inline-flex items-center justify-center w-11 h-11 shrink-0 rounded-full bg-[#F8EDD6] text-[#6E4A0E]">
+              <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>
+            </span>
+            <div class="text-[15px]">
+              <p>{% if refund.reason == "duplicate" %}{% blocktrans with amount=refund.amount|floatformat:2 %}We hebben je betaling van € {{ amount }} ontvangen, maar je boeking was al betaald. Je boeking blijft gewoon staan.{% endblocktrans %}{% elif refund.reason == "mismatch" %}{% blocktrans with amount=refund.amount|floatformat:2 %}We hebben € {{ amount }} ontvangen, maar dat is niet het bedrag van je boeking. Je boeking is daarom niet gemaakt.{% endblocktrans %}{% else %}{% blocktrans with amount=refund.amount|floatformat:2 %}We hebben je betaling van € {{ amount }} ontvangen, maar je boeking kon niet meer doorgaan: de reservering was verlopen en de kamer is inmiddels geboekt.{% endblocktrans %}{% endif %}</p>
+              <p class="mt-4">{% trans "Het volledige bedrag wordt teruggestort; dat duurt 1 tot 3 werkdagen. Je krijgt hierover een e-mail." %}</p>
+              <p class="mt-4 text-muted">{% trans "Vragen? Mail ons:" %} <a class="text-brick font-semibold" href="mailto:{{ contact_email }}">{{ contact_email }}</a></p>
+            </div>
+          </div>
+          <div class="mt-7 flex flex-wrap gap-3">
+            <a href="{% url 'bookings:detail' order.token %}" class="btn-dark">{% trans "Naar je boeking" %}</a>
+            {% if refund.reason != "duplicate" %}<a href="{{ checkout_url }}" class="btn-outline">{% trans "Opnieuw boeken" %}</a>{% endif %}
+          </div>
+        </div>
+        {% else %}
+        <div class="card p-7 md:p-9" role="status">
+          <div class="flex gap-4">
+            <span aria-hidden="true" class="inline-flex items-center justify-center w-11 h-11 shrink-0 rounded-full bg-linen text-ink">
+              <svg viewBox="0 0 24 24" class="w-5 h-5 animate-spin motion-reduce:animate-none" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-6.2-8.56"/></svg>
+            </span>
+            <div class="text-[15px]">
+              <p>{% trans "We wachten op de bevestiging van je bank. Dit duurt meestal maar even; deze pagina ververst zichzelf." %}</p>
+              <p class="mt-4 text-muted">{% trans "Je krijgt een e-mail zodra je boeking vaststaat." %}</p>
+            </div>
+          </div>
+          <div class="mt-7 flex flex-wrap gap-3">
+            <a href="" class="btn-dark">{% trans "Opnieuw controleren" %}</a>
+            <a href="{% url 'bookings:detail' order.token %}" class="btn-outline">{% trans "Naar je boeking" %}</a>
+          </div>
+        </div>
+        {% endif %}
+
+        <aside class="card p-6" aria-labelledby="summary-title">
+          <p class="eyebrow">{% trans "Je betaling" %}</p>
+          <h2 id="summary-title" class="font-display font-semibold text-2xl mt-1">{{ order.hotel.name }}</h2>
+          <dl class="mt-5 text-sm space-y-2.5">
+            <div class="flex justify-between gap-4"><dt class="text-muted">{% trans "Boekingsnummer" %}</dt><dd>#{{ order.pk|unlocalize }}</dd></div>
+            <div class="flex justify-between gap-4"><dt class="text-muted">{% trans "Inchecken" %}</dt><dd>{{ order.start_date|date:"j F Y" }}</dd></div>
+            <div class="flex justify-between gap-4"><dt class="text-muted">{% trans "Uitchecken" %}</dt><dd>{{ order.end_date|date:"j F Y" }}</dd></div>
+            <div class="flex justify-between items-baseline gap-4 pt-2.5 border-t border-seam"><dt class="font-semibold">{% trans "Bedrag" %}</dt><dd class="font-display font-semibold text-2xl">€ {{ payment.amount|floatformat:2 }}</dd></div>
+          </dl>
+        </aside>
+      </div>
+    </main>
+
+    {% include 'components/footer.html' %}
+  </body>
+</html>

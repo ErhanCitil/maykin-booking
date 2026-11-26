@@ -25,6 +25,11 @@ from maykinbooking.base.models import (
     Room,
     upload_storage,
 )
+from maykinbooking.billing.models import (
+    DemoDataPurgeRefused,
+    check_demo_data_purge,
+    purge_for_demo_data,
+)
 
 DATA_FILE = Path(__file__).resolve().parents[2] / "demo_data" / "hotels.json"
 
@@ -33,11 +38,25 @@ ROOM_TYPES = {value for value, _label in ROOM_CHOICES}
 MAX_PRICE = Decimal("9999.99")
 ROOM_INVENTORY = 5  # rooms of each type per hotel
 MAX_ADDRESS_LENGTH = Hotel._meta.get_field("address").max_length
+# The country of the hotels per city: it decides the VAT rate of the invoices.
+# Only the Netherlands has a VAT rate; the other countries get test invoices
+# (with the watermark) until a rate is added in the admin.
+CITY_COUNTRIES = {
+    "AMS": "NL",
+    "ANT": "BE",
+    "ATH": "GR",
+    "BAK": "TH",
+    "BAR": "ES",
+    "BER": "DE",
+}
+# For a city that is not in the list (a dataset of the tests, say).
+DEFAULT_COUNTRY = "NL"
 
 CONFIRM_PROMPT = """Je staat op het punt de demodata te laden.
 
 Dit verwijdert alle steden, hotels, kamers, boekingen en reviews uit de
-database '{database}' en vervangt ze door de demodata uit {path}.
+database '{database}', met de facturen en betalingen van die boekingen, en
+vervangt ze door de demodata uit {path}.
 Gebruikers en accounts blijven bestaan. Dit kan niet ongedaan worden gemaakt.
 
 Typ 'ja' om door te gaan of 'nee' om te annuleren: """
@@ -224,6 +243,13 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         if getattr(settings, "ENVIRONMENT", "") == "production":
             raise CommandError("load_demo_data is niet bedoeld voor productie.")
+        # Only where demo data belongs (DEBUG, development, ci, jenkins), and
+        # never over real invoices. Checked before the question, and again in
+        # the purge itself.
+        try:
+            check_demo_data_purge()
+        except DemoDataPurgeRefused as refused:
+            raise CommandError(f"load_demo_data weigert: {refused}")
 
         cities = load_dataset(DATA_FILE)
 
@@ -235,6 +261,12 @@ class Command(BaseCommand):
                 return
 
         with transaction.atomic():
+            # Invoices and payments protect their orders (and invoices cannot
+            # be deleted otherwise): only here, and never in production.
+            try:
+                purge_for_demo_data()
+            except DemoDataPurgeRefused as refused:
+                raise CommandError(f"load_demo_data weigert: {refused}")
             deleted = {
                 "boekingen": _delete_all(Order),
                 "reviews": _delete_all(Review),
@@ -274,6 +306,7 @@ class Command(BaseCommand):
                     terms=hotel_data["terms"],
                     price=min(room["price"] for room in rooms),
                     is_available=True,
+                    country=CITY_COUNTRIES.get(city.city_id, DEFAULT_COUNTRY),
                 )
                 Room.objects.bulk_create(
                     Room(
