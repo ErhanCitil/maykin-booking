@@ -1,4 +1,5 @@
 {% extends 'dashboard/base.html' %}
+{% load i18n %}
 
 {% block title %}{% if object %}{{ object.name }} bewerken{% else %}Nieuw hotel{% endif %}{% endblock %}
 
@@ -38,11 +39,14 @@
         <li class="py-3.5 flex items-center justify-between gap-3">
           <div>
             <p class="font-semibold">{{ room.get_room_type_display }}</p>
-            <p class="text-[13px] text-muted">{% if room.is_available %}Beschikbaar{% else %}Niet beschikbaar{% endif %}</p>
+            <p class="text-[13px] text-muted">{% blocktrans count counter=room.inventory %}{{ counter }} kamer{% plural %}{{ counter }} kamers{% endblocktrans %} · {% if room.is_available %}Beschikbaar{% else %}Niet beschikbaar{% endif %}</p>
           </div>
           <div class="flex items-center gap-4">
             <span class="font-display font-semibold text-xl whitespace-nowrap">€ {{ room.price|floatformat:2 }}</span>
-            <a href="{% url 'dashboard:room_edit' room.pk %}" class="text-sm font-semibold text-brick no-underline hover:text-ink">Bewerken</a>
+            <div class="flex flex-col items-end gap-0.5">
+              <a href="{% url 'dashboard:room_edit' room.pk %}" class="text-sm font-semibold text-brick no-underline hover:text-ink">Bewerken</a>
+              <a href="{% url 'dashboard:room_blocks' room.pk %}" class="text-[13px] text-muted no-underline hover:text-ink">{% trans "Blokkades" %}</a>
+            </div>
           </div>
         </li>
         {% endfor %}
@@ -56,7 +60,7 @@
 
     <section class="card p-7" aria-labelledby="delete-title">
       <h2 id="delete-title" class="font-semibold">Hotel verwijderen</h2>
-      <p class="mt-1 text-sm text-muted">Verwijdert ook alle kamers en boekingen van dit hotel.</p>
+      <p class="mt-1 text-sm text-muted">{% trans "Verwijdert ook alle kamers van dit hotel. Een hotel met boekingen kan niet verwijderd worden." %}</p>
       <a href="{% url 'dashboard:hotel_delete' object.pk %}" class="inline-block mt-3 text-sm font-semibold text-brick-dark hover:text-ink">Hotel verwijderen…</a>
     </section>
   </aside>

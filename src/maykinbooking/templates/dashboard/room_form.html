@@ -1,4 +1,5 @@
 {% extends 'dashboard/base.html' %}
+{% load i18n %}
 
 {% block title %}{% if object %}Kamer bewerken{% else %}Nieuwe kamer{% endif %} · {{ hotel.name }}{% endblock %}
 
@@ -21,10 +22,17 @@
   </form>
 
   {% if object %}
-  <aside class="card p-7">
-    <h2 class="font-semibold">Kamer verwijderen</h2>
-    <p class="mt-1 text-sm text-muted">Verwijdert ook de boekingen voor deze kamer.</p>
-    <a href="{% url 'dashboard:room_delete' object.pk %}" class="inline-block mt-3 text-sm font-semibold text-brick-dark hover:text-ink">Kamer verwijderen…</a>
+  <aside class="space-y-6">
+    <section class="card p-7" aria-labelledby="blocks-title">
+      <h2 id="blocks-title" class="font-semibold">{% trans "Blokkades" %}</h2>
+      <p class="mt-1 text-sm text-muted">{% trans "Haal kamers van dit type tijdelijk uit de verkoop, bijvoorbeeld voor onderhoud." %}</p>
+      <a href="{% url 'dashboard:room_blocks' object.pk %}" class="inline-block mt-3 text-sm font-semibold text-brick hover:text-ink">{% trans "Blokkades beheren" %} →</a>
+    </section>
+    <section class="card p-7" aria-labelledby="delete-title">
+      <h2 id="delete-title" class="font-semibold">Kamer verwijderen</h2>
+      <p class="mt-1 text-sm text-muted">{% trans "Een kamer met boekingen kan niet verwijderd worden. Zet de kamer dan op niet beschikbaar." %}</p>
+      <a href="{% url 'dashboard:room_delete' object.pk %}" class="inline-block mt-3 text-sm font-semibold text-brick-dark hover:text-ink">Kamer verwijderen…</a>
+    </section>
   </aside>
   {% endif %}
 </div>

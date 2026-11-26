@@ -2,8 +2,9 @@ import re
 import unicodedata
 
 from django import forms
+from django.utils.translation import gettext_lazy as _
 
-from maykinbooking.base.models import City, Hotel, Room
+from maykinbooking.base.models import City, Hotel, OrderStatus, Room
 
 INPUT_CLASS = "form-control"
 CHECKBOX_CLASS = "h-5 w-5 mt-0.5 shrink-0 accent-[#13243A]"
@@ -127,19 +128,33 @@ class RoomForm(StyledFormMixin, PhotoFormMixin, forms.ModelForm):
     price = forms.DecimalField(
         label="Prijs per nacht (€)",
         min_value=0,
-        max_digits=6,
+        max_digits=8,
         decimal_places=2,
         widget=forms.NumberInput(attrs={"step": "0.01"}),
     )
 
     class Meta:
         model = Room
-        fields = ("room_type", "price", "description", "is_available", "upload")
+        fields = (
+            "room_type",
+            "price",
+            "inventory",
+            "description",
+            "is_available",
+            "upload",
+        )
         labels = {
             "room_type": "Kamertype",
+            "inventory": _("Aantal kamers"),
             "description": "Beschrijving",
             "is_available": "Beschikbaar",
             "upload": "Foto",
+        }
+        help_texts = {
+            "inventory": _(
+                "Zoveel kamers van dit type kunnen per nacht geboekt worden. "
+                "Bij 0 is de kamer niet te boeken."
+            ),
         }
         widgets = {
             "description": forms.Textarea(attrs={"rows": 6}),
@@ -165,3 +180,107 @@ class CityForm(StyledFormMixin, forms.ModelForm):
         if commit:
             city.save()
         return city
+
+
+DATE_WIDGET = forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d")
+
+
+class HotelChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, hotel):
+        return f"{hotel.name} ({hotel.city.name})"
+
+
+class BookingFilterForm(StyledFormMixin, forms.Form):
+    """
+    Filters of the booking list and the CSV export (GET). The field names are
+    the query parameters. Every field is optional; see ``BookingFilterMixin``
+    for how they are applied.
+    """
+
+    ARRIVING_TODAY = "aankomst_vandaag"
+    LEAVING_TODAY = "vertrek_vandaag"
+    MAIL_FAILED = "mislukt"
+
+    q = forms.CharField(
+        label=_("Zoeken"),
+        required=False,
+        max_length=100,
+        widget=forms.TextInput(
+            attrs={"type": "search", "placeholder": _("Naam, e-mail of nr.")}
+        ),
+    )
+    stad = forms.ModelChoiceField(
+        label=_("Stad"),
+        queryset=City.objects.order_by("name"),
+        required=False,
+        empty_label=_("Alle steden"),
+    )
+    hotel = HotelChoiceField(
+        label=_("Hotel"),
+        queryset=Hotel.objects.select_related("city").order_by("name"),
+        required=False,
+        empty_label=_("Alle hotels"),
+    )
+    status = forms.ChoiceField(
+        label=_("Status"),
+        choices=[("", _("Alle statussen"))] + OrderStatus.choices,
+        required=False,
+    )
+    aankomst_van = forms.DateField(
+        label=_("Aankomst vanaf"), required=False, widget=DATE_WIDGET
+    )
+    aankomst_tot = forms.DateField(
+        label=_("Aankomst tot en met"), required=False, widget=DATE_WIDGET
+    )
+    snel = forms.ChoiceField(
+        choices=[
+            ("", ""),
+            (ARRIVING_TODAY, _("Aankomsten vandaag")),
+            (LEAVING_TODAY, _("Vertrekken vandaag")),
+        ],
+        required=False,
+        widget=forms.HiddenInput,
+    )
+    mail = forms.ChoiceField(
+        choices=[("", ""), (MAIL_FAILED, _("Mail mislukt"))],
+        required=False,
+        widget=forms.HiddenInput,
+    )
+
+
+class BookingCancelForm(StyledFormMixin, forms.Form):
+    reason = forms.CharField(
+        label=_("Reden"),
+        max_length=1000,
+        widget=forms.Textarea(attrs={"rows": 4}),
+        help_text=_("Komt in het logboek van de boeking. De gast ziet de reden niet."),
+    )
+    confirm = forms.BooleanField(
+        label=_("Ja, annuleer deze boeking"),
+        help_text=_("De gast krijgt hierover een mail. Dit kan niet ongedaan worden."),
+    )
+
+
+class RoomBlockForm(StyledFormMixin, forms.Form):
+    start_date = forms.DateField(label=_("Van"), widget=DATE_WIDGET)
+    end_date = forms.DateField(
+        label=_("Tot"),
+        widget=DATE_WIDGET,
+        help_text=_("Op deze datum zijn de kamers weer vrij, net als bij een vertrek."),
+    )
+    quantity = forms.IntegerField(
+        label=_("Aantal kamers"), min_value=1, max_value=999, initial=1
+    )
+    reason = forms.CharField(
+        label=_("Reden"),
+        required=False,
+        max_length=200,
+        widget=forms.TextInput(attrs={"placeholder": _("Bijv. onderhoud")}),
+    )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        start, end = cleaned_data.get("start_date"), cleaned_data.get("end_date")
+        if start and end and end <= start:
+            self.add_error("end_date", _("De einddatum moet na de begindatum liggen."))
+        return cleaned_data

@@ -1,6 +1,8 @@
-{% comment %}
+{% load form_a11y %}{% comment %}
   Renders all fields of `form` in the brand style.
   Shows a preview of `photo_url` above the file input when it is set.
+  A field with errors gets aria-invalid and aria-describedby, pointing at its
+  error message (`<field id>_errors`).
 {% endcomment %}
 {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
 
@@ -13,11 +15,11 @@
 {% for field in form.visible_fields %}
   {% if field.widget_type == 'checkbox' %}
   <div class="mb-6 flex items-start gap-3">
-    {{ field }}
+    {% accessible_widget field %}
     <div>
       <label for="{{ field.id_for_label }}" class="font-semibold text-[15px]">{{ field.label }}</label>
       {% if field.help_text %}<p class="mt-0.5 text-[13px] text-muted">{{ field.help_text }}</p>{% endif %}
-      {% for error in field.errors %}<p class="mt-1 text-sm font-medium text-brick-dark">{{ error }}</p>{% endfor %}
+      {% if field.errors %}<div id="{{ field.auto_id }}_errors">{% for error in field.errors %}<p class="mt-1 text-sm font-medium text-brick-dark">{{ error }}</p>{% endfor %}</div>{% endif %}
     </div>
   </div>
   {% else %}
@@ -28,9 +30,9 @@
     {% if field.widget_type == 'file' and photo_url %}
     <img src="{{ photo_url }}" alt="Huidige foto" class="mb-2 w-full max-w-sm aspect-[16/9] object-cover rounded-xl border border-seam">
     {% endif %}
-    {{ field }}
+    {% accessible_widget field %}
     {% if field.help_text %}<p class="text-[13px] text-muted">{{ field.help_text }}</p>{% endif %}
-    {% for error in field.errors %}<p class="text-sm font-medium text-brick-dark">{{ error }}</p>{% endfor %}
+    {% if field.errors %}<div id="{{ field.auto_id }}_errors">{% for error in field.errors %}<p class="text-sm font-medium text-brick-dark">{{ error }}</p>{% endfor %}</div>{% endif %}
   </div>
   {% endif %}
 {% endfor %}

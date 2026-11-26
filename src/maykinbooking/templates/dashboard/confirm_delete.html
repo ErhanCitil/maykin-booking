@@ -1,4 +1,5 @@
 {% extends 'dashboard/base.html' %}
+{% load i18n %}
 
 {% block title %}{{ label }} verwijderen{% endblock %}
 
@@ -6,6 +7,14 @@
 <a href="{{ cancel_url }}" class="text-sm text-muted hover:text-ink no-underline">← Terug</a>
 
 <div class="card p-8 max-w-xl mt-6">
+  {% if protected_message %}
+  <h1 class="font-display font-semibold text-3xl tracking-[-0.015em]">{% blocktrans %}{{ label }} kan niet verwijderd worden{% endblocktrans %}</h1>
+  <p role="alert" class="mt-5 rounded-xl bg-[#F3E3DD] text-[#8A3519] px-5 py-4 text-sm font-medium">{{ protected_message }}</p>
+  <p class="mt-5 text-muted">{% trans "Boekingen blijven bewaard voor de administratie. Zet “Beschikbaar” uit, dan kunnen gasten niet meer boeken." %}</p>
+  <div class="mt-6 flex flex-wrap gap-3">
+    <a href="{{ cancel_url }}" class="btn-dark">{% trans "Terug naar bewerken" %}</a>
+  </div>
+  {% else %}
   <h1 class="font-display font-semibold text-3xl tracking-[-0.015em]">{{ label }} verwijderen?</h1>
   {% if consequences %}
   <ul class="mt-5 rounded-xl bg-[#F3E3DD] text-[#8A3519] py-4 pr-5 pl-9 text-sm font-medium list-disc space-y-1">
@@ -18,5 +27,6 @@
     <button type="submit" class="btn bg-brick-dark text-white hover:bg-[#7a2f19]">Ja, verwijderen</button>
     <a href="{{ cancel_url }}" class="btn-outline">Annuleren</a>
   </form>
+  {% endif %}
 </div>
 {% endblock %}
